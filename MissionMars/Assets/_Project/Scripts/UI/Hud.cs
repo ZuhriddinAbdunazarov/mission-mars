@@ -121,12 +121,11 @@ namespace MissionMars
             objGroup.alpha = 0;
 
             // ---- bottom-left vitals ----
-            var vit = Glass(Root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(400, 196)); vit.rectTransform.pivot = Vector2.zero; vit.rectTransform.anchoredPosition = new Vector2(40, 40);
+            var vit = Glass(Root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(400, 158)); vit.rectTransform.pivot = Vector2.zero; vit.rectTransform.anchoredPosition = new Vector2(40, 40);
             var vh = UIX.Text(vit.transform, "SUIT STATUS", 14, HC.Dim, R.Bold); vh.characterSpacing = 8; vh.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(20, -12), new Vector2(-30, 20));
-            o2 = MakeBar(vit.transform, 0, "OXYGEN", "air", HC.Cyan);
-            water = MakeBar(vit.transform, 1, "WATER", "water", new Color(0.4f, 0.7f, 1f));
+            o2 = MakeBar(vit.transform, 0, "LIFE SUPPORT", "air", HC.Cyan);
+            rad = MakeBar(vit.transform, 1, "RADIATION DOSE", "flare", HC.Amber);
             health = MakeBar(vit.transform, 2, "HEALTH", "health", HC.Green);
-            rad = MakeBar(vit.transform, 3, "RADIATION", "flare", HC.Amber);
 
             // ---- bottom-centre hotbar ----
             hotbar = UIX.Go("Hotbar", Root).RT(); hotbar.At(new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(Survival.Slots * 84, 76));
@@ -311,10 +310,10 @@ namespace MissionMars
             if (s)
             {
                 Set(o2, s.O2 / 100f, $"{s.O2:0}%", s.O2 < 25);
-                Set(water, s.Water / 100f, $"{s.Water:0}%", s.Water < 25);
+
                 Set(health, s.Health / 100f, $"{s.Health:0}%", s.Health < 30);
-                float rr = Mathf.Clamp01(s.DoseRate / 40f);
-                Set(rad, Mathf.Max(0.04f, rr), s.Inside ? "SHIELDED" : $"{s.DoseRate:0.0} mSv/sol", s.Storm > 0.05f && !s.Inside);
+                float rr = Mathf.Clamp01(s.DoseMSv / 600f); // NASA career limit: 600 mSv
+                Set(rad, Mathf.Max(0.02f, rr), (s.Inside ? "SHIELDED  " : "") + $"{s.DoseMSv:0} / 600 mSv", s.Storm > 0.05f && !s.Inside);
                 // overlays
                 float burnA = s.Inside ? 0 : s.Storm * 0.55f + Mathf.Sin(Time.time * 3) * s.Storm * 0.08f;
                 burn.color = new Color(1f, 0.35f, 0.08f, Mathf.Lerp(burn.color.a, burnA, dt * 3));
@@ -324,7 +323,7 @@ namespace MissionMars
                     var sp = cam.WorldToViewportPoint(cam.transform.position + Game.Sky.SunDir * 100);
                     glare.rectTransform.anchorMin = glare.rectTransform.anchorMax = new Vector2(sp.x, sp.y);
                 }
-                float low = Mathf.Max(Mathf.Clamp01((25 - s.O2) / 25f), Mathf.Clamp01((25 - s.Water) / 25f));
+                float low = Mathf.Clamp01((25 - s.O2) / 25f);
                 lowO2.color = new Color(0.02f, 0.03f, 0.08f, Mathf.Lerp(lowO2.color.a, low * 0.85f, dt * 2));
             }
             damage.color = new Color(0.8f, 0.05f, 0.05f, Mathf.MoveTowards(damage.color.a, 0, dt * 0.8f));

@@ -23,18 +23,30 @@ namespace MissionMars
                     "Look at the bottom of a rocket during launch: fire comes out!", "Hot gas shoots down out of the nozzle, and that pushes the rocket up. Push down, go up!"),
                 new Puzzle("Where do the ENGINES go on a rocket?", new[]{ "On the top", "At the bottom", "In the middle", "On the side door" }, 1,
                     "Fire comes out of the engines. Where does the fire come out?", "Engines always go at the BOTTOM. That's step 1 of building a rocket."),
+                new Puzzle("A rocket flies like a balloon when you let it go. Why?", new[]{ "Air rushes out the back and pushes it forward", "Balloons are magic", "The wind blows it", "It is very light" }, 0,
+                    "Look at page 6 of the book: Push Down, Go Up!", "Gas rushes out one way, and the rocket goes the other way. Scientists call it Newton's Third Law."),
+                new Puzzle("Rockets are built…", new[]{ "From the top down", "From the bottom up", "Lying on the side", "In any order" }, 1,
+                    "Like a tower of blocks!", "Rockets are built from the bottom up: engines first, then fuel, then the computer on top."),
             },
             new[] { // Fuel Valve
                 new Puzzle("What does the FUEL VALVE do?", new[]{ "Turns on the lights", "Opens and closes the fuel, like a tap", "Makes oxygen", "Steers the rocket" }, 1,
                     "Think of the tap in your kitchen sink.", "The valve works like a tap: it lets fuel flow to the engines, or stops it."),
                 new Puzzle("Which machine makes OXYGEN from Mars air?", new[]{ "MOXIE", "The fuel tank", "The radio", "The parachute" }, 0,
                     "It's the machine you carried into the bunker!", "MOXIE turns Mars air (carbon dioxide) into oxygen. NASA tested it on the Perseverance rover!"),
+                new Puzzle("What is Mars air mostly made of?", new[]{ "Oxygen", "Carbon dioxide", "Helium", "Water" }, 1,
+                    "It is the gas we breathe OUT.", "Mars air is about 95% carbon dioxide. We can't breathe it, so we need MOXIE."),
+                new Puzzle("Where can astronauts find water on Mars?", new[]{ "In rivers", "From rain", "Ice under the ground", "In the oceans" }, 2,
+                    "NASA's orbiters found it with radar.", "Mars has lots of ice hidden under the ground. We melt it into drinking water."),
             },
             new[] { // Flight Computer
                 new Puzzle("The FLIGHT COMPUTER is like the rocket's…", new[]{ "Legs", "Lunchbox", "Brain", "Wheels" }, 2,
                     "Which part of YOU thinks and decides?", "The flight computer is the rocket's brain. It steers and decides when to turn the engines on."),
                 new Puzzle("How often do Earth and Mars line up for the trip home?", new[]{ "Every day", "Every week", "About every 2 years", "Never" }, 2,
                     "Look at the timer on top of the bunker!", "Earth and Mars line up about every 26 months. That's the 2-year timer above your base."),
+                new Puzzle("What do we call one day on Mars?", new[]{ "A moon", "A sol", "An orbit", "A week" }, 1,
+                    "It sounds like the Latin word for Sun.", "A sol is 24 hours and 39 minutes, a little longer than an Earth day."),
+                new Puzzle("How long does a radio message take from Mars to Earth?", new[]{ "1 second", "3 to 22 minutes", "1 whole day", "1 year" }, 1,
+                    "Mars is VERY far away. Look at page 4.", "Radio is super fast, but Mars is so far away that a message takes 3 to 22 minutes."),
             },
         };
     }
@@ -160,7 +172,7 @@ namespace MissionMars
             string[,] rowsD =
             {
                 { "flare", "NASA DONKI — Space Weather Database", "The solar storm that sends you to the bunker is a REAL flare measured by NASA. Online: live flares from the last 30 days. Offline: real archived flares (e.g. X9.0, 3 Oct 2024). Bigger flare = stronger storm.", "Links your shelter decision to actual space weather." },
-                { "shield", "Curiosity Rover — RAD instrument", "Your radiation meter uses Curiosity's measurement: about 0.67 mSv per sol on the surface. Soil on top of the bunker blocks most of it.", "Shows why Mars needs shielding: no magnetic field, thin air." },
+                { "shield", "Curiosity Rover — RAD instrument", "Your radiation meter uses Curiosity's measurement: about 0.67 mSv per sol on the surface. The thick bunker walls block most of it.", "Shows why Mars needs shielding: no magnetic field, thin air." },
                 { "air", "Perseverance — MOXIE experiment", "Your oxygen maker is based on MOXIE, which turned Mars CO2 into oxygen (122 g in total, up to 12 g per hour).", "Making air from Mars air is real NASA technology." },
                 { "water", "Mars Reconnaissance Orbiter — SHARAD radar", "NASA radar found big sheets of ice under the ground. Your Ice-to-Water machine melts it.", "Water is the key resource for living on Mars." },
                 { "clock", "Mars–Earth launch windows", "Earth and Mars line up for the shortest trip only every ~26 months. That is the 2-year timer above your base.", "Why astronauts can't just fly home whenever they want." },
@@ -201,6 +213,7 @@ namespace MissionMars
             Btn(c.transform, "GOT IT!  (E)", () => infoOk = true, new Vector2(0, 40), 320, 60, HC.Green, new Vector2(0.5f, 0));
         }
 
+        void CloseInfoForTour() { infoOk = true; }
         public IEnumerator ShowInfo(string title, string icon, Color col, string body, string book)
         {
             if (!info) BuildInfo();
@@ -235,7 +248,8 @@ namespace MissionMars
             dataFromPause = fromPause;
             bool live; string sun = NasaData.SunStatus(out live);
             var api = NasaApi.I;
-            dataStatus.text = (live ? "● LIVE  " : "● ARCHIVED  ") + sun + (api && api.LatestFlare != null && live ? $"  ·  latest flare: {api.LatestFlare.classType} on {api.LatestFlare.peakTime?.Substring(0, 10)}" : "");
+            var recent = NasaData.FlarePool(); string list = ""; for (int i = 0; i < Mathf.Min(4, recent.Count); i++) list += (i > 0 ? ",  " : "") + $"{recent[i].Class} ({recent[i].Date})";
+            dataStatus.text = (live ? "● LIVE  " : "● ARCHIVED  ") + sun + "   ·   Real flares used: " + list;
             dataStatus.color = live ? HC.Green : HC.Amber;
             if (!Game.InMenu && !fromPause && !PauseOpen) UIState.Push();
             Show(data, true);
@@ -259,14 +273,16 @@ namespace MissionMars
         // ---------------- puzzle flow ----------------
         public IEnumerator RunPuzzle(RocketPart part, Action<bool> done)
         {
-            var set = Puzzles.Sets[part.Puzzle];
+            var pool = new List<Puzzle>(Puzzles.Sets[part.Puzzle]);
+            for (int i = pool.Count - 1; i > 0; i--) { int j = UnityEngine.Random.Range(0, i + 1); (pool[i], pool[j]) = (pool[j], pool[i]); }
+            var set = pool.GetRange(0, Mathf.Min(2, pool.Count)); // 2 random questions each game
             UIState.Push(); Show(puzzle, true);
             pzTitle.text = part.Name.ToUpper();
             pzTitle.color = part.Color;
-            for (int qi = 0; qi < set.Length; qi++)
+            for (int qi = 0; qi < set.Count; qi++)
             {
                 var pz = set[qi];
-                pzCounter.text = $"LOCK {qi + 1} / {set.Length}";
+                pzCounter.text = $"LOCK {qi + 1} / {set.Count}";
                 pzQ.text = pz.Q;
                 pzFeedback.text = ""; pzNext.gameObject.SetActive(false);
                 for (int i = 0; i < 4; i++) { pzBtns[i].t.text = $"<color=#7FE3FF>{i + 1}</color>   " + pz.A[i]; pzBtns[i].b.interactable = true; pzBtns[i].bg.color = new Color(0.06f, 0.08f, 0.11f, 0.75f); pzBtns[i].bg.GetComponent<UIButtonFx>().SetBase(pzBtns[i].bg.color); pzBtns[i].bg.GetComponent<UIButtonFx>().Locked = false; }

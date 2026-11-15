@@ -13,7 +13,8 @@ namespace MissionMars
     {
         Camera cineCam;
         PlayerController player; Survival suit; Hud hud; Screens screens; Robot bot;
-        public int DaysLeft = 780; float dayAcc; public bool ClockRunning; public float SecondsPerDay = 0.55f;
+        public int DaysLeft = 780; float dayAcc; public bool ClockRunning; public float SecondsPerDay = 0.9f;
+        public bool FlareActive; public int WindowsMissed; List<int> hazardQueue = new List<int>(); float hazardTimer = 999;
         public int Sol = 1;
         public FlareEvent CurrentFlare; readonly List<FlareEvent> pool = new List<FlareEvent>();
         bool inside, busy, partsHunt, storm2Done;
@@ -40,7 +41,7 @@ namespace MissionMars
         {
             if (ClockRunning && DaysLeft > 0 && !Game.Paused && !UIState.Modal)
             {
-                dayAcc += Time.deltaTime;
+                dayAcc += Time.deltaTime * (FlareActive && inside ? 4f : 1f); // sheltering from a flare costs time
                 while (dayAcc > SecondsPerDay) { dayAcc -= SecondsPerDay; Tick(); }
             }
             UpdateTimerHolo();
@@ -50,9 +51,15 @@ namespace MissionMars
 
         void Tick()
         {
-            // the clock never runs out before the rocket is ready: it holds at 30 days ("almost there")
-            if (partsInstalled < MarsWorld.Parts.Length && DaysLeft <= 30) return;
-            DaysLeft--; if (DaysLeft % 1 == 0) Sol++;
+            DaysLeft--; Sol++;
+            if (DaysLeft <= 0 && partsInstalled < MarsWorld.Parts.Length) StartCoroutine(MissedWindow());
+        }
+
+        IEnumerator MissedWindow()
+        {
+            WindowsMissed++; DaysLeft = 780;
+            hud.Warn("LAUNCH WINDOW MISSED", 5);
+            yield return hud.SayWait("Oh no, Earth moved away before our rocket was ready. The next launch window is in 26 months. More days on Mars means more radiation, so let's be quicker this time!", 4);
         }
 
         void UpdateTimerHolo()
@@ -240,7 +247,7 @@ namespace MissionMars
             yield return hud.SayWait("Good thinking, Commander. On real Mars missions, astronauts would hide in a shelter just like this when NASA warns of a flare.");
             MarsWorld.AlarmLight.intensity = 3; MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(3);
             Sfx.Play("alarm", 0.5f);
-            yield return hud.SayWait("Uh-oh. The bunker has no machines. Look at your OXYGEN and WATER bars — they keep going down!");
+            yield return hud.SayWait("Uh-oh. The bunker has no machines. Look at your LIFE SUPPORT bar — air and water are running out!");
         }
 
         Coroutine stormCo;
@@ -302,8 +309,8 @@ namespace MissionMars
             wpMoxie = hud.AddWaypoint("MOXIE", () => MarsWorld.MoxieCrate ? MarsWorld.MoxieCrate.transform.position : Vector3.zero, HC.Cyan);
             wpWater = hud.AddWaypoint("ICE MACHINE", () => MarsWorld.WaterCrate ? MarsWorld.WaterCrate.transform.position : Vector3.zero, new Color(0.5f, 0.7f, 1f));
             wpBunker = hud.AddWaypoint("BUNKER", () => MarsWorld.BunkerOutside, HC.Green); wpBunker.On = false;
-            foreach (var p in MarsWorld.Pouches) { var pp = p; pp.OnUse = () => { suit.Drink(35); Sfx.Play("pickup", 0.6f); hud.Toast("WATER +35", "Emergency water pouch from the ship.", "water", HC.Cyan); pp.gameObject.SetActive(false); }; }
-            MarsWorld.Tap.OnUse = () => { suit.Drink(100); Sfx.Play("powerup", 0.5f); hud.Toast("WATER FULL", "Fresh water melted from Mars ice.", "water", HC.Cyan); };
+            foreach (var p in MarsWorld.Pouches) { var pp = p; pp.OnUse = () => { suit.Drink(35); Sfx.Play("pickup", 0.6f); hud.Toast("LIFE SUPPORT +35", "Emergency air & water pack from the ship.", "water", HC.Cyan); pp.gameObject.SetActive(false); }; }
+            MarsWorld.Tap.OnUse = () => { suit.Drink(100); Sfx.Play("powerup", 0.5f); hud.Toast("LIFE SUPPORT UP", "Fresh water melted from Mars ice.", "water", HC.Cyan); };
             MarsWorld.DataConsole.OnUse = () => screens.OpenData(false);
 
             bool moxieHome = false, waterHome = false;
@@ -345,7 +352,7 @@ namespace MissionMars
                 @"<b>1.</b>  A drill digs down to the ice hidden under the Mars ground.
 <b>2.</b>  A heater melts the ice into <color=#7FE3FF>WATER</color>.
 <b>3.</b>  Filters clean the water so it is safe to drink.
-<b>4.</b>  Drink from the tap in the bunker (press E) to fill your WATER bar.
+<b>4.</b>  Drink from the tap in the bunker (press E) to fill your LIFE SUPPORT bar.
 
 <color=#9FB6D6>Carry it to the blue WATER spot in the bunker and press E.</color>",
                 "Read more in the Junior Astronaut Handbook, page 8 & 9"));
@@ -386,6 +393,9 @@ namespace MissionMars
             wpRocket = hud.AddWaypoint("LAUNCH PAD", () => MarsWorld.Rocket.position, HC.Amber); wpRocket.On = false;
             MarsWorld.RocketUse.enabled = true;
             MarsWorld.RocketUse.OnUse = () => StartCoroutine(InstallParts());
+            hazardQueue = new List<int> { 0, 1, 2, 0 };
+            for (int i = hazardQueue.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (hazardQueue[i], hazardQueue[j]) = (hazardQueue[j], hazardQueue[i]); }
+            hazardTimer = Random.Range(35f, 60f);
             partsHunt = true;
         }
 
@@ -413,9 +423,13 @@ namespace MissionMars
             hud.ForcedPrompt = fp;
             if (Hazard || inside || busy) return;
             // challenges while exploring: dust storm, meteor shower, a second real solar flare
-            if (!dustDone && FoundCount() >= 1) { dustDone = true; StartCoroutine(DustStorm()); }
-            else if (!meteorDone && partsInstalled >= 1) { meteorDone = true; StartCoroutine(MeteorShower()); }
-            else if (!storm2Done && FoundCount() >= 2 && meteorDone) { storm2Done = true; StartCoroutine(SecondStorm()); }
+            // random order + random timing every game: 0 = solar flare, 1 = dust storm, 2 = meteor shower
+            hazardTimer -= Time.deltaTime;
+            if (hazardTimer <= 0 && hazardQueue.Count > 0)
+            {
+                int h = hazardQueue[0]; hazardQueue.RemoveAt(0); hazardTimer = Random.Range(50f, 85f);
+                StartCoroutine(h == 0 ? SecondStorm() : h == 1 ? DustStorm() : MeteorShower());
+            }
         }
         int FoundCount() { int n = 0; foreach (var p in MarsWorld.Parts) if (p.Found) n++; return n; }
 
@@ -515,7 +529,7 @@ namespace MissionMars
             hud.Warn("METEOR SHOWER!", 5);
             yield return hud.SayWait("Meteors! Mars has very thin air, so space rocks don't burn up like on Earth. Watch the RED circles on the ground and move away!", 3);
             float t = 0;
-            while (t < 32)
+            while (t < 24)
             {
                 if (!inside && !UIState.Modal)
                 {
@@ -527,7 +541,7 @@ namespace MissionMars
                     hit.y = MarsTerrain.H(hit.x, hit.z);
                     StartCoroutine(Meteor(hit));
                 }
-                float w = Random.Range(0.9f, 1.8f); t += w;
+                float w = Random.Range(2.0f, 3.4f); t += w;
                 yield return new WaitForSeconds(w);
             }
             yield return new WaitForSeconds(3);
@@ -570,18 +584,35 @@ namespace MissionMars
             }
         }
 
-        IEnumerator SecondStorm()
+        public IEnumerator SecondStorm()
         {
+            Hazard = true;
             var f = PickFlare(false); CurrentFlare = f;
-            hud.Warn($"NEW SOLAR FLARE {f.Class} — RADIATION RISING", 6);
-            yield return hud.SayWait($"Another flare! {f.Class}. Your choice, Commander: run back to the bunker, or keep going and lose some health?", 4);
+            hud.Warn($"SOLAR FLARE {f.Class} — RADIATION RISING", 6);
+            yield return hud.SayWait($"NASA reports a {f.Class} solar flare! Your choice: SHELTER in the bunker (safe, but time passes 4x faster while you wait) or KEEP GOING (you save time, but you take radiation).", 4);
             hud.Toast("REAL SPACE WEATHER", FlareLine(f), "flare", HC.Amber);
-            var old = wpBunker; wpBunker = hud.AddWaypoint("SHELTER", () => MarsWorld.BunkerOutside, HC.Green);
-            yield return StormRamp(Mathf.Clamp(0.4f * f.Strength, 0.3f, 0.7f), 3f);
-            float t = 0; while (t < 28) { t += Time.deltaTime; yield return null; }
+            var wpS = hud.AddWaypoint("SHELTER", () => MarsWorld.BunkerOutside, HC.Green);
+            float dose0 = suit.DoseMSv; int sol0 = Sol; float inSec = 0, outSec = 0;
+            float strength = Mathf.Clamp(0.45f * f.Strength, 0.35f, 0.75f);
+            FlareActive = true;
+            yield return StormRamp(strength, 3f);
+            float t = 0;
+            while (t < 26) { t += Time.deltaTime; if (inside) inSec += Time.deltaTime; else outSec += Time.deltaTime; yield return null; }
             yield return StormRamp(0, 3f);
-            hud.RemoveWaypoint(wpBunker); wpBunker = null;
-            hud.Say(inside ? "The flare is over. Smart choice to take cover!" : "The flare is over. That was risky — check your HEALTH bar.", 4);
+            FlareActive = false;
+            hud.RemoveWaypoint(wpS);
+            float got = suit.DoseMSv - dose0; int daysUsed = Mathf.Max(0, Sol - sol0);
+            float ifOutside = strength * 1.2f * 29f;
+            bool sheltered = inSec > outSec;
+            string body = $@"<b>The flare:</b> class {f.Class} on {f.Date}. {(f.Live ? "LIVE" : "Archived")} data from NASA DONKI: this flare really happened!
+<b>Your choice:</b> <color=#7FE3FF>{(sheltered ? "SHELTER" : "KEEP GOING")}</color>
+<b>Time used:</b> {daysUsed} days of your launch window
+<b>Radiation you got:</b> {got:0.0} mSv   <color=#9FB6D6>(staying outside the whole time: about {ifOutside:0} mSv)</color>
+<b>Compare:</b> 1 chest X-ray is about 0.1 mSv, so you got about {Mathf.Round(got / 0.1f):0} X-rays.
+
+<color=#9FB6D6>Real fact: in May 2024 NASA's Curiosity rover measured one big solar storm on Mars. It was like 30 chest X-rays at once.</color>";
+            yield return screens.ShowInfo("FLARE REPORT", "flare", HC.Amber, body, "Read more in the Junior Astronaut Handbook, page 10 (Mars Dangers)");
+            Hazard = false;
         }
 
         // ================================================================== collapse (never game over)
@@ -604,8 +635,7 @@ namespace MissionMars
             yield return new WaitForSeconds(1.2f);
             yield return Cinema.I.FromBlack(1f);
             player.Frozen = false; busy = false;
-            string tip = why == "air" ? "Your OXYGEN ran out. Tip: watch the blue bar and come back to the bunker before it's empty."
-                : why == "water" ? "You ran out of WATER. Tip: drink at the tap in the bunker, or find water pouches near the wreck."
+            string tip = why == "air" ? "Your LIFE SUPPORT ran out. Tip: watch the blue bar and come back to the bunker before it is empty."
                 : "Too much RADIATION. Tip: when NASA warns of a solar flare, take cover in the bunker!";
             yield return hud.SayWait("Commander! I carried you back to the bunker. You're OK now. " + tip, 6);
         }
@@ -618,11 +648,11 @@ namespace MissionMars
             hud.Objective("WAIT FOR THE LAUNCH WINDOW", "The rocket is ready. Watch the countdown on top of the bunker…");
             yield return hud.SayWait("The rocket is complete! Now we wait for Earth to come around. Let's speed up time…");
             // time-lapse to day 0
-            int start = DaysLeft; float t = 0, d = 6f;
+            int start = DaysLeft, solStart = Sol; float t = 0, d = 6f;
             ClockRunning = false;
             Sfx.Play("whoosh", 0.5f, 0.5f);
             var co = StartCoroutine(SkyCycle(d));
-            while (t < d) { t += Time.deltaTime; DaysLeft = Mathf.RoundToInt(Mathf.Lerp(start, 0, t / d)); Sol = 780 - DaysLeft; yield return null; }
+            while (t < d) { t += Time.deltaTime; DaysLeft = Mathf.RoundToInt(Mathf.Lerp(start, 0, t / d)); Sol = solStart + (start - DaysLeft); yield return null; }
             DaysLeft = 0;
             Sfx.Play("success", 0.8f);
             hud.Warn("LAUNCH WINDOW OPEN", 4, false);
@@ -653,9 +683,10 @@ namespace MissionMars
             Cinema.I.Letterbox(true, 0.01f);
             yield return SpaceSet.I.Ending();
             Cinema.I.Letterbox(false, 0.6f);
-            int days = 780;
-            screens.ShowEnding($"You survived <color={HC.Hex(HC.Cyan)}>{days} days</color> on Mars and flew home.\n" +
-                $"Radiation dose: <color={HC.Hex(HC.Amber)}>{suit.DoseMSv + days * 0.67f * 0.4f:0} mSv</color>  ·  Puzzles solved first try: <color={HC.Hex(HC.Green)}>{screens.FirstTry} / {screens.Total}</color>\n" +
+            int days = Sol;
+            screens.ShowEnding($"You survived <color={HC.Hex(HC.Cyan)}>{days} sols</color> on Mars and flew home.\n" +
+                $"Radiation dose: <color={HC.Hex(HC.Amber)}>{suit.DoseMSv:0} mSv</color> of the 600 mSv NASA limit  ·  Launch windows missed: {WindowsMissed}\n" +
+                $"Puzzles solved first try: <color={HC.Hex(HC.Green)}>{screens.FirstTry} / {screens.Total}</color>\n" +
                 $"<size=20>Real solar flares you faced came from NASA DONKI. Real Mars missions plan around these same launch windows.</size>");
         }
 

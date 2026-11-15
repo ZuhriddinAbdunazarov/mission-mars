@@ -186,7 +186,7 @@ namespace MissionMars
                 ProcMesh.Prim(PrimitiveType.Cylinder, "Cap", g.transform, new Vector3(0, 0, 0.2f), new Vector3(0.06f, 0.04f, 0.06f), R.CyanGlow, new Vector3(90, 0, 0), false);
                 var l = new GameObject("L").AddComponent<Light>(); l.transform.SetParent(g.transform, false); l.transform.localPosition = Vector3.up * 0.6f; l.type = LightType.Point; l.range = 3; l.intensity = 1.5f; l.color = new Color(0.4f, 0.8f, 1f);
                 g.AddComponent<Bob>();
-                Pouches.Add(Interactable.Add(g, "Drink", "Water Pouch", null));
+                Pouches.Add(Interactable.Add(g, "Use", "Emergency Air & Water Pack", null));
             }
         }
 
@@ -392,6 +392,10 @@ namespace MissionMars
                 new RocketPart { Id = "COMPUTER", Name = "Flight Computer", Icon = "data", Color = new Color(0.45f, 1f, 0.6f), Puzzle = 2, Section = 2,
                     Path = new[] { new Vector2(102, -100), new Vector2(110, -124) } },
             };
+            // a different map every game: 3 of 6 landing spots, chosen at random
+            var spots = new List<Vector2> { new Vector2(-118, 102), new Vector2(116, 96), new Vector2(110, -124), new Vector2(-110, -116), new Vector2(-146, -8), new Vector2(20, 150) };
+            for (int i = spots.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (spots[i], spots[j]) = (spots[j], spots[i]); }
+            for (int i = 0; i < Parts.Length; i++) { var fin = spots[i]; Parts[i].Path = new[] { fin - fin.normalized * 22f, fin }; }
             var parent = new GameObject("Parts").transform; parent.SetParent(Root.transform);
             foreach (var p in Parts)
             {

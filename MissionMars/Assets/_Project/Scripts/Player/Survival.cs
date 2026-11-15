@@ -20,7 +20,7 @@ namespace MissionMars
         public bool MoxieOn, WaterOn;        // machines installed in the bunker
         public float Storm;                  // 0..1 solar storm strength outside right now
         public float SunGlare;               // 0..1 how much the player is looking into the sun
-        public float O2Drain = 0.32f, WaterDrain = 0.10f;
+        public float O2Drain = 0.32f, WaterDrain = 0f; // O2 is now LIFE SUPPORT (air + water together)
         public System.Action<string> OnCollapse;
         public readonly List<Item> Items = new List<Item>();
         public int Selected;
@@ -84,24 +84,24 @@ namespace MissionMars
             }
             else
             {
-                O2 = MoxieOn ? Mathf.Min(100, O2 + 14f * dt) : Mathf.Max(0, O2 - 0.06f * dt);
-                if (O2 > 30 && Water > 30) Health = Mathf.Min(100, Health + 2.5f * dt);
+                { float dust = Game.Sky ? Game.Sky.DustStorm : 0; float make = (MoxieOn ? 7f * (1 - 0.65f * dust) : 0) + (WaterOn ? 5f : 0); O2 = make > 0 ? Mathf.Min(100, O2 + make * dt) : Mathf.Max(0, O2 - 0.06f * dt); }
+                if (O2 > 30) Health = Mathf.Min(100, Health + 2.5f * dt);
             }
             Water = Mathf.Max(0, Water - WaterDrain * dt);
-            if (O2 <= 0 || Water <= 0) Health = Mathf.Max(0, Health - 6f * dt);
-            DoseMSv += DoseRate * dt / 60f; // compressed time: one real minute ~ one sol of dose
+            if (O2 <= 0) Health = Mathf.Max(0, Health - 6f * dt);
+            DoseMSv += (Inside ? 0.02f : 0.67f) * dt / (Game.Story ? Game.Story.SecondsPerDay : 1f) + (Inside ? 0 : Storm * 1.2f * dt); // Curiosity RAD: ~0.67 mSv per sol; a big flare adds ~30 mSv (May 2024 event)
 
             if (p) p.Sway = Mathf.Clamp01((40 - Health) / 40f) * 0.7f;
 
             if (!collapsed && Health <= 0)
             {
                 collapsed = true;
-                string why = O2 <= 0 ? "air" : Water <= 0 ? "water" : "radiation";
+                string why = O2 <= 0 ? "air" : "radiation";
                 OnCollapse?.Invoke(why);
             }
         }
 
         public void Restore(float o2, float water, float health) { O2 = Mathf.Max(O2, o2); Water = Mathf.Max(Water, water); Health = Mathf.Max(Health, health); collapsed = false; }
-        public void Drink(float amt) { Water = Mathf.Min(100, Water + amt); }
+        public void Drink(float amt) { O2 = Mathf.Min(100, O2 + amt); }
     }
 }

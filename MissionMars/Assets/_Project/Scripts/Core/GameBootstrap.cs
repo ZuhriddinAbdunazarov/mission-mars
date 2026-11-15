@@ -120,11 +120,17 @@ namespace MissionMars
             yield return Shot(dir, "13_puzzle", 1.5f);
             Screens.I.OpenData(true);
             yield return Shot(dir, "14_data", 1f);
-            Screens.I.TogglePause(false); yield return new WaitForSeconds(0.3f);
+            Screens.I.SendMessage("CloseData"); Screens.I.TogglePause(false); yield return new WaitForSeconds(0.5f);
             Game.Player.Teleport(MarsWorld.G(10, -10, 0.2f), 0);
             Game.Story.StartCoroutine(Game.Story.MeteorShower());
             yield return Shot(dir, "15_meteors", 9f);
             yield return Shot(dir, "16_meteors2", 2f);
+            Game.Story.StartCoroutine(Game.Story.SecondStorm());
+            yield return Shot(dir, "16b_flare", 8f);
+            yield return new WaitForSeconds(30f);
+            yield return Shot(dir, "16c_flare_report", 1f);
+            Screens.I.SendMessage("CloseInfoForTour", SendMessageOptions.DontRequireReceiver);
+            yield return new WaitForSeconds(1f);
             Game.Story.StartCoroutine(Game.Story.DustStorm());
             yield return Shot(dir, "17_dust", 12f);
             Game.Player.LookAt(MarsWorld.Rocket.position + Vector3.up * 6);

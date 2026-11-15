@@ -24,3 +24,19 @@
 
 **Credits:** "Astronaut" by Jungle Jim (Sketchfab, CC-BY). 8K Earth textures by khanhnamn063 (CGTrader, free). Free rocket model and 360° space panorama (CGTrader, free; add the authors before submitting). Saturn V and the other hardware: NASA 3D Resources. Ground textures: Poly Haven (CC0). Fonts: Google Fonts (OFL).
 *Not an official NASA product.*
+
+## Trade-offs (every choice has a cost)
+- **Solar flare: shelter or keep going?** Sheltering in the bunker is safe, but while a flare is on, time passes 4x faster, so the launch window gets closer. Staying outside saves time but adds radiation dose (Curiosity RAD: about 0.67 mSv per sol, plus about 30 mSv for a big flare, like the May 2024 event).
+- After every flare, a **Flare Report** shows the real flare (its class, date and source: DONKI, live or archived), the player's choice, the days used, the dose received, what the dose would have been outside, and how many chest X-rays that equals.
+- **Missing the launch window** isn't a game over. The next window is 26 months later (a real orbital constraint), but the player's radiation dose keeps growing. The **NASA career limit (600 mSv)** is shown on the HUD.
+- **Dust storms** block the Sun, so MOXIE makes less air. This costs life support, not health.
+
+## Three core resources
+**Life Support** (air and water together) · **Radiation Dose** (out of the 600 mSv NASA limit) · **Health**
+
+## Replayability
+- The 3 rocket details land in **3 of 6 random spots** each game.
+- Each detail asks **2 random questions out of 4**, and all of them come from the handbook.
+- **Solar flares, dust storms and meteor showers** come in a random order at random times.
+- The **real flares** are picked at random from the NASA DONKI list.
+- Failure isn't punishing: NOVA brings the player back with a tip.
