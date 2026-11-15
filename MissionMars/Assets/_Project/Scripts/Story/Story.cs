@@ -347,7 +347,7 @@ namespace MissionMars
 <b>4.</b>  The oxygen fills your bunker so you can breathe.
 
 <color=#9FB6D6>Carry it to the blue MOXIE spot in the bunker and press E.</color>",
-                "Read more in the Junior Astronaut Handbook, page 8 & 9"));
+                "Read more in the Junior Astronaut Handbook, page 10"));
             else StartCoroutine(screens.ShowInfo("ICE-TO-WATER MACHINE", "water", new Color(0.5f, 0.7f, 1f),
                 @"<b>1.</b>  A drill digs down to the ice hidden under the Mars ground.
 <b>2.</b>  A heater melts the ice into <color=#7FE3FF>WATER</color>.
@@ -355,7 +355,7 @@ namespace MissionMars
 <b>4.</b>  Drink from the tap in the bunker (press E) to fill your LIFE SUPPORT bar.
 
 <color=#9FB6D6>Carry it to the blue WATER spot in the bunker and press E.</color>",
-                "Read more in the Junior Astronaut Handbook, page 8 & 9"));
+                "Read more in the Junior Astronaut Handbook, page 10"));
         }
 
         IEnumerator InstallMoxie()
@@ -611,7 +611,7 @@ namespace MissionMars
 <b>Compare:</b> 1 chest X-ray is about 0.1 mSv, so you got about {Mathf.Round(got / 0.1f):0} X-rays.
 
 <color=#9FB6D6>Real fact: in May 2024 NASA's Curiosity rover measured one big solar storm on Mars. It was like 30 chest X-rays at once.</color>";
-            yield return screens.ShowInfo("FLARE REPORT", "flare", HC.Amber, body, "Read more in the Junior Astronaut Handbook, page 10 (Mars Dangers)");
+            yield return screens.ShowInfo("FLARE REPORT", "flare", HC.Amber, body, "Read more in the Junior Astronaut Handbook, page 11 (Mars Dangers)");
             Hazard = false;
         }
 

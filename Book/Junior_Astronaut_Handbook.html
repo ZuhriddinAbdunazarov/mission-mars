@@ -7,126 +7,152 @@
   @font-face { font-family: "Baloo"; src: url("fonts/Baloo2.ttf"); }
   @font-face { font-family: "Nunito"; src: url("fonts/Nunito.ttf"); }
   @font-face { font-family: "Orbitron"; src: url("fonts/Orbitron.ttf"); }
-  @page { size: A4; margin: 0; }
-  :root {
-    --navy: #0b1a2b; --navy2: #13294a; --mars: #e2622b; --mars2: #f39a54; --sand: #fff4e8;
-    --cyan: #2fc6e8; --green: #3fbf6b; --ink: #1d2733; --dim: #5b6876;
-  }
+  @page { size: A4 landscape; margin: 0; }
+  :root { --navy:#0b1a2b; --navy2:#13294a; --mars:#e2622b; --mars2:#f39a54; --sand:#fff8ee; --cyan:#2fc6e8; --ink:#1d2733; --dim:#5b6876; --gold:#f5b82e; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #888; }
-  body { font-family: "Nunito", Arial, sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { width: 210mm; height: 297mm; margin: 0 auto 8mm; background: var(--sand); position: relative; overflow: hidden; page-break-after: always; break-after: page; padding: 16mm 16mm 18mm; }
-  @media print { html, body { background: none; } .page { margin: 0; } }
-  .page.dark { background: radial-gradient(ellipse at 70% 20%, #1f3a66 0%, var(--navy) 60%); color: #fff; }
-  h1, h2, h3 { font-family: "Baloo", "Nunito", sans-serif; margin: 0; line-height: 1.05; }
-  h2 { font-size: 34pt; color: var(--mars); }
-  .dark h2 { color: var(--mars2); }
-  h3 { font-size: 18pt; color: var(--navy2); margin-bottom: 2mm; }
-  p, li { font-size: 14.5pt; line-height: 1.45; margin: 0 0 3mm; }
-  .kicker { font-family: "Orbitron", sans-serif; font-size: 9pt; letter-spacing: 3px; color: var(--dim); text-transform: uppercase; margin-bottom: 2mm; }
-  .dark .kicker { color: #9fb6d6; }
-  .pageno { position: absolute; bottom: 8mm; right: 14mm; font-family: "Orbitron"; font-size: 9pt; color: var(--dim); }
-  .dark .pageno { color: #9fb6d6; }
-  .photo { width: 100%; border-radius: 6mm; display: block; object-fit: cover; box-shadow: 0 2mm 6mm rgba(0,0,0,.18); }
-  .cap { font-size: 10pt; color: var(--dim); margin-top: 1.5mm; }
-  .dark .cap { color: #9fb6d6; }
-  .row { display: flex; gap: 6mm; }
-  .col { flex: 1; }
-  .card { background: #fff; border-radius: 5mm; padding: 5mm 6mm; box-shadow: 0 1mm 4mm rgba(0,0,0,.08); }
-  .fact { background: #fff; border-left: 3mm solid var(--mars); border-radius: 3mm; padding: 3mm 5mm; margin: 3mm 0; font-size: 13pt; }
-  .fact b { color: var(--mars); }
-  .big { font-size: 40pt; font-family: "Baloo"; color: var(--mars); line-height: 1; }
-  /* NOVA the robot speech bubble */
-  .nova { display: flex; align-items: flex-start; gap: 4mm; margin: 4mm 0; }
-  .nova .bot { flex: 0 0 18mm; height: 18mm; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0%, #dfe6ec 55%, #9fb0c0 100%); position: relative; box-shadow: 0 1mm 3mm rgba(0,0,0,.25); }
-  .nova .bot::before { content: ""; position: absolute; left: 3mm; right: 3mm; top: 5mm; height: 7mm; border-radius: 4mm; background: #0d1620; }
-  .nova .bot::after { content: ""; position: absolute; left: 6mm; right: 6mm; top: 7.5mm; height: 2mm; border-radius: 1mm; background: var(--cyan); box-shadow: 0 0 2mm var(--cyan); }
-  .nova .say { background: #e5f8fd; border: 0.6mm solid var(--cyan); border-radius: 4mm; padding: 3mm 5mm; font-size: 13.5pt; flex: 1; }
-  .nova .say b { color: #0c7f99; font-family: "Orbitron"; font-size: 9pt; letter-spacing: 2px; display: block; margin-bottom: 1mm; }
-  .game { background: var(--navy); color: #fff; border-radius: 4mm; padding: 3mm 5mm; font-size: 12.5pt; margin-top: 3mm; display: flex; gap: 3mm; align-items: center; }
-  .game::before { content: "🎮"; font-size: 16pt; }
-  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
-  .steps li { counter-increment: s; position: relative; padding-left: 15mm; margin-bottom: 5mm; }
-  .steps li::before { content: counter(s); position: absolute; left: 0; top: -1mm; width: 11mm; height: 11mm; border-radius: 50%; background: var(--mars); color: #fff; font-family: "Baloo"; font-size: 18pt; display: flex; align-items: center; justify-content: center; }
-  .quiz { border: 0.6mm solid #d9c7b4; border-radius: 4mm; padding: 3mm 5mm; margin-bottom: 3mm; background: #fff; }
-  .quiz .q { font-weight: 800; font-size: 13.5pt; margin-bottom: 1.5mm; }
-  .quiz .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 6mm; font-size: 12pt; }
-  .quiz .opts span::before { content: "☐  "; color: var(--mars); }
+  html, body { margin:0; padding:0; background:#777; }
+  body { font-family:"Nunito", Arial, sans-serif; color:var(--ink); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page { width:297mm; height:210mm; margin:0 auto 6mm; background:var(--sand); position:relative; overflow:hidden; page-break-after:always; break-after:page; padding:12mm 14mm 14mm; }
+  @media print { html, body { background:none; } .page { margin:0; } }
+  .dark { background:radial-gradient(ellipse at 75% 15%, #1f3a66 0%, var(--navy) 65%); color:#fff; }
+  h1, h2, h3 { font-family:"Baloo", sans-serif; margin:0; line-height:1.05; }
+  h2 { font-size:30pt; color:var(--mars); margin-bottom:3mm; }
+  .dark h2 { color:var(--mars2); }
+  h3 { font-size:15pt; color:var(--navy2); margin-bottom:1mm; }
+  .dark h3 { color:var(--gold); }
+  p, li { font-size:13pt; line-height:1.4; margin:0 0 2.5mm; }
+  .kicker { font-family:"Orbitron"; font-size:8.5pt; letter-spacing:3px; color:var(--mars); text-transform:uppercase; margin-bottom:1.5mm; }
+  .dark .kicker { color:var(--cyan); }
+  .pageno { position:absolute; bottom:6mm; right:12mm; font-family:"Orbitron"; font-size:8pt; color:var(--dim); }
+  .dark .pageno { color:#9fb6d6; }
+  .spread { display:grid; grid-template-columns:1.05fr 1fr; gap:9mm; height:100%; }
+  .spread.flip { grid-template-columns:1fr 1.05fr; }
+  .pic { width:100%; border-radius:5mm; display:block; object-fit:cover; box-shadow:0 1.5mm 5mm rgba(0,0,0,.2); }
+  .cap { font-size:9.5pt; color:var(--dim); margin-top:1.5mm; line-height:1.3; }
+  .dark .cap { color:#9fb6d6; }
+  .card { background:#fff; border-radius:4mm; padding:3mm 4.5mm; box-shadow:0 .8mm 3mm rgba(0,0,0,.08); margin-bottom:3mm; border-left:2.5mm solid var(--mars2); color:var(--ink); }
+  .card p { margin:0; font-size:12pt; }
+  .card b.t { color:var(--mars); }
+  .wow { background:#e9f6fd; border:.6mm solid var(--cyan); border-radius:4mm; padding:3mm 4.5mm; margin:3mm 0; }
+  .wow .h { font-family:"Orbitron"; font-size:8pt; letter-spacing:2px; color:#0c7f99; margin-bottom:1mm; }
+  .wow p { margin:0; font-size:12pt; color:var(--ink); }
+  .game { background:var(--navy); color:#fff; border-radius:4mm; padding:3mm 4.5mm; font-size:11.5pt; margin-top:3mm; border-left:2.5mm solid var(--cyan); }
+  .game b { color:var(--cyan); font-family:"Orbitron"; font-size:8pt; letter-spacing:2px; display:block; margin-bottom:.8mm; }
+  .dark .game { background:rgba(255,255,255,.08); }
+  .nova { display:flex; gap:3.5mm; align-items:flex-start; margin:3mm 0; }
+  .bot { flex:0 0 15mm; height:15mm; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff 0%, #dfe6ec 55%, #9fb0c0 100%); position:relative; box-shadow:0 1mm 3mm rgba(0,0,0,.25); }
+  .bot::before { content:""; position:absolute; left:2.5mm; right:2.5mm; top:4mm; height:6mm; border-radius:3mm; background:#0d1620; }
+  .bot::after { content:""; position:absolute; left:5mm; right:5mm; top:6.3mm; height:1.6mm; border-radius:1mm; background:var(--cyan); box-shadow:0 0 2mm var(--cyan); }
+  .say { background:#e5f8fd; border:.6mm solid var(--cyan); border-radius:4mm; padding:2.5mm 4mm; font-size:12pt; flex:1; color:var(--ink); }
+  .say b { color:#0c7f99; font-family:"Orbitron"; font-size:8pt; letter-spacing:2px; display:block; }
+  table.facts { width:100%; border-collapse:collapse; font-size:11pt; background:#fff; }
+  table.facts th { background:var(--navy); color:#fff; text-align:left; padding:2mm 3mm; font-size:10pt; }
+  table.facts td { padding:1.8mm 3mm; border-bottom:.3mm solid #e6dccf; vertical-align:top; }
+  table.facts td:first-child { font-weight:800; }
+  .steps { counter-reset:s; list-style:none; padding:0; margin:0; }
+  .steps li { counter-increment:s; position:relative; padding-left:11mm; margin-bottom:3mm; font-size:12.5pt; }
+  .steps li::before { content:counter(s); position:absolute; left:0; top:-.5mm; width:8mm; height:8mm; border-radius:50%; background:var(--mars); color:#fff; font-family:"Baloo"; font-size:14pt; display:flex; align-items:center; justify-content:center; }
+  .grid { display:grid; gap:4mm; }
+  .g2 { grid-template-columns:1fr 1fr; }
+  .ws { border-collapse:collapse; margin:2mm 0; }
+  .ws td { width:9.5mm; height:9.5mm; text-align:center; font-family:"Baloo"; font-size:15pt; border:.3mm solid #d9c7b4; background:#fff; }
+  .blank { display:inline-block; border-bottom:.4mm solid var(--ink); min-width:30mm; height:6mm; vertical-align:bottom; }
+  .code { font-family:"Orbitron"; font-size:10pt; letter-spacing:1px; color:var(--mars); }
+  .quiz { border:.5mm solid #d9c7b4; border-radius:3mm; padding:2mm 3.5mm; background:#fff; margin-bottom:2.5mm; }
+  .quiz .q { font-weight:800; font-size:11.5pt; margin-bottom:1mm; }
+  .quiz .o { display:grid; grid-template-columns:1fr 1fr; gap:.5mm 4mm; font-size:10.5pt; }
+  .quiz .o span::before { content:"☐ "; color:var(--mars); }
+  .upside { transform:rotate(180deg); font-size:9pt; color:var(--dim); text-align:center; }
+  .draw { border:.6mm dashed #a9b6c6; border-radius:4mm; background:#fff; }
 </style>
 </head>
 <body>
 
-<!-- 1. COVER -->
+<!-- 1 COVER -->
 <section class="page dark" style="padding:0">
-  <img src="img/game_launch.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55">
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,26,43,.2) 0%,rgba(11,26,43,.95) 78%)"></div>
-  <div style="position:absolute;left:16mm;right:16mm;bottom:28mm">
-    <div class="kicker" style="color:var(--mars2)">NASA Space Apps Challenge 2026</div>
-    <h1 style="font-size:48pt;color:#fff">Junior Astronaut<br>Handbook</h1>
-    <div style="font-family:Orbitron;font-size:16pt;letter-spacing:5px;color:var(--cyan);margin-top:4mm">MISSION MARS</div>
-    <p style="font-size:16pt;margin-top:8mm;color:#dbe6f3">Learn how rockets work, how astronauts stay alive on Mars,<br>and how to get home. <b style="color:#fff">Read this book first — then play the game!</b></p>
+  <img src="img/excrim/img_01_1376x768.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,26,43,.95) 0%,rgba(11,26,43,.75) 42%,rgba(11,26,43,0) 70%)"></div>
+  <div style="position:absolute;left:16mm;top:22mm;width:140mm">
+    <div class="kicker" style="color:var(--mars2)">Team Excrim · NASA Space Apps Challenge 2026</div>
+    <h1 style="font-size:46pt;color:#fff">Junior Astronaut<br>Handbook</h1>
+    <div style="font-family:Orbitron;font-size:14pt;letter-spacing:4px;color:var(--cyan);margin-top:4mm">MISSION MARS · THE 2-YEAR WINDOW</div>
+    <p style="font-size:15pt;margin-top:8mm;color:#dbe6f3">How space works, how rockets fly, and how astronauts survive on Mars.</p>
+    <p style="font-size:15pt;color:#fff"><b>Read this book first, then play the game!</b></p>
   </div>
+  <div style="position:absolute;left:16mm;bottom:12mm;font-size:10pt;color:#9fb6d6">For Junior Astronauts aged 7–12 · Real NASA science inside</div>
 </section>
 
-<!-- 2. HELLO -->
+<!-- 2 HELLO -->
 <section class="page">
-  <div class="kicker">Welcome</div>
-  <h2>Hello, Junior Astronaut!</h2>
-  <p style="margin-top:5mm">This book is your training manual. Everything you learn here, you will need in the game <b>Mission Mars: The 2-Year Window</b>.</p>
-  <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>Hi! I'm NOVA, your helper robot. I'll be with you in the book AND in the game. Let's train together!</div></div>
-  <h3 style="margin-top:8mm">How to use this book</h3>
-  <ol class="steps">
-    <li><b>Read</b> each page. The pictures are real NASA photos.</li>
-    <li><b>Answer the quiz</b> at the end of the book.</li>
-    <li><b>Play the game.</b> The game asks the <i>same</i> questions to unlock rocket parts — so you'll already know the answers!</li>
-  </ol>
-  <h3 style="margin-top:6mm">Your mission</h3>
-  <div class="card"><p style="margin:0">Your spaceship crashes on Mars. 🚀💥 You must find <b>air</b>, <b>water</b> and <b>shelter</b>, then find 3 lost rocket details, <b>build a new rocket</b>, and fly home when Earth comes back around.</p></div>
-  <img class="photo" src="img/game_puzzle.png" style="height:72mm;margin-top:6mm">
-  <div class="cap">In the game, you solve puzzles like this one to unlock rocket parts. The answers are in this book!</div>
+  <div class="spread">
+    <div>
+      <div class="kicker">Welcome aboard</div>
+      <h2>Hello, Junior Astronaut!</h2>
+      <p>This book is your <b>training manual</b>. First you will learn how space works. Then you will learn how to survive on Mars. At the end, you will play our game <b>Mission Mars</b> and use everything you learned!</p>
+      <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>Hi! I'm NOVA, your helper robot. You will meet me here in the book, and again inside the game. Let's train together!</div></div>
+      <h3 style="margin-top:4mm">How to use this book</h3>
+      <ol class="steps">
+        <li><b>Look at the big pictures first.</b> Then read the short text.</li>
+        <li><b>Do the puzzles</b> in the activity pages: word hunt, secret code, quiz.</li>
+        <li><b>Play the game.</b> It asks the <i>same questions</i> as this book, so you will already know the answers!</li>
+      </ol>
+    </div>
+    <div>
+      <img class="pic" src="img/excrim/img_03_1200x896.jpg" style="height:105mm">
+      <div class="cap">A spaceship and a Mars base: solar panels for power, a dome to live in, plants for food, and ice under the ground for water.</div>
+      <div class="card" style="margin-top:4mm"><p><b class="t">Your mission in the game:</b> your spaceship crashes on Mars. You find <b>air</b>, <b>water</b> and <b>shelter</b>, collect 3 lost rocket parts, <b>build a new rocket</b>, and fly home when Earth comes back around.</p></div>
+    </div>
+  </div>
   <div class="pageno">2</div>
 </section>
 
-<!-- 3. MARS -->
-<section class="page">
-  <div class="kicker">Chapter 1</div>
-  <h2>Meet Mars, the Red Planet</h2>
-  <div class="row" style="margin-top:5mm;align-items:center">
-    <div class="col"><img class="photo" src="img/PIA00407.jpg" style="height:80mm;object-fit:contain;background:#000"><div class="cap">Mars, photographed by NASA's Viking orbiters.</div></div>
-    <div class="col">
-      <p>Mars is the <b>4th planet</b> from the Sun. It looks red because its dirt has <b>rust</b> in it — the same thing that makes old bikes orange!</p>
-      <div class="fact"><b>A day on Mars is called a SOL.</b> It lasts 24 hours and 39 minutes.</div>
+<!-- 3 WHAT IS SPACE -->
+<section class="page dark">
+  <div class="spread">
+    <div>
+      <img class="pic" src="img/game_launch.png" style="height:118mm">
+      <div class="cap">Above the thin blue air, the sky turns black, even in daytime.</div>
+    </div>
+    <div>
+      <div class="kicker">Chapter 1 · Space basics</div>
+      <h2>What Is Space?</h2>
+      <p>Imagine flying up, higher than the clouds and higher than airplanes. Earth is wrapped in a thin blanket of <b>air</b>. When you go above it, about <b>100 km</b> up, you are in <b>space</b>!</p>
+      <div class="card"><p><b class="t">No air:</b> there is nothing to breathe, and no sound. Astronauts carry their own air.</p></div>
+      <div class="card"><p><b class="t">Black sky:</b> without air to scatter sunlight, the sky is black, and you can see stars even in the day.</p></div>
+      <div class="card"><p><b class="t">Very hot and very cold:</b> sunshine is burning hot, and shade is colder than any freezer.</p></div>
+      <div class="card"><p><b class="t">Radiation:</b> the Sun sends out invisible rays. Earth's air and magnetic field protect us. In space, astronauts need shields.</p></div>
     </div>
   </div>
-  <div class="row" style="margin-top:6mm">
-    <div class="card col"><div class="big">38%</div><p style="margin:0">Mars gravity is only 38% of Earth's. You could <b>jump almost 3 times higher!</b></p></div>
-    <div class="card col"><div class="big">−60°C</div><p style="margin:0">Mars is very cold. Astronauts need warm space suits.</p></div>
-    <div class="card col"><div class="big">95%</div><p style="margin:0">Mars air is 95% <b>carbon dioxide</b>. We can't breathe it!</p></div>
-  </div>
-  <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>Mars has no magnetic shield like Earth. That's why the Sun's radiation is dangerous there. Remember this — it's important in the game!</div></div>
   <div class="pageno">3</div>
 </section>
 
-<!-- 4. EARTH -->
-<section class="page dark">
-  <div class="kicker">Chapter 2</div>
-  <h2>Home Is Far Away</h2>
-  <img class="photo" src="img/PIA17936.jpg" style="height:70mm;margin-top:5mm;filter:brightness(2.6) contrast(1.3)">
-  <div class="cap">Real photo by NASA's Curiosity rover: the tiny bright dot in the Mars evening sky is EARTH!</div>
-  <p style="margin-top:5mm">From Mars, our whole planet looks like a little star. Earth is about <b>225 million kilometres</b> away. Even a radio message, which is super fast, needs <b>3 to 22 minutes</b> to get there.</p>
-  <div class="fact" style="color:var(--ink)"><b>The 2-year window:</b> Earth and Mars go around the Sun at different speeds. They line up for the shortest trip home only about <b>every 26 months</b>. Astronauts must wait for this "launch window".</div>
-  <img class="photo" src="img/game_wake.png" style="height:62mm;margin-top:4mm">
-  <div class="game">In the game, look up at the sky to find Earth. A 2-year countdown shines on top of your base.</div>
+<!-- 4 GRAVITY & ROCKETS -->
+<section class="page">
+  <div class="spread flip">
+    <div>
+      <div class="kicker">Chapter 2 · Leaving Earth</div>
+      <h2>Gravity and Rockets</h2>
+      <p>Jump as high as you can. Why do you fall back down? Earth pulls everything toward it with an invisible force called <b>gravity</b>.</p>
+      <p>To escape Earth's pull completely, a rocket must reach about <b>40,000 km per hour</b>, more than 30 times faster than a jet airplane!</p>
+      <div class="wow"><div class="h">TRY IT: THE BALLOON ROCKET</div><p>Blow up a balloon and let it go. Air rushes out the <b>back</b>, and the balloon zooms <b>forward</b>. A rocket works the same way: hot gas shoots <b>down</b> out of the engines, so the rocket goes <b>up</b>. Scientists call this <b>Newton's Third Law</b>.</p></div>
+      <div class="grid g2" style="margin-top:2mm">
+        <div><img class="pic" src="img/S69-39961.jpg" style="height:42mm"><div class="cap">Saturn V, Apollo 11, 1969 (NASA)</div></div>
+        <div><img class="pic" src="img/NHQ202211160030.jpg" style="height:42mm"><div class="cap">Artemis I, 2022 (NASA)</div></div>
+      </div>
+    </div>
+    <div>
+      <img class="pic" src="img/excrim/img_02_1200x896.jpg" style="height:150mm">
+      <div class="cap">3… 2… 1… BLAST OFF! Fire pushes down, the rocket goes up.</div>
+    </div>
+  </div>
   <div class="pageno">4</div>
 </section>
 
-<!-- 5. PARTS OF A ROCKET -->
+<!-- 5 PARTS OF A ROCKET -->
 <section class="page">
-  <div class="kicker">Chapter 3</div>
-  <h2>Parts of a Rocket</h2>
-  <div class="row" style="margin-top:6mm;align-items:center">
-    <div style="flex:0 0 70mm">
-      <svg viewBox="0 0 200 520" width="70mm">
+  <div class="spread">
+    <div style="display:flex;gap:6mm;align-items:center">
+      <svg viewBox="0 0 200 520" style="height:170mm;flex:0 0 auto">
         <defs><linearGradient id="b" x1="0" x2="1"><stop offset="0" stop-color="#cfd8e0"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#aab6c2"/></linearGradient></defs>
         <path d="M100 10 C130 50 140 90 140 120 L60 120 C60 90 70 50 100 10Z" fill="url(#b)" stroke="#33465a" stroke-width="3"/>
         <rect x="60" y="120" width="80" height="80" fill="#2fc6e8" stroke="#33465a" stroke-width="3"/>
@@ -138,183 +164,403 @@
         <path d="M70 390 L130 390 L145 440 L55 440Z" fill="#6b7480" stroke="#33465a" stroke-width="3"/>
         <path d="M70 445 Q100 520 130 445Z" fill="#ffb347"/><path d="M82 445 Q100 495 118 445Z" fill="#fff3b0"/>
       </svg>
+      <div>
+        <div class="card" style="border-left-color:var(--cyan)"><h3>🧠 Flight Computer (top)</h3><p>The rocket's <b>brain</b>. It steers and decides when to turn the engines on and off.</p></div>
+        <div class="card" style="border-left-color:var(--mars2)"><h3>⛽ Fuel Tank and Fuel Valve (middle)</h3><p>The tank holds the fuel. The <b>valve</b> works like a <b>tap</b>: it opens and closes the fuel flow.</p></div>
+        <div class="card" style="border-left-color:var(--mars)"><h3>🔥 Engine Nozzle (bottom)</h3><p>Pushes hot gas <b>down</b>, so the rocket goes <b>up</b>!</p></div>
+      </div>
     </div>
-    <div class="col">
-      <div class="card" style="margin-bottom:4mm;border-left:3mm solid var(--cyan)"><h3>🧠 Flight Computer <span style="font-size:11pt;color:var(--dim)">(top)</span></h3><p style="margin:0">The rocket's <b>brain</b>. It steers and decides when to turn the engines on.</p></div>
-      <div class="card" style="margin-bottom:4mm;border-left:3mm solid var(--mars2)"><h3>⛽ Fuel Tank &amp; Fuel Valve <span style="font-size:11pt;color:var(--dim)">(middle)</span></h3><p style="margin:0">The tank holds the fuel. The <b>valve</b> works like a <b>tap</b>: it opens and closes the fuel flow.</p></div>
-      <div class="card" style="border-left:3mm solid var(--mars)"><h3>🔥 Engine Nozzle <span style="font-size:11pt;color:var(--dim)">(bottom)</span></h3><p style="margin:0">Pushes hot gas <b>DOWN</b>, so the rocket goes <b>UP</b>!</p></div>
+    <div>
+      <div class="kicker">Chapter 3 · Inside a rocket</div>
+      <h2>Parts of a Rocket and How to Build One</h2>
+      <p>Rockets are built from the <b>bottom up</b>, like a tower of blocks:</p>
+      <ol class="steps">
+        <li><b>Engines first.</b> They go at the very bottom, because the fire must come out underneath.</li>
+        <li><b>Then the fuel tank and valve.</b> They sit above the engines so fuel can flow down into them.</li>
+        <li><b>Last, the computer and the nose.</b> The brain rides at the top, safe and far from the fire.</li>
+      </ol>
+      <img class="pic" src="img/game_hologram.png" style="height:48mm;margin-top:2mm">
+      <div class="game"><b>IN THE GAME</b>The new rocket on the launch pad starts as a blue hologram. Every part you find (Engine Nozzle, Fuel Valve, Flight Computer) makes one section real!</div>
     </div>
   </div>
-  <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>In the game, these 3 parts are lost on Mars after the crash. You'll find them and put them back in the right place!</div></div>
   <div class="pageno">5</div>
 </section>
 
-<!-- 6. HOW A ROCKET FLIES -->
+<!-- 6 SOLAR SYSTEM -->
 <section class="page dark">
-  <div class="kicker">Chapter 4</div>
-  <h2>Push Down, Go Up!</h2>
-  <div class="row" style="margin-top:5mm">
-    <div class="col"><img class="photo" src="img/S69-39961.jpg" style="height:110mm"><div class="cap">Saturn V launching Apollo 11 to the Moon, 1969.</div></div>
-    <div class="col"><img class="photo" src="img/NHQ202211160030.jpg" style="height:110mm"><div class="cap">NASA's Artemis I launch, 2022.</div></div>
+  <div class="kicker">Chapter 4 · Our cosmic neighbourhood</div>
+  <h2>Where Is Mars?</h2>
+  <img class="pic" src="img/excrim/img_06_1376x768.jpg" style="height:72mm">
+  <div class="cap">Our Sun is a star so big that about one million Earths could fit inside it. Eight planets travel around it.</div>
+  <p style="margin-top:3mm">Remember the planets in order with this silly sentence: <b style="color:var(--gold)">"My Very Educated Mother Just Served Us Noodles!"</b></p>
+  <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:2.5mm">
+    <div class="card"><p><b class="t">1 Mercury</b>: closest to the Sun, full of craters</p></div>
+    <div class="card"><p><b class="t">2 Venus</b>: thick clouds, the hottest planet</p></div>
+    <div class="card"><p><b class="t">3 Earth</b>: our home, with air and oceans</p></div>
+    <div class="card" style="border-left-color:var(--mars)"><p><b class="t">4 MARS</b>: cold, dusty, red. Our mission!</p></div>
+    <div class="card"><p><b class="t">5 Jupiter</b>: the biggest, with a giant storm</p></div>
+    <div class="card"><p><b class="t">6 Saturn</b>: rings of ice and rock</p></div>
+    <div class="card"><p><b class="t">7 Uranus</b>: an ice giant that rolls on its side</p></div>
+    <div class="card"><p><b class="t">8 Neptune</b>: dark, cold, super windy</p></div>
   </div>
-  <p style="margin-top:5mm">Try this: blow up a balloon and let it go. The air rushes <b>out the back</b>, and the balloon zooms <b>forward</b>. A rocket works the same way!</p>
-  <p>The engines burn fuel and push hot gas down through the <b>engine nozzle</b>. The gas pushes down… and the rocket is pushed up. Scientists call this <b>Newton's Third Law</b>.</p>
   <div class="pageno">6</div>
 </section>
 
-<!-- 7. HOW TO BUILD A ROCKET -->
+<!-- 7 HOW BIG HOW FAR -->
 <section class="page">
-  <div class="kicker">Chapter 5</div>
-  <h2>How to Build a Rocket</h2>
-  <p style="margin-top:4mm">Rockets are built from the <b>bottom up</b>, like a tower of blocks:</p>
-  <ol class="steps" style="margin-top:4mm">
-    <li><b>Engines first.</b> The engines and engine nozzle go at the very bottom, because the fire must come out underneath.</li>
-    <li><b>Then the fuel tank and fuel valve.</b> They sit right above the engines so the fuel can flow down into them.</li>
-    <li><b>Last, the flight computer and the top.</b> The brain rides at the top, safe and far from the fire.</li>
-  </ol>
-  <img class="photo" src="img/game_hologram.png" style="height:95mm;margin-top:2mm">
-  <div class="game">In the game, the new rocket starts as a blue hologram. Every part you bring makes one section real!</div>
+  <div class="spread">
+    <div>
+      <img class="pic" src="img/excrim/img_07_1376x768.jpg" style="height:80mm">
+      <div class="cap">Earth is about twice as wide as Mars, and Mars is about twice as wide as our Moon.</div>
+      <img class="pic" src="img/game_earth.png" style="height:50mm;margin-top:4mm">
+      <div class="cap">In the game, look up from Mars: the blue planet in the sky is EARTH, our home. (NASA's Curiosity rover really photographed Earth from Mars as a tiny bright dot!)</div>
+    </div>
+    <div>
+      <div class="kicker">Chapter 5 · How big and how far</div>
+      <h2>The Soccer Ball Trick</h2>
+      <div class="wow"><div class="h">IMAGINE THIS</div><p>Shrink Earth to a <b>soccer ball</b> (20 cm). Then the Moon is a <b>golf ball</b> about 6 metres away, across your classroom. Mars is a <b>softball</b> (11 cm), and even when it is closest it is about <b>1 kilometre</b> away down the street. Most of the time it is even farther!</p></div>
+      <div class="card"><p><b class="t">Trip time:</b> a rocket needs about <b>7 months</b> to fly from Earth to Mars.</p></div>
+      <div class="card"><p><b class="t">Radio delay:</b> a message needs <b>3 to 22 minutes</b> to reach Earth, so astronauts and rovers must solve problems by themselves.</p></div>
+      <div class="card" style="border-left-color:var(--cyan)"><p><b class="t">The 2-year window:</b> Earth and Mars line up for the shortest trip only about every <b>26 months</b>. That moment is called a <b>launch window</b>.</p></div>
+      <div class="game"><b>IN THE GAME</b>A countdown above your base shows when the next launch window opens. Your rocket must be ready in time!</div>
+    </div>
+  </div>
   <div class="pageno">7</div>
 </section>
 
-<!-- 8. AIR & WATER -->
+<!-- 8 STANDING ON MARS -->
 <section class="page">
-  <div class="kicker">Chapter 6</div>
-  <h2>Air and Water on Mars</h2>
-  <div class="row" style="margin-top:5mm">
-    <div class="col">
-      <img class="photo" src="img/PIA24203.jpg" style="height:62mm">
-      <div class="cap">MOXIE being put inside NASA's Perseverance rover.</div>
-      <h3 style="margin-top:4mm">💨 Making air: MOXIE</h3>
-      <p><b>MOXIE</b> is a real NASA machine. It takes Mars air (carbon dioxide) and turns it into <b>oxygen</b> we can breathe. It worked on Mars in 2021!</p>
+  <div class="spread flip">
+    <div>
+      <div class="kicker">Chapter 6 · The Red Planet</div>
+      <h2>What Is It Like on Mars?</h2>
+      <p>Mars is red because its dust has <b>iron rust</b> in it, like an old bicycle. The daytime sky is dusty pink, and sunsets are <b>blue</b>!</p>
+      <table class="facts">
+        <tr><th>Question</th><th>On Earth</th><th>On Mars</th></tr>
+        <tr><td>How long is a day?</td><td>24 hours</td><td>24 h 39 min, called a <b>sol</b></td></tr>
+        <tr><td>How long is a year?</td><td>365 days</td><td>687 Earth days</td></tr>
+        <tr><td>How strong is gravity?</td><td>normal</td><td>only <b>38%</b>: jump about 3× higher!</td></tr>
+        <tr><td>How cold?</td><td>comfortable</td><td>about +20 °C on summer days, −125 °C at night</td></tr>
+        <tr><td>Can I breathe the air?</td><td>yes</td><td><b>NO!</b> It is 95% carbon dioxide (CO2)</td></tr>
+        <tr><td>Moons?</td><td>1 Moon</td><td>2 small moons: <b>Phobos</b> and <b>Deimos</b></td></tr>
+      </table>
     </div>
-    <div class="col">
-      <img class="photo" src="img/PIA23515.jpg" style="height:62mm">
-      <div class="cap">NASA's orbiters found lots of ice under the Mars ground.</div>
-      <h3 style="margin-top:4mm">💧 Finding water: ice</h3>
-      <p>Mars has <b>ice hidden under the ground</b>. Astronauts can dig it up and melt it into drinking water.</p>
+    <div>
+      <img class="pic" src="img/excrim/img_08_1376x768.jpg" style="height:96mm">
+      <div class="cap">Boing! With only 38% gravity you feel light, but your spacesuit must keep you warm and give you air.</div>
+      <img class="pic" src="img/PIA00407.jpg" style="height:50mm;margin-top:3mm;object-fit:contain;background:#000">
+      <div class="cap">Mars, photographed by NASA's Viking orbiters.</div>
     </div>
   </div>
-  <img class="photo" src="img/game_bunker.png" style="height:62mm;margin-top:3mm">
-  <div class="game">In the game, carry MOXIE and the Ice-to-Water machine into your bunker to fill your LIFE SUPPORT bar (air + water).</div>
   <div class="pageno">8</div>
 </section>
 
-<!-- 8b. HOW THE MACHINES WORK -->
-<section class="page">
-  <div class="kicker">Chapter 6 · part 2</div>
-  <h2>How the Machines Work</h2>
-  <p style="margin-top:4mm">In the game you carry two machines from the crash site into your bunker. Here is how they really work:</p>
-  <div class="card" style="margin-top:4mm;border-left:3mm solid var(--cyan)">
-    <h3>💨 MOXIE — the Oxygen Maker</h3>
-    <ol class="steps" style="margin-top:3mm">
-      <li>A pump <b>sucks in Mars air</b>. It is mostly carbon dioxide (CO<sub>2</sub>).</li>
-      <li>MOXIE <b>heats the air</b> until it is very hot — about 800 °C!</li>
-      <li>A special plate <b>splits CO<sub>2</sub></b> and keeps the <b>oxygen (O<sub>2</sub>)</b>.</li>
-      <li>The oxygen <b>fills the bunker</b>, so astronauts can breathe.</li>
-    </ol>
-    <p style="font-size:12pt;color:var(--dim);margin:0">Real fact: on Mars, NASA's MOXIE made 122 grams of oxygen — enough for a small dog to breathe for about 10 hours!</p>
+<!-- 9 WONDERS & ICE -->
+<section class="page dark">
+  <div class="spread">
+    <div>
+      <img class="pic" src="img/excrim/img_09_1200x896.jpg" style="height:150mm">
+      <div class="cap">Long ago, rivers flowed on Mars. Today the water is frozen, at the poles and hidden under the ground.</div>
+    </div>
+    <div>
+      <div class="kicker">Chapter 7 · Martian wonders</div>
+      <h2>Giant Volcano and Hidden Ice</h2>
+      <div class="card"><p><b class="t">Olympus Mons:</b> the biggest volcano in the Solar System, about <b>22 km</b> high, around 2.5 times taller than Mount Everest!</p></div>
+      <div class="card"><p><b class="t">Valles Marineris:</b> a canyon about <b>4,000 km</b> long, as long as the United States is wide.</p></div>
+      <div class="card" style="border-left-color:var(--cyan)"><p><b class="t">Hidden ice:</b> NASA's orbiters used radar to find big sheets of <b>ice under the ground</b>. Astronauts can dig it up, melt it into drinking water, and even split water to make oxygen!</p></div>
+      <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>Water is very heavy to bring from Earth. Finding ice on Mars is like finding treasure!</div></div>
+    </div>
   </div>
-  <div class="card" style="margin-top:5mm;border-left:3mm solid #4f8df0">
-    <h3>💧 The Ice-to-Water Machine</h3>
-    <ol class="steps" style="margin-top:3mm">
-      <li>A drill <b>digs down</b> to the ice hidden under the Mars ground.</li>
-      <li>A heater <b>melts the ice</b> into water.</li>
-      <li>Filters <b>clean the water</b> so it is safe to drink.</li>
-      <li>Astronauts <b>drink from the tap</b> — and can even split water to make more oxygen!</li>
-    </ol>
-  </div>
-  <div class="game">In the game, when you pick up a machine, a card shows these steps. Carry it to its blue spot in the bunker and press E!</div>
   <div class="pageno">9</div>
 </section>
 
-<!-- 9. DANGERS -->
-<section class="page dark">
-  <div class="kicker">Chapter 7</div>
-  <h2>Mars Dangers (and How to Stay Safe)</h2>
-  <div class="row" style="margin-top:5mm">
-    <div class="col card" style="color:var(--ink)"><h3>☀️ Solar flares</h3><p style="margin:0;font-size:12.5pt">Big blasts from the Sun send out radiation. NASA watches the Sun every day (the <b>DONKI</b> database). <b>Stay safe:</b> hide in a shelter with thick walls.</p></div>
-    <div class="col card" style="color:var(--ink)"><h3>🌪️ Dust storms</h3><p style="margin:0;font-size:12.5pt">Mars storms can cover the whole planet! In 2018 one stopped NASA's Opportunity rover. <b>Stay safe:</b> follow your markers and save oxygen.</p></div>
-    <div class="col card" style="color:var(--ink)"><h3>☄️ Meteors</h3><p style="margin:0;font-size:12.5pt">Mars has very thin air, so space rocks don't burn up. NASA finds new craters every year. <b>Stay safe:</b> move away from where they fall!</p></div>
+<!-- 10 MACHINES -->
+<section class="page">
+  <div class="kicker">Chapter 8 · Life support</div>
+  <h2>Making Air and Water on Mars</h2>
+  <div class="grid g2" style="gap:8mm">
+    <div>
+      <img class="pic" src="img/PIA24203.jpg" style="height:52mm">
+      <div class="cap">MOXIE being placed inside NASA's Perseverance rover.</div>
+      <h3 style="margin-top:3mm">💨 MOXIE, the Oxygen Maker</h3>
+      <ol class="steps">
+        <li>A pump <b>sucks in Mars air</b> (mostly CO2).</li>
+        <li>MOXIE <b>heats it</b> to about 800 °C.</li>
+        <li>A special plate <b>splits CO2</b> and keeps the <b>oxygen (O2)</b>.</li>
+        <li>The oxygen <b>fills the base</b>, so astronauts can breathe.</li>
+      </ol>
+      <p style="font-size:11pt;color:var(--dim)">Real fact: on Mars, MOXIE made 122 grams of oxygen, enough for a small dog to breathe for about 10 hours!</p>
+    </div>
+    <div>
+      <img class="pic" src="img/game_bunker.png" style="height:52mm">
+      <div class="cap">Inside the bunker in our game.</div>
+      <h3 style="margin-top:3mm">💧 The Ice-to-Water Machine</h3>
+      <ol class="steps">
+        <li>A drill <b>digs down</b> to the hidden ice.</li>
+        <li>A heater <b>melts the ice</b> into water.</li>
+        <li>Filters <b>clean the water</b> so it is safe to drink.</li>
+        <li>Astronauts <b>drink</b> it, and can split it to make more oxygen.</li>
+      </ol>
+      <div class="game"><b>IN THE GAME</b>Carry MOXIE and the water machine from the crash site to the bunker. Together they fill your LIFE SUPPORT bar (air + water).</div>
+    </div>
   </div>
-  <div class="fact" style="color:var(--ink)"><b>Every choice has a cost.</b> Hiding keeps you safe, but you lose time to build your rocket. Staying outside saves time, but your radiation dose goes up. NASA has a limit for astronauts: <b>600 mSv</b> in a whole career. One chest X-ray is about 0.1 mSv.</div>
-  <img class="photo" src="img/PIA22329.jpg" style="height:38mm;margin-top:3mm;object-fit:cover">
-  <div class="cap">The 2018 global dust storm on Mars (NASA Mars Reconnaissance Orbiter).</div>
-  <img class="photo" src="img/game_storm.png" style="height:50mm;margin-top:3mm">
-  <div class="game">In the game, a REAL solar flare measured by NASA warns you. Your choice: hide in the bunker (safe, but time runs out faster) or keep going (save time, but more radiation). Then a Flare Report shows what your choice did!</div>
   <div class="pageno">10</div>
 </section>
 
-<!-- 10. ROBOTS -->
+<!-- 11 DANGERS -->
 <section class="page">
-  <div class="kicker">Chapter 8</div>
-  <h2>Our Robot Friends on Mars</h2>
-  <img class="photo" src="img/PIA24542.jpg" style="height:105mm;margin-top:5mm">
-  <div class="cap">Perseverance takes a selfie with Ingenuity, the little Mars helicopter (2021).</div>
-  <p style="margin-top:5mm"><b>Perseverance</b> is a car-sized rover that explores Mars, takes rock samples and tested MOXIE. <b>Ingenuity</b> was the first helicopter ever to fly on another planet!</p>
-  <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>You can find Perseverance and Ingenuity in the game too. Go say hi!</div></div>
+  <div class="spread">
+    <div>
+      <img class="pic" src="img/excrim/img_10_1376x768.jpg" style="height:88mm">
+      <div class="cap">Double trouble: a dust storm covers the solar panels while rays from the Sun hit the ground. A shielded shelter keeps astronauts safe.</div>
+      <img class="pic" src="img/PIA22329.jpg" style="height:42mm;margin-top:3mm">
+      <div class="cap">The real 2018 dust storm that covered all of Mars (NASA).</div>
+    </div>
+    <div>
+      <div class="kicker">Chapter 9 · Mars dangers</div>
+      <h2>Flares, Storms and Meteors</h2>
+      <div class="card"><p><b class="t">☀️ Solar flares:</b> big blasts from the Sun send out radiation. Mars has <b>no magnetic shield</b> like Earth. NASA watches the Sun every day in a database called <b>DONKI</b>. <b>Stay safe:</b> hide in a shelter with thick walls, or with soil on top.</p></div>
+      <div class="card"><p><b class="t">🌪️ Dust storms:</b> they can cover the whole planet and block sunlight, so solar machines make less power. In 2018 one stopped NASA's Opportunity rover.</p></div>
+      <div class="card"><p><b class="t">☄️ Meteors:</b> Mars has thin air, so space rocks don't burn up. NASA finds new craters every year.</p></div>
+      <div class="wow"><div class="h">EVERY CHOICE HAS A COST</div><p>Hiding keeps you safe, but you lose time. Staying outside saves time, but your radiation dose goes up. NASA's limit for a whole astronaut career is <b>600 mSv</b>. One chest X-ray is about 0.1 mSv.</p></div>
+      <div class="game"><b>IN THE GAME</b>A REAL flare from NASA DONKI warns you. Hide or keep going? A Flare Report then shows what your choice did!</div>
+    </div>
+  </div>
   <div class="pageno">11</div>
 </section>
 
-<!-- 11. QUIZ -->
-<section class="page">
-  <div class="kicker">Training check</div>
-  <h2>Junior Astronaut Quiz</h2>
-  <p style="margin-top:3mm">Tick the right answer. These are the <b>same puzzles</b> that unlock the rocket parts in the game!</p>
-  <div class="quiz"><div class="q">1. What does the ENGINE NOZZLE do?</div><div class="opts"><span>Pushes hot gas down so the rocket goes up</span><span>Keeps the astronauts warm</span><span>Stores food</span><span>Talks to Earth</span></div></div>
-  <div class="quiz"><div class="q">2. Where do the ENGINES go on a rocket?</div><div class="opts"><span>On the top</span><span>At the bottom</span><span>In the middle</span><span>On the side door</span></div></div>
-  <div class="quiz"><div class="q">3. What does the FUEL VALVE do?</div><div class="opts"><span>Turns on the lights</span><span>Opens and closes the fuel, like a tap</span><span>Makes oxygen</span><span>Steers the rocket</span></div></div>
-  <div class="quiz"><div class="q">4. Which machine makes OXYGEN from Mars air?</div><div class="opts"><span>MOXIE</span><span>The fuel tank</span><span>The radio</span><span>The parachute</span></div></div>
-  <div class="quiz"><div class="q">5. The FLIGHT COMPUTER is like the rocket's…</div><div class="opts"><span>Legs</span><span>Lunchbox</span><span>Brain</span><span>Wheels</span></div></div>
-  <div class="quiz"><div class="q">6. How often do Earth and Mars line up for the trip home?</div><div class="opts"><span>Every day</span><span>Every week</span><span>About every 2 years</span><span>Never</span></div></div>
-  <p style="transform:rotate(180deg);font-size:10pt;color:var(--dim);margin-top:4mm">Answers: 1 – pushes hot gas down · 2 – at the bottom · 3 – opens and closes the fuel · 4 – MOXIE · 5 – brain · 6 – about every 2 years</p>
+<!-- 12 ROBOTS -->
+<section class="page dark">
+  <div class="spread flip">
+    <div>
+      <div class="kicker">Chapter 10 · Robot explorers</div>
+      <h2>Rovers That Think for Themselves</h2>
+      <p>Radio needs up to <b>22 minutes</b> to travel from Mars to Earth. If a rover sees a cliff and waits for Earth to say "STOP!", almost an hour passes!</p>
+      <div class="card"><p><b class="t">Smart rovers:</b> NASA sends a list of instructions, and the rover uses its cameras to steer around danger by itself.</p></div>
+      <div class="card"><p><b class="t">Perseverance:</b> a car-sized rover that collects rock samples and tested MOXIE.</p></div>
+      <div class="card"><p><b class="t">Ingenuity:</b> the first helicopter ever to fly on another planet (2021)!</p></div>
+      <img class="pic" src="img/excrim/img_12_1200x896.jpg" style="height:50mm;margin-top:2mm">
+    </div>
+    <div>
+      <img class="pic" src="img/PIA24542.jpg" style="height:118mm">
+      <div class="cap">A real selfie: Perseverance with the little Ingenuity helicopter (NASA/JPL-Caltech). You can find both in the game. Go say hi!</div>
+    </div>
+  </div>
   <div class="pageno">12</div>
 </section>
 
-<!-- 12. MISSION MAP -->
-<section class="page dark">
-  <div class="kicker">Before you play</div>
-  <h2>Your Mission, Step by Step</h2>
-  <ol class="steps" style="margin-top:6mm">
-    <li><b>Wake up</b> next to the crashed ship. Look around — find Earth in the sky.</li>
-    <li><b>Solar flare!</b> Run to the bunker. Its thick walls block the radiation.</li>
-    <li><b>Save yourself:</b> carry MOXIE (air) and the Ice-to-Water machine (water) into the bunker.</li>
-    <li><b>Find the 3 rocket details:</b> Engine Nozzle, Fuel Valve, Flight Computer. Follow the coloured light beams.</li>
-    <li><b>Solve each puzzle</b> — the answers are in this book!</li>
-    <li><b>Build the new rocket</b> on the launch pad: engines, then fuel, then the computer.</li>
-    <li><b>Wait for the window</b>, press LAUNCH… and fly home! 🌍</li>
-  </ol>
-  <img class="photo" src="img/game_meteor.png" style="height:70mm;margin-top:2mm">
-  <div class="cap">Careful out there: meteors and dust storms!</div>
+<!-- 13 SPACE EYES -->
+<section class="page">
+  <div class="kicker">Chapter 11 · Super space eyes</div>
+  <h2>How Do We See Far Away?</h2>
+  <div class="grid g2" style="gap:8mm">
+    <div>
+      <img class="pic" src="img/excrim/img_04_1376x768.jpg" style="height:72mm">
+      <div class="cap">James Webb (left) and Hubble (right) space telescopes.</div>
+      <div class="card" style="margin-top:3mm"><p><b class="t">Webb's golden mirror</b> has <b>18 six-sided pieces</b> (hexagons). It folds up like origami to fit inside a rocket, then opens in space. Its 5-layer sunshield is as big as a tennis court!</p></div>
+    </div>
+    <div>
+      <img class="pic" src="img/excrim/img_05_1376x768.jpg" style="height:72mm">
+      <div class="cap">Heat vision: an infrared camera can "see" a warm hand inside a black bag.</div>
+      <div class="card" style="margin-top:3mm"><p><b class="t">Infrared light</b> is light our eyes can't see: it is heat! Webb uses it to look through space dust at baby stars, and Mars orbiters use it to study the rocks of Mars.</p></div>
+    </div>
+  </div>
   <div class="pageno">13</div>
 </section>
 
-<!-- 13. QR -->
-<section class="page" style="text-align:center">
-  <div class="kicker" style="margin-top:6mm">Now it's your turn</div>
-  <h2 style="font-size:40pt">Scan to Play!</h2>
-  <p style="margin-top:5mm">You finished your training, Junior Astronaut. Scan this code to get the game <b>Mission Mars</b>.</p>
-  <img src="img/qr.png" style="width:95mm;height:95mm;margin:8mm auto 4mm;display:block;border-radius:5mm;box-shadow:0 2mm 6mm rgba(0,0,0,.15)">
-  <div class="card" style="max-width:150mm;margin:4mm auto;text-align:left">
-    <p style="margin:0"><b>Note:</b> I'm sorry — we don't provide our APK file for this QR code yet. The game will be available here soon. Until then, you can play it with your teacher on the computer at our NASA Space Apps demo!</p>
+<!-- 14 TRY AT HOME -->
+<section class="page">
+  <div class="spread">
+    <div>
+      <div class="kicker">Chapter 12 · Try it yourself</div>
+      <h2>3 Real NASA Experiments for Home</h2>
+      <div class="card"><h3>🍫 Candy-bar core sample</h3><p>Push a clear straw straight down into a layered candy bar, then pull it out. You see layers, just like the rock layers rovers drill on Mars. The bottom layer is the oldest!</p></div>
+      <div class="card"><h3>🤖 Blindfolded rover race</h3><p>Player 1 (Mission Control) writes steps on paper. Player 2 (the Rover) walks with eyes closed, following ONLY the written steps. That's why rovers need careful plans!</p></div>
+      <div class="card"><h3>🎈 Balloon rocket</h3><p>Tape a straw to a blown-up balloon, thread a string through the straw, and let go. Air out the back, balloon forward: Newton's Third Law!</p></div>
+      <p style="font-size:10.5pt;color:var(--dim)">Ask an adult to help. Ideas from NASA/JPL Mars education activities.</p>
+    </div>
+    <div>
+      <img class="pic" src="img/excrim/img_13_1376x768.jpg" style="height:80mm">
+      <div class="cap">Delicious geology: layers in a candy bar are like layers of rock.</div>
+      <img class="pic" src="img/excrim/img_11_1376x768.jpg" style="height:62mm;margin-top:3mm">
+      <div class="cap">In 1997, NASA's Mars Pathfinder bounced onto Mars inside giant airbags and released Sojourner, the first rover on another planet.</div>
+    </div>
   </div>
-  <div class="nova" style="max-width:150mm;margin:6mm auto;text-align:left"><div class="bot"></div><div class="say"><b>NOVA</b>See you on Mars, Commander! Remember: shelter from flares, keep your oxygen up, and build your rocket from the bottom up!</div></div>
   <div class="pageno">14</div>
 </section>
 
-<!-- 14. CREDITS -->
-<section class="page dark">
-  <div class="kicker">About this book</div>
-  <h2>Credits</h2>
-  <p style="margin-top:5mm">Made for the <b>NASA Space Apps Challenge 2026</b> — challenge: <i>Build a Junior Astronaut Mission Trainer</i>. This book and the game <b>Mission Mars: The 2-Year Window</b> go together: read first, then practise.</p>
-  <h3 style="color:var(--mars2);margin-top:6mm">Photos (NASA, public domain)</h3>
-  <p style="font-size:11.5pt">Apollo 11 Saturn V launch (S69-39961) · Artemis I launch (NHQ202211160030, NASA/Bill Ingalls) · Mars globe (PIA00407, Viking) · Earth seen from Mars (PIA17936, Curiosity) · MOXIE (PIA24203) · Mars (PIA23515) · 2018 dust storm (PIA22329, MRO) · Perseverance &amp; Ingenuity selfie (PIA24542). Images courtesy NASA/JPL-Caltech.</p>
-  <h3 style="color:var(--mars2);margin-top:4mm">Real NASA science used</h3>
-  <p style="font-size:11.5pt">DONKI space-weather database (solar flares) · Curiosity RAD radiation data · Perseverance MOXIE · MRO SHARAD (underground ice) · Opportunity rover (2018 dust storm) · Mars–Earth launch windows.</p>
-  <h3 style="color:var(--mars2);margin-top:4mm">Game screenshots</h3>
-  <p style="font-size:11.5pt">From <b>Mission Mars</b> (Unity). 3D models: NASA 3D Resources; Astronaut by Jungle Jim (Sketchfab, CC-BY); Earth textures by khanhnamn063 (CGTrader).</p>
-  <p style="margin-top:10mm;font-size:11pt;color:#9fb6d6">Not an official NASA publication.</p>
+<!-- 15 ACTIVITIES 1 -->
+<section class="page">
+  <div class="kicker">Activity pages</div>
+  <h2>Brain Games 1</h2>
+  <div class="grid g2" style="gap:10mm">
+    <div>
+      <h3>🔎 Space word hunt</h3>
+      <p style="font-size:11.5pt">Find these 10 words, across → or down ↓:<br><b>MARS · ROCKET · OXYGEN · EARTH · ORBIT · SOL · ICE · MOXIE · FLARE · DUST</b></p>
+      <table class="ws">
+        <tr><td>M</td><td>A</td><td>R</td><td>S</td><td>R</td><td>O</td><td>C</td><td>K</td><td>E</td><td>T</td></tr>
+        <tr><td>O</td><td>X</td><td>Y</td><td>G</td><td>E</td><td>N</td><td>L</td><td>Q</td><td>F</td><td>D</td></tr>
+        <tr><td>X</td><td>B</td><td>E</td><td>A</td><td>R</td><td>T</td><td>H</td><td>W</td><td>L</td><td>U</td></tr>
+        <tr><td>I</td><td>K</td><td>P</td><td>O</td><td>R</td><td>B</td><td>I</td><td>T</td><td>A</td><td>S</td></tr>
+        <tr><td>E</td><td>N</td><td>V</td><td>Z</td><td>H</td><td>J</td><td>W</td><td>C</td><td>R</td><td>T</td></tr>
+        <tr><td>S</td><td>O</td><td>L</td><td>Y</td><td>I</td><td>C</td><td>E</td><td>P</td><td>E</td><td>M</td></tr>
+        <tr><td>G</td><td>U</td><td>K</td><td>A</td><td>P</td><td>L</td><td>N</td><td>V</td><td>Q</td><td>Z</td></tr>
+        <tr><td>H</td><td>D</td><td>W</td><td>F</td><td>M</td><td>T</td><td>Y</td><td>B</td><td>J</td><td>R</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>🔐 Secret space code</h3>
+      <p style="font-size:11.5pt">Each number is a letter: <span class="code">A=1 B=2 C=3 D=4 E=5 F=6 G=7 H=8 I=9 J=10 K=11 L=12 M=13 N=14 O=15 P=16 Q=17 R=18 S=19 T=20 U=21 V=22 W=23 X=24 Y=25 Z=26</span></p>
+      <div class="card"><p>Astronauts must breathe… <span class="code">15 · 24 · 25 · 7 · 5 · 14</span><br><span class="blank" style="min-width:60mm"></span></p></div>
+      <div class="card"><p>One day on Mars is called a… <span class="code">19 · 15 · 12</span><br><span class="blank" style="min-width:60mm"></span></p></div>
+      <div class="card"><p>Hide from solar flares in the… <span class="code">2 · 21 · 14 · 11 · 5 · 18</span><br><span class="blank" style="min-width:60mm"></span></p></div>
+      <div class="card"><p>The machine that makes oxygen… <span class="code">13 · 15 · 24 · 9 · 5</span><br><span class="blank" style="min-width:60mm"></span></p></div>
+      <p class="upside">Answers: OXYGEN · SOL · BUNKER · MOXIE</p>
+    </div>
+  </div>
   <div class="pageno">15</div>
+</section>
+
+<!-- 16 ACTIVITIES 2 -->
+<section class="page">
+  <div class="kicker">Activity pages</div>
+  <h2>Brain Games 2</h2>
+  <div class="grid g2" style="gap:10mm">
+    <div>
+      <h3>🔤 Unscramble the space words</h3>
+      <div class="card"><p><b>TOKCER</b> → <span class="blank"></span> &nbsp;&nbsp; <b>SRAM</b> → <span class="blank"></span></p></div>
+      <div class="card"><p><b>XEIOM</b> → <span class="blank"></span> &nbsp;&nbsp; <b>TROBI</b> → <span class="blank"></span></p></div>
+      <div class="card"><p><b>TRHAE</b> → <span class="blank"></span> &nbsp;&nbsp; <b>LEFRA</b> → <span class="blank"></span></p></div>
+      <p class="upside">Answers: ROCKET · MARS · MOXIE · ORBIT · EARTH · FLARE</p>
+      <h3 style="margin-top:5mm">🔢 What comes next?</h3>
+      <div class="card"><p style="font-size:16pt">🚀 🌍 🚀 🌍 🚀 <span class="blank" style="min-width:14mm"></span></p></div>
+      <div class="card"><p style="font-size:16pt">10 → 20 → 40 → 80 → <span class="blank" style="min-width:14mm"></span></p></div>
+      <p class="upside">Answers: 🌍 · 160</p>
+    </div>
+    <div>
+      <h3>🔗 Match the part to its job</h3>
+      <p style="font-size:11.5pt">Draw a line from each part to what it does.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm 18mm;margin-top:3mm">
+        <div class="card" style="border-left-color:var(--mars)"><p><b>🔥 Engine Nozzle</b></p></div><div class="card"><p>Is the rocket's brain</p></div>
+        <div class="card" style="border-left-color:var(--mars2)"><p><b>⛽ Fuel Valve</b></p></div><div class="card"><p>Pushes hot gas down</p></div>
+        <div class="card" style="border-left-color:var(--cyan)"><p><b>🧠 Flight Computer</b></p></div><div class="card"><p>Opens and closes the fuel, like a tap</p></div>
+        <div class="card" style="border-left-color:#4f8df0"><p><b>💨 MOXIE</b></p></div><div class="card"><p>Makes oxygen from Mars air</p></div>
+      </div>
+      <h3 style="margin-top:4mm">🧱 Put the rocket in build order</h3>
+      <p style="font-size:12pt">Number them 1, 2, 3 (bottom first!):<br>☐ Flight computer &nbsp;&nbsp; ☐ Engines &nbsp;&nbsp; ☐ Fuel tank</p>
+      <p class="upside">Answers: engines 1 · fuel tank 2 · flight computer 3</p>
+    </div>
+  </div>
+  <div class="pageno">16</div>
+</section>
+
+<!-- 17 QUIZ -->
+<section class="page">
+  <div class="kicker">Training check: the same puzzles as in the game!</div>
+  <h2>Junior Astronaut Quiz</h2>
+  <div class="grid g2" style="gap:0 6mm">
+    <div>
+      <div class="quiz"><div class="q">1. What does the ENGINE NOZZLE do?</div><div class="o"><span>Pushes gas down, rocket goes up</span><span>Keeps astronauts warm</span><span>Stores food</span><span>Talks to Earth</span></div></div>
+      <div class="quiz"><div class="q">2. Where do the ENGINES go on a rocket?</div><div class="o"><span>On the top</span><span>At the bottom</span><span>In the middle</span><span>On the side door</span></div></div>
+      <div class="quiz"><div class="q">3. Rockets are built…</div><div class="o"><span>From the top down</span><span>From the bottom up</span><span>Lying on the side</span><span>In any order</span></div></div>
+      <div class="quiz"><div class="q">4. What does the FUEL VALVE do?</div><div class="o"><span>Turns on the lights</span><span>Opens and closes the fuel, like a tap</span><span>Makes oxygen</span><span>Steers the rocket</span></div></div>
+      <div class="quiz"><div class="q">5. Which machine makes OXYGEN from Mars air?</div><div class="o"><span>MOXIE</span><span>The fuel tank</span><span>The radio</span><span>The parachute</span></div></div>
+      <div class="quiz"><div class="q">6. What is Mars air mostly made of?</div><div class="o"><span>Oxygen</span><span>Carbon dioxide</span><span>Helium</span><span>Water</span></div></div>
+    </div>
+    <div>
+      <div class="quiz"><div class="q">7. Where can astronauts find water on Mars?</div><div class="o"><span>In rivers</span><span>From rain</span><span>Ice under the ground</span><span>In the oceans</span></div></div>
+      <div class="quiz"><div class="q">8. The FLIGHT COMPUTER is like the rocket's…</div><div class="o"><span>Legs</span><span>Lunchbox</span><span>Brain</span><span>Wheels</span></div></div>
+      <div class="quiz"><div class="q">9. How often do Earth and Mars line up for the trip home?</div><div class="o"><span>Every day</span><span>Every week</span><span>About every 2 years</span><span>Never</span></div></div>
+      <div class="quiz"><div class="q">10. What do we call one day on Mars?</div><div class="o"><span>A moon</span><span>A sol</span><span>An orbit</span><span>A week</span></div></div>
+      <div class="quiz"><div class="q">11. How long does a radio message take from Mars to Earth?</div><div class="o"><span>1 second</span><span>3 to 22 minutes</span><span>1 whole day</span><span>1 year</span></div></div>
+      <div class="quiz"><div class="q">12. A rocket flies like a balloon you let go. Why?</div><div class="o"><span>Air rushes out the back</span><span>Balloons are magic</span><span>The wind blows it</span><span>It is very light</span></div></div>
+    </div>
+  </div>
+  <p class="upside" style="margin-top:1mm">Answers: 1 pushes gas down · 2 bottom · 3 bottom up · 4 like a tap · 5 MOXIE · 6 carbon dioxide · 7 ice under the ground · 8 brain · 9 about every 2 years · 10 a sol · 11 3 to 22 minutes · 12 air rushes out the back</p>
+  <div class="pageno">17</div>
+</section>
+
+<!-- 18 MISSION STEP BY STEP -->
+<section class="page dark">
+  <div class="spread">
+    <div>
+      <div class="kicker">Before you play</div>
+      <h2>Your Mission, Step by Step</h2>
+      <ol class="steps">
+        <li><b>Wake up</b> next to the crashed ship. Look around and find Earth in the sky.</li>
+        <li><b>Solar flare!</b> Run to the bunker. Its thick walls block the radiation.</li>
+        <li><b>Save yourself:</b> carry MOXIE (air) and the water machine into the bunker.</li>
+        <li><b>Find 3 rocket parts</b>: Engine Nozzle, Fuel Valve, Flight Computer. Follow the coloured light beams.</li>
+        <li><b>Solve each puzzle.</b> The answers are in this book!</li>
+        <li><b>Build the new rocket</b> on the launch pad. Watch out for dust storms and meteors!</li>
+        <li><b>Wait for the launch window</b>, press LAUNCH… and fly home! 🌍</li>
+      </ol>
+    </div>
+    <div>
+      <img class="pic" src="img/game_wake.png" style="height:56mm">
+      <div class="cap">Waking up at the crash site.</div>
+      <img class="pic" src="img/game_puzzle.png" style="height:56mm;margin-top:3mm">
+      <div class="cap">A puzzle unlocks each rocket part.</div>
+      <div class="game" style="margin-top:3mm"><b>CONTROLS</b>W A S D walk · Mouse look · SHIFT run · SPACE jump · E use · 1–4 answer · ESC pause</div>
+    </div>
+  </div>
+  <div class="pageno">18</div>
+</section>
+
+<!-- 19 DRAW -->
+<section class="page">
+  <div class="kicker">Your turn, Commander</div>
+  <h2>Design Your Own Mars Base</h2>
+  <p>Draw a Mars base. Include: <b>solar panels</b> ☐ · a <b>shielded shelter</b> ☐ · an <b>oxygen machine</b> ☐ · an <b>ice drill</b> ☐ · a <b>rover</b> ☐ · a <b>launch pad</b> ☐</p>
+  <div class="draw" style="height:112mm;margin-top:3mm"></div>
+  <p style="margin-top:4mm"><b>My #1 survival tip before I play:</b> <span class="blank" style="min-width:180mm"></span></p>
+  <div class="pageno">19</div>
+</section>
+
+<!-- 20 QR -->
+<section class="page dark">
+  <div class="spread">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <img src="img/qr.png" style="width:105mm;height:105mm;border-radius:5mm;background:#fff;padding:3mm">
+      <div style="font-family:Orbitron;letter-spacing:3px;color:var(--cyan);margin-top:4mm;font-size:11pt">SCAN TO PLAY</div>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center">
+      <div class="kicker">Training complete</div>
+      <h2 style="font-size:36pt">You Are Ready, Commander!</h2>
+      <p>You now know how rockets beat gravity, how to make air and water on Mars, how to stay safe from flares, storms and meteors, and why every choice in space has a cost.</p>
+      <p>Scan the code with a phone or tablet to get <b>Mission Mars</b>.</p>
+      <div class="card" style="margin-top:3mm"><p><b class="t">Note:</b> I'm sorry, we don't provide our APK file for this QR code yet. The game will be available here soon. Until then, you can play it on the computer at our NASA Space Apps demo!</p></div>
+      <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>See you on Mars! Remember: shelter from flares, keep your life support up, and build your rocket from the bottom up!</div></div>
+    </div>
+  </div>
+  <div class="pageno">20</div>
+</section>
+
+<!-- 21 CREDITS -->
+<section class="page">
+  <div class="kicker">Real science behind this book</div>
+  <h2>NASA Sources and Credits</h2>
+  <div class="grid g2" style="gap:8mm">
+    <div>
+      <h3>NASA data and learning resources</h3>
+      <p style="font-size:11pt">• <b>DONKI</b> (Space Weather Database, NASA CCMC): the real solar flares in the game.<br>
+      • <b>Curiosity RAD</b>: radiation on the Mars surface (about 0.67 mSv per sol).<br>
+      • <b>Perseverance MOXIE</b>: making oxygen from Mars air.<br>
+      • <b>MRO SHARAD radar</b>: ice under the Mars ground.<br>
+      • <b>Opportunity</b>: the 2018 global dust storm.<br>
+      • <b>NASA/JPL Mars Activities</b>: balloon scale model, rover race, core sampling.<br>
+      • <b>James Webb Space Telescope Fun Pad</b> (NP-2011-04-201-GSFC) and <b>Hubble activity sheets</b> (EP-2015-03-00x-JSC).</p>
+    </div>
+    <div>
+      <h3>Pictures</h3>
+      <p style="font-size:11pt">• <b>NASA photos</b> (public domain): Apollo 11 Saturn V (S69-39961), Artemis I (NHQ202211160030), Mars by Viking (PIA00407), Earth from Mars by Curiosity (PIA17936), MOXIE (PIA24203), 2018 dust storm (PIA22329), Perseverance and Ingenuity selfie (PIA24542). Courtesy NASA/JPL-Caltech.<br>
+      • <b>Illustrations</b>: Team Excrim.<br>
+      • <b>Game screenshots</b>: Mission Mars (Unity). 3D models from NASA 3D Resources; "Astronaut" by Jungle Jim (Sketchfab, CC-BY).</p>
+      <p style="margin-top:6mm;font-size:12pt"><b>Made by Team Excrim</b> for the NASA Space Apps Challenge 2026: <i>Build a Junior Astronaut Mission Trainer</i>.</p>
+      <p style="font-size:10pt;color:var(--dim)">Not an official NASA publication.</p>
+    </div>
+  </div>
+  <div class="pageno">21</div>
 </section>
 
 </body>
