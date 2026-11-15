@@ -1,0 +1,25 @@
+# Unity generated
+MissionMars/[Ll]ibrary/
+MissionMars/[Tt]emp/
+MissionMars/[Oo]bj/
+MissionMars/[Ll]ogs/
+MissionMars/[Uu]ser[Ss]ettings/
+MissionMars/*.csproj
+MissionMars/*.sln
+MissionMars/.vs/
+# builds, tools, downloads, test output
+Build/
+Build_v1_backup/
+_tools/
+_downloads/
+_shots*/
+*.log
+title.png
+# third-party assets from CGTrader (royalty-free licence does not allow re-sharing the raw files)
+MissionMars/Assets/_Project/Resources/Sketchfab/SF_Rocket.glb
+MissionMars/Assets/_Project/Resources/Sketchfab/SF_Rocket.glb.meta
+MissionMars/Assets/_Project/Resources/Tex/Earth_HD.jpg
+MissionMars/Assets/_Project/Resources/Tex/Earth_HD.jpg.meta
+MissionMars/Assets/_Project/Resources/Tex/Space_Pano.jpg
+MissionMars/Assets/_Project/Resources/Tex/Space_Pano.jpg.meta
+MissionMars/Assets/_Project/Resources/Sketchfab/SF_Asteroid*
