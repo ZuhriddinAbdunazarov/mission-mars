@@ -232,7 +232,9 @@ namespace MissionMars
             // airlock
             var lockT = new GameObject("Airlock").transform; lockT.SetParent(Bunker, false); lockT.localPosition = new Vector3(0, 0, 7.2f);
             ProcMesh.Prim(PrimitiveType.Cube, "Frame", lockT, new Vector3(0, 1.45f, -0.4f), new Vector3(2.8f, 2.9f, 2.4f), R.Panel);
-            var door = ProcMesh.Prim(PrimitiveType.Cube, "Door", lockT, new Vector3(0, 1.25f, 0.82f), new Vector3(1.4f, 2.3f, 0.1f), R.HullDark);
+            // door is OPEN: panel slid aside, lit doorway you walk into
+            ProcMesh.Prim(PrimitiveType.Cube, "DoorPanelOpen", lockT, new Vector3(1.05f, 1.25f, 0.9f), new Vector3(1.4f, 2.3f, 0.1f), R.HullDark);
+            var door = ProcMesh.Prim(PrimitiveType.Cube, "Door", lockT, new Vector3(0, 1.25f, 0.81f), new Vector3(1.4f, 2.3f, 0.02f), R.Emissive(new Color(0.75f, 0.8f, 0.85f), new Color(0.9f, 1.0f, 1.1f)));
             ProcMesh.Prim(PrimitiveType.Cube, "DoorLight", lockT, new Vector3(0, 2.6f, 0.85f), new Vector3(1.2f, 0.08f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.4f, 1.0f)), null, false);
             ProcMesh.Prim(PrimitiveType.Cube, "Stripe", lockT, new Vector3(0, 0.25f, 0.82f), new Vector3(2.8f, 0.2f, 0.05f), R.Orange, null, false);
             var dl = new GameObject("DoorLamp").AddComponent<Light>(); dl.transform.SetParent(lockT, false); dl.transform.localPosition = new Vector3(0, 2.8f, 1.6f);
@@ -489,7 +491,9 @@ namespace MissionMars
             AlarmLight.gameObject.AddComponent<Blink>().Rate = 1.2f;
 
             // exit
-            var door = ProcMesh.Prim(PrimitiveType.Cube, "ExitDoor", t, new Vector3(-3.2f, 1.15f, -D / 2 + 0.15f), new Vector3(1.3f, 2.3f, 0.1f), R.HullDark);
+            // exit door is OPEN: panel slid aside, Mars daylight in the doorway
+            ProcMesh.Prim(PrimitiveType.Cube, "ExitPanelOpen", t, new Vector3(-3.2f + 1.0f, 1.15f, -D / 2 + 0.22f), new Vector3(1.3f, 2.3f, 0.1f), R.HullDark);
+            var door = ProcMesh.Prim(PrimitiveType.Cube, "ExitDoor", t, new Vector3(-3.2f, 1.15f, -D / 2 + 0.16f), new Vector3(1.3f, 2.3f, 0.02f), R.Emissive(new Color(0.9f, 0.55f, 0.35f), new Color(1.6f, 0.85f, 0.5f)));
             ProcMesh.Prim(PrimitiveType.Cube, "ExitSign", t, new Vector3(-3.2f, 2.5f, -D / 2 + 0.15f), new Vector3(0.7f, 0.18f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.2f, 0.9f)), null, false);
             ExitDoor = Interactable.Add(door, "Go outside", "Airlock", null);
             InteriorSpawn = t.TransformPoint(new Vector3(-3.2f, 0.05f, -D / 2 + 1.4f)); InteriorYaw = 0;

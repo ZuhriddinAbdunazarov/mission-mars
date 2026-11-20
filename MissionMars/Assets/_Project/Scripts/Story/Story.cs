@@ -235,19 +235,17 @@ namespace MissionMars
             yield return EnterBunker();
             hud.RemoveWaypoint(wpBunker); wpBunker = null;
             hud.ClearObjective();
-            yield return hud.SayWait("Phew — safe! See your RADIATION meter? Inside it says SHIELDED.");
-            // time passes: storm ends
-            yield return Cinema.I.ToBlack(0.8f);
+            // time passes: storm ends (kept short — about 1.5 seconds)
+            yield return Cinema.I.ToBlack(0.3f);
             suit.Storm = 0; StopAllStorms();
-            Cinema.I.Caption("A few hours later — the storm is over.", 3);
+            Cinema.I.Caption("A few hours later — the storm is over.", 1.5f);
             Game.Sky.TimeOfDay = 0.45f;
-            yield return new WaitForSeconds(1.2f);
-            yield return Cinema.I.FromBlack(0.8f);
-            hud.Toast("YOU SURVIVED THE STORM", $"Real flare {CurrentFlare.Class} ({CurrentFlare.Date}). Shelter blocked the radiation.", "shield", HC.Green);
-            yield return hud.SayWait("Good thinking, Commander. On real Mars missions, astronauts would hide in a shelter just like this when NASA warns of a flare.");
+            yield return new WaitForSeconds(0.9f);
+            yield return Cinema.I.FromBlack(0.3f);
+            hud.Toast("YOU SURVIVED THE STORM", $"Real flare {CurrentFlare.Class} ({CurrentFlare.Date}). The bunker's thick walls blocked the radiation.", "shield", HC.Green);
             MarsWorld.AlarmLight.intensity = 3; MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(3);
             Sfx.Play("alarm", 0.5f);
-            yield return hud.SayWait("Uh-oh. The bunker has no machines. Look at your LIFE SUPPORT bar — air and water are running out!");
+            yield return hud.SayWait("Safe! But the bunker has no machines — air and water are running out!", 3f);
         }
 
         Coroutine stormCo;

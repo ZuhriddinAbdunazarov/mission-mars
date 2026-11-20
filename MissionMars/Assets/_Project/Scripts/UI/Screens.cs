@@ -119,7 +119,7 @@ namespace MissionMars
             Btn(tp, "START MISSION", () => OnPlay?.Invoke(), new Vector2(0, -350), 380, 70, HC.Amber, new Vector2(0, 1)).transform.SetAsLastSibling();
             Btn(tp, "NASA DATA", () => OpenData(false), new Vector2(0, -432), 380, 58, HC.Cyan, new Vector2(0, 1));
             Btn(tp, "CONTROLS", () => Show(controls, true), new Vector2(0, -500), 380, 58, HC.Cyan, new Vector2(0, 1));
-            Btn(tp, "QUIT", () => Application.Quit(), new Vector2(0, -568), 380, 58, HC.Cyan, new Vector2(0, 1));
+            if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(tp, "QUIT", () => Application.Quit(), new Vector2(0, -568), 380, 58, HC.Cyan, new Vector2(0, 1));
             var foot = UIX.Text(title.transform, "Real NASA data: DONKI space weather · Curiosity RAD radiation · MOXIE oxygen · NASA 3D Resources.   Models: NASA 3D Resources · Astronaut by Jungle Jim (Sketchfab, CC-BY) · Earth textures by khanhnamn063 (CGTrader) · free rocket model and space panorama (CGTrader).   Not an official NASA product.", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
             foot.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(-80, 24));
 
@@ -142,7 +142,7 @@ namespace MissionMars
             Btn(pause.transform, "NASA DATA", () => OpenData(true), new Vector2(0, 10), 400, 60);
             Btn(pause.transform, "CONTROLS", () => Show(controls, true), new Vector2(0, -64), 400, 60);
             Btn(pause.transform, "RESTART MISSION", () => { TogglePause(false); OnRestart?.Invoke(); }, new Vector2(0, -138), 400, 60);
-            Btn(pause.transform, "QUIT GAME", () => Application.Quit(), new Vector2(0, -212), 400, 60);
+            if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(pause.transform, "QUIT GAME", () => Application.Quit(), new Vector2(0, -212), 400, 60);
 
             // ---------------- PUZZLE ----------------
             puzzle = Layer("Puzzle", true);
@@ -281,7 +281,7 @@ namespace MissionMars
             pzTitle.color = part.Color;
             for (int qi = 0; qi < set.Count; qi++)
             {
-                var pz = set[qi];
+                var pz = set[qi]; curPz = pz;
                 pzCounter.text = $"LOCK {qi + 1} / {set.Count}";
                 pzQ.text = pz.Q;
                 pzFeedback.text = ""; pzNext.gameObject.SetActive(false);
@@ -317,6 +317,9 @@ namespace MissionMars
             done?.Invoke(true);
         }
         void PzChoose(int i) { if (pzChosen < 0 && pzBtns[i].b.interactable) pzChosen = i; }
+        Puzzle curPz;
+        public void TourAnswer() { if (curPz != null) PzChoose(curPz.Correct); }
+        public void TourContinue() { pzContinue = true; }
         void LateUpdate()
         {
             if (!puzzle.blocksRaycasts) return;

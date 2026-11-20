@@ -156,6 +156,29 @@ namespace MissionMars.EditorTools
             EditorUtility.SetDirty(m);
         }
 
+        [MenuItem("Mission Mars/4. Build WebGL (browser)")]
+        public static void BuildWeb()
+        {
+            string outDir = Path.GetFullPath("../Build/Web");
+            Directory.CreateDirectory(outDir);
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true; // works on any static host (GitHub Pages, Vercel)
+            PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
+            PlayerSettings.WebGL.memorySize = 512;
+            PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.Low);
+            var opts = new BuildPlayerOptions
+            {
+                scenes = new[] { P + "/Scenes/Main.unity" },
+                locationPathName = outDir,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None,
+            };
+            var report = BuildPipeline.BuildPlayer(opts);
+            Debug.Log("[BuildWeb] result: " + report.summary.result + " size: " + report.summary.totalSize + " errors: " + report.summary.totalErrors);
+            if (Application.isBatchMode) EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
+        }
+
         [MenuItem("Mission Mars/3. Build Windows (.exe)")]
         public static void Build()
         {

@@ -22,7 +22,11 @@ namespace MissionMars
             Cinema.I.Caption("MISSION MARS  ·  loading ...", 30);
             yield return null;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var task = Task.FromResult(Synth.BuildAll()); // no threads in the browser
+#else
             var task = Task.Run(() => Synth.BuildAll());
+#endif
             var am = new GameObject("Audio").AddComponent<AudioManager>();
             new GameObject("NasaApi").AddComponent<NasaApi>().Begin();
             var sky = new GameObject("Sky").AddComponent<SkyController>(); sky.Init(); Game.Sky = sky;
@@ -44,6 +48,8 @@ namespace MissionMars
             yield return null;
             Cinema.I.ClearCaption();
 
+            string vid = Arg("-video");
+            if (vid != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(VideoTour(vid)); }
             string tshot = Arg("-titleshot");
             if (tshot != null) { Application.runInBackground = true; StartCoroutine(TitleShot(tshot)); }
             string shots = Arg("-shots");
@@ -73,6 +79,87 @@ namespace MissionMars
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(file);
             yield return new WaitForSeconds(1f);
+            Application.Quit();
+        }
+
+        // ---------------- demo video recording (only with -video <dir>) ----------------
+        bool rec; string recDir; int recFrame;
+        void Rec(string dir, string seg) { recDir = Path.Combine(dir, seg); Directory.CreateDirectory(recDir); recFrame = 0; rec = true; }
+        void Stop() { rec = false; }
+        IEnumerator RecLoop()
+        {
+            while (true)
+            {
+                yield return new WaitForEndOfFrame();
+                if (!rec) continue;
+                var tex = ScreenCapture.CaptureScreenshotAsTexture();
+                File.WriteAllBytes(Path.Combine(recDir, $"f_{recFrame++:00000}.jpg"), tex.EncodeToJPG(90));
+                Destroy(tex);
+            }
+        }
+
+        IEnumerator VideoTour(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            Time.captureFramerate = 30;
+            StartCoroutine(RecLoop());
+            // A: the crash
+            yield return new WaitForSeconds(13.0f);
+            Rec(dir, "a_crash"); yield return new WaitForSeconds(6f); Stop();
+            // B: waking up
+            while (!Game.Player) yield return null;
+            yield return new WaitForSeconds(3.5f);
+            Rec(dir, "b_wake"); yield return new WaitForSeconds(4f); Stop();
+            // C: real solar flare warning
+            while (Game.Story.CurrentFlare == null) yield return null;
+            Game.Player.LookAt(MarsWorld.BunkerOutside + Vector3.up * 5);
+            Rec(dir, "c_flare"); yield return new WaitForSeconds(6f); Stop();
+            while (Game.Suit.Storm < 0.3f) yield return null;
+            Rec(dir, "c2_storm"); yield return new WaitForSeconds(3f); Stop();
+            MarsWorld.BunkerDoor.Use();
+            // D: MOXIE info card
+            while (!MarsWorld.MoxieSlot.enabled) yield return null;
+            yield return new WaitForSeconds(1f);
+            MarsWorld.MoxieCrate.Use(); yield return new WaitForSeconds(0.8f);
+            Rec(dir, "d_moxie"); yield return new WaitForSeconds(4f); Stop();
+            Screens.I.SendMessage("CloseInfoForTour"); yield return new WaitForSeconds(0.6f);
+            MarsWorld.MoxieSlot.Use(); yield return new WaitForSeconds(0.5f);
+            MarsWorld.WaterCrate.Use(); yield return new WaitForSeconds(0.5f);
+            Screens.I.SendMessage("CloseInfoForTour"); yield return new WaitForSeconds(0.6f);
+            MarsWorld.WaterSlot.Use();
+            Rec(dir, "d2_bunker"); yield return new WaitForSeconds(3f); Stop();
+            MarsWorld.ExitDoor.Use();
+            yield return new WaitForSeconds(48f);
+            // E: puzzle
+            var p = MarsWorld.Parts[0];
+            p.Stage = p.Path.Length - 1; p.Go.transform.position = MarsWorld.G(p.Path[p.Stage], 0.4f);
+            Game.Player.Teleport(MarsWorld.G(p.Path[p.Stage].x + 5, p.Path[p.Stage].y + 4, 0.2f), 0);
+            Game.Player.LookAt(p.Go.transform.position + Vector3.up);
+            Rec(dir, "e_part"); yield return new WaitForSeconds(2f); Stop();
+            p.Use.Use(); yield return new WaitForSeconds(1f);
+            Rec(dir, "e_puzzle"); yield return new WaitForSeconds(1.8f);
+            Screens.I.TourAnswer(); yield return new WaitForSeconds(2.4f); Stop();
+            Screens.I.TourContinue(); yield return new WaitForSeconds(0.6f);
+            Screens.I.TourAnswer(); yield return new WaitForSeconds(0.6f);
+            Screens.I.TourContinue(); yield return new WaitForSeconds(1f);
+            // F: meteors
+            Game.Player.Teleport(MarsWorld.G(10, -10, 0.2f), 30);
+            Game.Story.StartCoroutine(Game.Story.MeteorShower());
+            yield return new WaitForSeconds(5f);
+            Rec(dir, "f_meteor"); yield return new WaitForSeconds(5f); Stop();
+            yield return new WaitForSeconds(20f);
+            // G: build the new rocket
+            Game.Player.Teleport(MarsWorld.G(MarsWorld.PadXZ.x - 24, MarsWorld.PadXZ.y + 16, 0.1f), 0);
+            Game.Player.LookAt(MarsWorld.Rocket.position + Vector3.up * 9);
+            yield return new WaitForSeconds(1f);
+            Rec(dir, "g_build");
+            yield return new WaitForSeconds(0.8f);
+            for (int i = 0; i < 3; i++) { MarsWorld.BuildSection(i); Sfx.Play("build", 0.8f); yield return new WaitForSeconds(1.0f); }
+            yield return new WaitForSeconds(1f); Stop();
+            // H: the flare report
+            Game.Story.StartCoroutine(Game.Story.SecondStorm());
+            yield return new WaitForSeconds(42f);
+            Rec(dir, "h_report"); yield return new WaitForSeconds(3.5f); Stop();
             Application.Quit();
         }
 
