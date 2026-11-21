@@ -464,13 +464,13 @@ namespace MissionMars
         {
             var site = new GameObject("Outpost").transform; site.SetParent(Root.transform);
             var c = new Vector2(-4, -44); // between BunkerXZ (-36,-24) and PadXZ (40,-34)
-            void Put(string m, float dx, float dz, float size, float yaw, bool col = true)
+            GameObject Put(string m, float dx, float dz, float size, float yaw, bool col = true)
             {
                 var xz = c + new Vector2(dx, dz);
                 for (int i = 0; i < 6 && Avoid(xz, 0); i++) xz += new Vector2(0, -6); // step away from paths, bunker and pad
-                Util.PlaceModel("K_" + m, G(xz), size, yaw, site, false, col);
+                return Util.PlaceModel("K_" + m, G(xz), size, yaw, site, false, col);
             }
-            Put("hangar_roundGlass", 0, 0, 12, 0);          // greenhouse dome
+            Greenhouse(Put("hangar_roundGlass", 0, 0, 12, 0)); // greenhouse dome: plant potatoes, then eat
             Put("hangar_roundA", 15, 3, 11, 25);            // habitat dome
             Put("hangar_smallA", -14, 2, 8, -20);           // storage module
             Put("corridor", 7.5f, 1.5f, 5, 100);            // tunnel between domes
@@ -482,6 +482,41 @@ namespace MissionMars
             Put("barrels", 24, 8, 3, 10);
             Put("barrels", -20, 12, 3, 70);
             Put("rock_crystalsLargeA", -26, -4, 4, 0);      // ice crystals to mine
+        }
+
+        /// <summary>The glass dome is a greenhouse: press E to plant potatoes (learn that plants make food AND oxygen),
+        /// later press E to eat and refill life support (once a minute).</summary>
+        static void Greenhouse(GameObject dome)
+        {
+            if (!dome) return;
+            bool planted = false; float nextMeal = 0;
+            var leaf = R.Lit(new Color(0.25f, 0.7f, 0.25f), 0.3f, 0f);
+            Interactable use = null;
+            use = Interactable.Add(dome, "Plant", "Greenhouse (potatoes)", () =>
+            {
+                var suit = Game.Suit;
+                if (!planted)
+                {
+                    planted = true;
+                    for (int i = 0; i < 14; i++) // little rows of green plants inside the dome
+                    {
+                        float x = -3f + (i % 7) * 1f, z = (i < 7 ? -1.2f : 1.2f);
+                        ProcMesh.Prim(PrimitiveType.Sphere, "Plant", dome.transform, new Vector3(x, 0.35f, z), new Vector3(0.6f, 0.5f, 0.6f), leaf, null, false);
+                    }
+                    if (Game.Hud) Game.Hud.Toast("POTATOES PLANTED!", "Plants make FOOD and OXYGEN. On Mars, astronauts must grow their own food!", "food", HC.Green);
+                    if (suit) suit.Drink(10);
+                    use.Verb = "Eat"; use.Label = "Fresh Mars potatoes";
+                    nextMeal = Time.time + 20;
+                }
+                else if (Time.time >= nextMeal)
+                {
+                    if (suit) suit.Drink(25);
+                    if (Game.Hud) Game.Hud.Toast("YUM! FRESH POTATOES", "Food gives you energy. Your life support went up!", "food", HC.Green);
+                    nextMeal = Time.time + 60;
+                }
+                else if (Game.Hud) Game.Hud.Toast("STILL GROWING…", "Plants need time. Come back in a minute!", "food", HC.Amber);
+            });
+            use.Range = 9f; // the dome is big
         }
 
         // ------------------------------------------------------------------

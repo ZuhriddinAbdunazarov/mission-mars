@@ -67,7 +67,7 @@ namespace MissionMars
         {
             WindowsMissed++; DaysLeft = 780;
             hud.Warn("LAUNCH WINDOW MISSED", 5);
-            yield return hud.SayWait("Oh no, Earth moved away before our rocket was ready. The next launch window is in 26 months. More days on Mars means more radiation, so let's be quicker this time!", 4);
+            yield return hud.SayWait("Oh no, Earth moved too far away! The next trip home is in 26 months. Let's be faster this time!", 4);
         }
 
         void UpdateTimerHolo()
@@ -184,8 +184,8 @@ namespace MissionMars
             bot.Teleport(player.transform.position + new Vector3(12, 8, 18));
             yield return new WaitForSeconds(1.0f);
             yield return hud.SayWait("Commander! You're awake! I'm NOVA, your helper robot. Our ship crashed — but you made it!");
-            hud.Objective("LOOK AROUND", "Use the MOUSE to look. Find the burning wreck… and find EARTH in the sky (look up and to the right).");
-            yield return hud.SayWait("Look around. Up there, that blue dot is EARTH — home. The grey rock on the other side is PHOBOS, a moon of Mars.");
+            hud.Objective("LOOK AROUND", "Move the MOUSE to look. Find the burning rocket. Then find EARTH in the sky!");
+            yield return hud.SayWait("See that blue dot in the sky? That's EARTH, our home! The grey rock is PHOBOS, a moon of Mars.");
             float w = 0;
             var earthDir = MarsWorld.Earth.GetComponent<SkyBody>().Dir;
             while (w < 20 && !lookedEarth)
@@ -234,7 +234,7 @@ namespace MissionMars
             yield return hud.SayWait($"WARNING! NASA just measured a {CurrentFlare.Size} solar flare — class {CurrentFlare.Class}! A radiation storm is coming.", 3);
             hud.Toast("REAL SPACE WEATHER", FlareLine(CurrentFlare), "flare", HC.Amber);
             wpBunker = hud.AddWaypoint("BUNKER", () => MarsWorld.BunkerOutside, HC.Green);
-            hud.Objective("GET TO THE BUNKER!", "Radiation is hurting you outside. The bunker has thick shielded walls — they block the radiation. Follow the GREEN marker.");
+            hud.Objective("GET TO THE BUNKER!", "Space rays are hurting you! The bunker's thick walls keep you safe. Follow the GREEN marker.");
             hud.Say("Mars has no magnetic shield like Earth. Run to the bunker — hold SHIFT to run!", 6);
             // storm ramps up
             StartCoroutine(StormRamp(Mathf.Clamp(0.55f * CurrentFlare.Strength, 0.4f, 0.9f), 4f));
@@ -312,8 +312,8 @@ namespace MissionMars
         IEnumerator Salvage()
         {
             WireDoors();
-            hud.Objective("SALVAGE THE MACHINES", "Go back to the crash site. Bring the <b>MOXIE oxygen maker</b> and the <b>Ice-to-Water machine</b> to the bunker (one at a time — they're heavy).");
-            yield return hud.SayWait("Our ship carried two machines from Earth: MOXIE, which makes OXYGEN from Mars air, and a machine that melts underground ICE into WATER.");
+            hud.Objective("SALVAGE THE MACHINES", "Go back to the rocket. Bring the <b>AIR MAKER</b> and the <b>WATER MAKER</b> to the bunker. Carry one at a time!");
+            yield return hud.SayWait("Our rocket brought 2 machines: MOXIE makes AIR to breathe. The other turns ICE into WATER.");
             hud.Say("They're at the crash site. Bring them here and plug them in. Walk to the door and press E to go outside.", 6);
             wpMoxie = hud.AddWaypoint("MOXIE", () => MarsWorld.MoxieCrate ? MarsWorld.MoxieCrate.transform.position : Vector3.zero, HC.Cyan);
             wpWater = hud.AddWaypoint("ICE MACHINE", () => MarsWorld.WaterCrate ? MarsWorld.WaterCrate.transform.position : Vector3.zero, new Color(0.5f, 0.7f, 1f));
@@ -372,14 +372,14 @@ namespace MissionMars
             MarsWorld.MoxieGhost.SetActive(false); MarsWorld.MoxieInstalled.SetActive(true);
             suit.MoxieOn = true; Sfx.Play("build", 0.7f); Sfx.Play("powerup", 0.6f);
             hud.Toast("MOXIE ONLINE", "CO2 in → O2 out. Oxygen refills inside the bunker.", "air", HC.Cyan);
-            yield return hud.SayWait("MOXIE is working! It splits the CO2 in Mars air and keeps the OXYGEN. NASA really tested this on the Perseverance rover in 2021!");
+            yield return hud.SayWait("MOXIE works! It makes oxygen from Mars air. NASA really did this on Mars in 2021!");
         }
         IEnumerator InstallWater()
         {
             MarsWorld.WaterGhost.SetActive(false); MarsWorld.WaterInstalled.SetActive(true);
             suit.WaterOn = true; Sfx.Play("build", 0.7f); Sfx.Play("powerup", 0.6f);
             hud.Toast("WATER MACHINE ONLINE", "Melts underground ice. Press E at the tap to drink.", "water", HC.Cyan);
-            yield return hud.SayWait("Water machine running! NASA radar found lots of ice under the ground on Mars. We melt it to drink. Press E at the tap anytime.");
+            yield return hud.SayWait("Water is flowing! NASA found ice under the ground on Mars. Press E at the tap to drink.");
         }
 
         // ================================================================== parts hunt
@@ -389,9 +389,9 @@ namespace MissionMars
             MarsWorld.TimerHolo.SetActive(true);
             ClockRunning = true; DaysLeft = 779;
             hud.Toast("EARTH LAUNCH WINDOW", "Earth and Mars line up every ~26 months. Next window: in 2 years.", "clock", HC.Cyan);
-            yield return hud.SayWait("Earth and Mars line up for a short trip only once every 2 years. I put a countdown on top of the bunker. Time flies on Mars!");
-            yield return hud.SayWait("Our ship is wrecked forever. So we will BUILD a new rocket on the LAUNCH PAD from 3 details the crash threw across Mars. Follow the coloured beams!");
-            hud.Objective("BUILD A NEW ROCKET", "Our old ship is wrecked for good. Find the 3 details scattered across Mars (follow the coloured beams), solve each puzzle, and bring them to the LAUNCH PAD to build the new rocket.\nCome back to the bunker for air and water.", "parts");
+            yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the bunker!");
+            yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
+            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the bunker for air and water.", "parts");
             foreach (var p in MarsWorld.Parts)
             {
                 var pp = p;
@@ -502,7 +502,7 @@ namespace MissionMars
         {
             Hazard = true;
             hud.Warn("DUST STORM APPROACHING", 5, false);
-            yield return hud.SayWait("Dust storm coming! You won't see far. Follow your markers and the compass. In 2018 a storm like this covered ALL of Mars and stopped NASA's Opportunity rover.", 3);
+            yield return hud.SayWait("Dust storm! It's hard to see. Follow your markers. In 2018 a storm like this covered ALL of Mars!", 3);
             var wind = FX.Make("StormWind", player.transform.position, player.transform, FX.Alpha, ps =>
             {
                 var m = ps.main; m.startLifetime = 1.6f; m.startSpeed = 0; m.startSize = new ParticleSystem.MinMaxCurve(2f, 6f); m.maxParticles = 900;
@@ -536,7 +536,7 @@ namespace MissionMars
         {
             Hazard = true;
             hud.Warn("METEOR SHOWER!", 5);
-            yield return hud.SayWait("Meteors! Mars has very thin air, so space rocks don't burn up like on Earth. Watch the RED circles on the ground and move away!", 3);
+            yield return hud.SayWait("Space rocks are falling! Mars has thin air, so they don't burn up. Run away from the RED circles!", 3);
             float t = 0;
             while (t < 24)
             {
@@ -654,7 +654,7 @@ namespace MissionMars
         {
             partsHunt = false; hud.ForcedPrompt = null;
             hud.ClearWaypoints();
-            hud.Objective("WAIT FOR THE LAUNCH WINDOW", "The rocket is ready. Watch the countdown on top of the bunker…");
+            hud.Objective("WAIT FOR THE LAUNCH WINDOW", "Your rocket is ready! Watch the clock on the bunker.");
             yield return hud.SayWait("The rocket is complete! Now we wait for Earth to come around. Let's speed up time…");
             // time-lapse to day 0
             int start = DaysLeft, solStart = Sol; float t = 0, d = 6f;
@@ -666,7 +666,7 @@ namespace MissionMars
             Sfx.Play("success", 0.8f);
             hud.Warn("LAUNCH WINDOW OPEN", 4, false);
             var wpConsole = hud.AddWaypoint("LAUNCH CONSOLE", () => MarsWorld.LaunchConsole.transform.position, HC.Green);
-            hud.Objective("GO HOME!", "Walk to the launch console next to the rocket and press E.");
+            hud.Objective("GO HOME!", "Walk to the screen next to the rocket and press E. Let's fly home!");
             yield return hud.SayWait("The window is OPEN! Earth is lined up. Go to the launch console!");
             bool go = false;
             MarsWorld.LaunchConsole.enabled = true; MarsWorld.LaunchConsole.OnUse = () => go = true;

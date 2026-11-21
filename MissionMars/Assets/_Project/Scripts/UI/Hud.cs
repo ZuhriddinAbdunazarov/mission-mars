@@ -112,19 +112,19 @@ namespace MissionMars
             var caret = UIX.Img(comp.transform, "Caret", HC.Cyan, UISprites.Diamond); caret.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, -6), new Vector2(10, 10));
 
             // ---- top-right objective ----
-            objRt = Glass(Root, "Objective", new Vector2(1, 1), new Vector2(-40, -36), new Vector2(470, 120)).rectTransform; objRt.pivot = new Vector2(1, 1); objRt.anchoredPosition = new Vector2(-40, -36);
+            objRt = Glass(Root, "Objective", new Vector2(1, 1), new Vector2(-40, -36), new Vector2(560, 160)).rectTransform; objRt.pivot = new Vector2(1, 1); objRt.anchoredPosition = new Vector2(-40, -36);
             objGroup = objRt.gameObject.AddComponent<CanvasGroup>();
-            var oh = UIX.Text(objRt, "OBJECTIVE", 15, HC.Amber, R.Bold); oh.characterSpacing = 8; oh.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(22, -14), new Vector2(-40, 22));
+            var oh = UIX.Text(objRt, "YOUR MISSION", 18, HC.Amber, R.Bold); oh.characterSpacing = 8; oh.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(22, -14), new Vector2(-40, 26));
             var ob = UIX.Img(objRt, "Acc", HC.Amber); ob.rectTransform.Set(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f), Vector2.zero, new Vector2(3, -24));
-            objTitle = UIX.Text(objRt, "", 26, HC.Text, R.Bold); objTitle.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(22, -38), new Vector2(-40, 32));
-            objBody = UIX.Text(objRt, "", 19, HC.Dim, R.Body); objBody.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(22, -72), new Vector2(-40, 60));
+            objTitle = UIX.Text(objRt, "", 32, HC.Text, R.Bold); objTitle.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(22, -42), new Vector2(-40, 40));
+            objBody = UIX.Text(objRt, "", 23, HC.Text, R.Body); objBody.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(22, -84), new Vector2(-40, 70));
             objGroup.alpha = 0;
 
             // ---- bottom-left vitals ----
-            var vit = Glass(Root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(400, 158)); vit.rectTransform.pivot = Vector2.zero; vit.rectTransform.anchoredPosition = new Vector2(40, 40);
-            var vh = UIX.Text(vit.transform, "SUIT STATUS", 14, HC.Dim, R.Bold); vh.characterSpacing = 8; vh.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(20, -12), new Vector2(-30, 20));
-            o2 = MakeBar(vit.transform, 0, "LIFE SUPPORT", "air", HC.Cyan);
-            rad = MakeBar(vit.transform, 1, "RADIATION DOSE", "flare", HC.Amber);
+            var vit = Glass(Root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(470, 196)); vit.rectTransform.pivot = Vector2.zero; vit.rectTransform.anchoredPosition = new Vector2(40, 40);
+            var vh = UIX.Text(vit.transform, "MY SPACESUIT", 17, HC.Dim, R.Bold); vh.characterSpacing = 8; vh.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(20, -12), new Vector2(-30, 20));
+            o2 = MakeBar(vit.transform, 0, "AIR & WATER", "air", HC.Cyan);
+            rad = MakeBar(vit.transform, 1, "RADIATION", "flare", HC.Amber);
             health = MakeBar(vit.transform, 2, "HEALTH", "health", HC.Green);
 
             // ---- bottom-centre hotbar ----
@@ -147,7 +147,7 @@ namespace MissionMars
             promptGroup = UIX.Go("Prompt", Root).AddComponent<CanvasGroup>(); var prt = (RectTransform)promptGroup.transform; prt.At(new Vector2(0.5f, 0.5f), new Vector2(0, -90), new Vector2(700, 46));
             var kc = Glass(prt, "Key", new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(42, 42), new Color(0.9f, 0.95f, 1f, 0.95f));
             keyCap = UIX.Text(kc.transform, "E", 22, new Color(0.05f, 0.08f, 0.1f), R.Bold, TextAlignmentOptions.Center); keyCap.rectTransform.Fill();
-            prompt = UIX.Text(prt, "", 24, HC.Text, R.Bold, TextAlignmentOptions.Left); prompt.characterSpacing = 2;
+            prompt = UIX.Text(prt, "", 28, HC.Text, R.Bold, TextAlignmentOptions.Left); prompt.characterSpacing = 2;
             prompt.rectTransform.Set(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 0.5f), new Vector2(34, 0), new Vector2(600, 44));
             promptGroup.alpha = 0;
 
@@ -158,40 +158,40 @@ namespace MissionMars
             lookGroup.alpha = 0;
 
             // ---- robot dialogue ----
-            botGroup = UIX.Go("Bot", Root).AddComponent<CanvasGroup>(); var brt = (RectTransform)botGroup.transform; brt.At(new Vector2(0.5f, 0), new Vector2(0, 190), new Vector2(900, 100));
-            var bbg = Glass(brt, "Bg", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 100)); bbg.rectTransform.Fill();
+            botGroup = UIX.Go("Bot", Root).AddComponent<CanvasGroup>(); var brt = (RectTransform)botGroup.transform; brt.At(new Vector2(0.5f, 0), new Vector2(0, 250), new Vector2(1040, 124));
+            var bbg = Glass(brt, "Bg", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1040, 124)); bbg.rectTransform.Fill();
             var portrait = UIX.Img(brt, "Portrait", new Color(0.05f, 0.1f, 0.14f, 0.95f), UISprites.Circle); portrait.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(18, 0), new Vector2(70, 70));
             botPortraitRing = UIX.Img(portrait.transform, "Ring", HC.Cyan, UISprites.Ring); botPortraitRing.rectTransform.Fill(-3);
             var pic = UIX.Img(portrait.transform, "Icon", HC.Cyan, Icons.Get("robot")); pic.rectTransform.Fill(14);
-            var bn = UIX.Text(brt, "NOVA", 15, HC.Cyan, R.Bold); bn.characterSpacing = 8; bn.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(108, -12), new Vector2(-130, 20));
-            botText = UIX.Text(brt, "", 23, HC.Text, R.Body); botText.rectTransform.Set(Vector2.zero, Vector2.one, new Vector2(0, 1), new Vector2(108, -34), new Vector2(-130, -42));
+            var bn = UIX.Text(brt, "NOVA", 18, HC.Cyan, R.Bold); bn.characterSpacing = 8; bn.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(108, -12), new Vector2(-130, 20));
+            botText = UIX.Text(brt, "", 28, HC.Text, R.Body); botText.rectTransform.Set(Vector2.zero, Vector2.one, new Vector2(0, 1), new Vector2(108, -34), new Vector2(-130, -42));
             botGroup.alpha = 0;
 
             // ---- warning banner ----
             warnGroup = UIX.Go("Warn", Root).AddComponent<CanvasGroup>(); var wrt = (RectTransform)warnGroup.transform; wrt.At(new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(820, 56));
             warnBg = UIX.Img(wrt, "Bg", new Color(0.35f, 0.04f, 0.02f, 0.75f), UISprites.Round); warnBg.rectTransform.Fill();
             var wi = UIX.Img(wrt, "Icon", HC.Amber, Icons.Get("warn")); wi.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(18, 0), new Vector2(32, 32));
-            warnText = UIX.Text(wrt, "", 24, HC.Text, R.Bold, TextAlignmentOptions.Center); warnText.rectTransform.Fill(); warnText.characterSpacing = 5;
+            warnText = UIX.Text(wrt, "", 28, HC.Text, R.Bold, TextAlignmentOptions.Center); warnText.rectTransform.Fill(); warnText.characterSpacing = 5;
             warnGroup.alpha = 0;
 
             // ---- toast (item picked up etc.) ----
-            toastGroup = UIX.Go("Toast", Root).AddComponent<CanvasGroup>(); var trt = (RectTransform)toastGroup.transform; trt.At(new Vector2(1, 0.5f), new Vector2(-40, 60), new Vector2(440, 84)); trt.pivot = new Vector2(1, 0.5f); trt.anchoredPosition = new Vector2(-40, 60);
+            toastGroup = UIX.Go("Toast", Root).AddComponent<CanvasGroup>(); var trt = (RectTransform)toastGroup.transform; trt.At(new Vector2(1, 0.5f), new Vector2(-40, 60), new Vector2(500, 100)); trt.pivot = new Vector2(1, 0.5f); trt.anchoredPosition = new Vector2(-40, 60);
             var tbg = Glass(trt, "Bg", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); tbg.rectTransform.Fill();
             toastIcon = UIX.Img(trt, "Icon", HC.Cyan); toastIcon.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(18, 0), new Vector2(46, 46)); toastIcon.preserveAspect = true;
-            toastTitle = UIX.Text(trt, "", 22, HC.Text, R.Bold); toastTitle.rectTransform.Set(Vector2.zero, Vector2.one, new Vector2(0, 1), new Vector2(80, -12), new Vector2(-96, -20));
-            toastSub = UIX.Text(trt, "", 17, HC.Dim, R.Body); toastSub.rectTransform.Set(Vector2.zero, Vector2.one, new Vector2(0, 1), new Vector2(80, -44), new Vector2(-96, -20));
+            toastTitle = UIX.Text(trt, "", 25, HC.Text, R.Bold); toastTitle.rectTransform.Set(Vector2.zero, Vector2.one, new Vector2(0, 1), new Vector2(80, -12), new Vector2(-96, -20));
+            toastSub = UIX.Text(trt, "", 20, HC.Dim, R.Body); toastSub.rectTransform.Set(Vector2.zero, Vector2.one, new Vector2(0, 1), new Vector2(80, -44), new Vector2(-96, -20));
             toastGroup.alpha = 0;
         }
 
         Bar MakeBar(Transform p, int row, string label, string icon, Color c)
         {
             var b = new Bar { Col = c };
-            var r = UIX.Go(label, p).RT(); r.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(20, -42 - row * 38), new Vector2(-40, 32));
+            var r = UIX.Go(label, p).RT(); r.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(20, -46 - row * 48), new Vector2(-40, 40));
             b.G = r.gameObject.AddComponent<CanvasGroup>();
-            b.Icon = UIX.Img(r, "Icon", c, Icons.Get(icon)); b.Icon.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(24, 24));
-            var l = UIX.Text(r, label, 15, HC.Dim, R.Bold); l.characterSpacing = 4; l.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(34, 0), new Vector2(160, 18));
-            b.Val = UIX.Text(r, "", 17, HC.Text, R.Mono, TextAlignmentOptions.Right); b.Val.rectTransform.Set(new Vector2(1, 1), new Vector2(1, 1), new Vector2(1, 1), Vector2.zero, new Vector2(140, 18));
-            var track = UIX.Img(r, "Track", new Color(1, 1, 1, 0.08f)); track.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(34, 2), new Vector2(-34, 6));
+            b.Icon = UIX.Img(r, "Icon", c, Icons.Get(icon)); b.Icon.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(30, 30));
+            var l = UIX.Text(r, label, 18, HC.Dim, R.Bold); l.characterSpacing = 4; l.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, 0), new Vector2(190, 22));
+            b.Val = UIX.Text(r, "", 20, HC.Text, R.Mono, TextAlignmentOptions.Right); b.Val.rectTransform.Set(new Vector2(1, 1), new Vector2(1, 1), new Vector2(1, 1), Vector2.zero, new Vector2(230, 22));
+            var track = UIX.Img(r, "Track", new Color(1, 1, 1, 0.08f)); track.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(40, 2), new Vector2(-40, 8));
             b.FillImg = UIX.Img(track.transform, "Fill", c); b.Fill = b.FillImg.rectTransform; b.Fill.Set(Vector2.zero, Vector2.one, new Vector2(0, 0.5f), Vector2.zero, Vector2.zero);
             for (int i = 1; i < 10; i++) { var gap = UIX.Img(track.transform, "Gap", new Color(0.01f, 0.02f, 0.03f, 0.9f)); gap.rectTransform.Set(new Vector2(i / 10f, 0), new Vector2(i / 10f, 1), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3, 0)); }
             return b;
@@ -211,7 +211,8 @@ namespace MissionMars
             if (objGroup.alpha > 0) { Tween.Fade(objGroup, 0, 0.25f); yield return new WaitForSecondsRealtime(0.3f); }
             objTitle.text = title; objBody.text = body;
             objTitle.ForceMeshUpdate(); objBody.ForceMeshUpdate();
-            float h = 80 + objBody.preferredHeight; objRt.sizeDelta = new Vector2(470, Mathf.Max(110, h));
+            float h = 100 + objBody.preferredHeight; objRt.sizeDelta = new Vector2(560, Mathf.Max(140, h));
+            objBody.rectTransform.sizeDelta = new Vector2(objBody.rectTransform.sizeDelta.x, objBody.preferredHeight + 6);
             Sfx.Play("notify", 0.5f);
             Tween.Fade(objGroup, 1, 0.4f);
             objRt.anchoredPosition = new Vector2(20, -36);
