@@ -1,17 +1,7 @@
-# Netlify headers. The Unity build files are Brotli-compressed: telling the browser lets it unpack them
-# natively (fast) and compile the wasm while it downloads.
-/game/Build/Web.data.unityweb
-  Content-Encoding: br
-  Content-Type: application/octet-stream
-
-/game/Build/Web.framework.js.unityweb
-  Content-Encoding: br
-  Content-Type: application/javascript
-
-/game/Build/Web.wasm.unityweb
-  Content-Encoding: br
-  Content-Type: application/wasm
-
+# Netlify headers.
+# The Unity build files (.unityweb) are Brotli-compressed and unpacked by Unity's own loader
+# (decompression fallback). We do NOT send "Content-Encoding: br" for them: on unstable connections
+# that broke wasm loading. Images can be cached for a day.
 /book/img/*
   Cache-Control: public, max-age=86400
 
