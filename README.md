@@ -23,6 +23,7 @@ The data sources are listed in [`DATA_SOURCES.md`](DATA_SOURCES.md) and on the i
 - NASA 3D Resources (models)
 
 ## Project layout
+- `Explorer/`: **MARS × MOON** — a scientific data explorer (live JPL Horizons Mars↔Moon distance calculator, 3D solar system, NASA missions, image gallery, analytics). See [`Explorer/README.md`](Explorer/README.md).
 - `MissionMars/`: the Unity 6000.0 project (URP). Everything is built at runtime by `Assets/_Project/Scripts`.
 - `Book/`: the handbook as HTML and PDF.
 
