@@ -55,6 +55,14 @@ namespace MissionMars
             if (DaysLeft <= 0 && partsInstalled < MarsWorld.Parts.Length) StartCoroutine(MissedWindow());
         }
 
+        IEnumerator QuitWithFlyAway(SpaceSet space)
+        {
+            screens.ShowTitle(false);
+            Sfx.Play("whoosh", 0.5f);
+            yield return space.FlyAway(1.3f);
+            Application.Quit();
+        }
+
         IEnumerator MissedWindow()
         {
             WindowsMissed++; DaysLeft = 780;
@@ -81,12 +89,15 @@ namespace MissionMars
             AudioManager.I.Music("music_ambient", 0.5f, 2f);
             bool play = false; screens.OnPlay = () => play = true;
             screens.OnRestart = () => SceneManager.LoadScene(0);
+            screens.OnQuit = () => StartCoroutine(QuitWithFlyAway(space));
             if (!QuickStart)
             {
                 screens.ShowTitle(true);
                 yield return Cinema.I.FromBlack(1.5f);
                 while (!play) yield return null;
                 screens.ShowTitle(false);
+                Sfx.Play("whoosh", 0.5f);
+                yield return space.FlyAway(); // the astronaut flies off to start the mission
             }
             else Cinema.I.SetBlack(0);
             Game.InMenu = false; UIState.Cinematic = true; UIState.Refresh();

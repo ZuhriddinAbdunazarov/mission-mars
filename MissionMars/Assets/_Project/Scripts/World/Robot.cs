@@ -53,7 +53,8 @@ namespace MissionMars
                 var cam = p.Cam.transform;
                 var fwd = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
                 var right = Vector3.Cross(Vector3.up, fwd);
-                target = p.transform.position + fwd * 2.2f + right * 1.5f + Vector3.up * 2.1f;
+                // a little below eye level and to the right, so kids see NOVA without looking up
+                target = p.transform.position + fwd * 2.4f + right * 1.3f + Vector3.up * 1.25f;
                 if (!Game.Suit || !Game.Suit.Inside)
                 {
                     float gy = MarsTerrain.H(target.x, target.z) + 1.2f;

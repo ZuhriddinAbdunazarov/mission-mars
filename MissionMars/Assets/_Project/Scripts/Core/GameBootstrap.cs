@@ -17,7 +17,10 @@ namespace MissionMars
             QualitySettings.vSyncCount = 1;
             Time.timeScale = 1; Game.Paused = false; Game.InMenu = true;
             UIState.Reset(); UIState.Cinematic = false;
-            var es = new GameObject("EventSystem"); es.AddComponent<EventSystem>(); es.AddComponent<StandaloneInputModule>();
+            var es = new GameObject("EventSystem"); var evs = es.AddComponent<EventSystem>(); es.AddComponent<StandaloneInputModule>();
+            // W/S and Enter are game keys (walk, skip NOVA). With UI keyboard navigation on, they moved the
+            // selection to hidden buttons like "Play again" and restarted the game. Buttons are mouse-only.
+            evs.sendNavigationEvents = false;
             Cinema.Create().SetBlack(1);
             Cinema.I.Caption("MISSION MARS  ·  loading ...", 30);
             yield return null;

@@ -124,18 +124,42 @@ namespace MissionMars
             Cam.transform.position = c + new Vector3(-600, 380, -2950);
             Cam.transform.rotation = Quaternion.LookRotation((c + new Vector3(-1500, 250, 0)) - Cam.transform.position);
             Cam.fieldOfView = 50;
-            Astronaut.position = Cam.transform.position + Cam.transform.forward * 9.5f + Cam.transform.right * 3.0f + Cam.transform.up * -0.3f;
-            Astronaut.rotation = Quaternion.LookRotation(Cam.transform.forward - Cam.transform.right * 0.5f) * Quaternion.Euler(-8, 0, 14);
+            // the astronaut floats on the right and FACES the player (model front = +Z), slightly turned toward the menu
+            astroHome = Cam.transform.position + Cam.transform.forward * 8.5f + Cam.transform.right * 2.6f + Cam.transform.up * -0.2f;
+            // this model's head is its local -X and its visor its local -Y (seen in test screenshots), so:
+            // head -> screen up, visor -> toward the player
+            astroRot = Quaternion.LookRotation(-Cam.transform.right, Cam.transform.forward);
+            Astronaut.position = astroHome; Astronaut.rotation = astroRot; Astronaut.localScale = Vector3.one;
             Orbiter.position = Cam.transform.position + Cam.transform.forward * 140 + Cam.transform.right * 55 + Cam.transform.up * 22;
         }
+        Vector3 astroHome; Quaternion astroRot;
 
         public void MenuTick()
         {
             float t = Time.time;
-            Astronaut.Rotate(new Vector3(Mathf.Sin(t * 0.3f) * 0.6f, Mathf.Sin(t * 0.2f) * 1.5f, 0.5f) * Time.deltaTime, Space.Self);
-            Astronaut.position += Cam.transform.up * Mathf.Sin(t * 0.5f) * 0.002f;
+            // gentle friendly sway and bob (never drifts away or rolls over)
+            Astronaut.rotation = astroRot * Quaternion.Euler(Mathf.Sin(t * 0.6f) * 4f, Mathf.Sin(t * 0.45f) * 10f, Mathf.Sin(t * 1.1f) * 6f);
+            Astronaut.position = astroHome + Cam.transform.up * Mathf.Sin(t * 0.8f) * 0.18f;
             Orbiter.Rotate(0, 2f * Time.deltaTime, 0.6f * Time.deltaTime, Space.Self);
             Cam.transform.position += Cam.transform.right * Mathf.Sin(t * 0.07f) * 0.15f * Time.deltaTime;
+        }
+
+        /// <summary>The title astronaut turns and flies off into space (when the player starts or quits).</summary>
+        public IEnumerator FlyAway(float dur = 1.6f)
+        {
+            if (!Astronaut || !Astronaut.gameObject.activeSelf) yield break;
+            Vector3 from = Astronaut.position; Quaternion r0 = Astronaut.rotation;
+            Vector3 to = from + Cam.transform.forward * 90f + Cam.transform.up * 28f + Cam.transform.right * 30f;
+            Quaternion r1 = Quaternion.FromToRotation(r0 * Vector3.left, (to - from).normalized) * r0; // superhero pose: head (local -X) first
+            for (float k = 0; k < 1; k += Time.deltaTime / dur)
+            {
+                float e = k * k * (3 - 2 * k);
+                Astronaut.position = Vector3.LerpUnclamped(from, to, e * e);
+                Astronaut.rotation = Quaternion.Slerp(r0, r1, Mathf.Min(1, k * 2.5f));
+                Astronaut.localScale = Vector3.one * Mathf.Lerp(1f, 0.6f, e);
+                yield return null;
+            }
+            Astronaut.gameObject.SetActive(false);
         }
 
         // ------------------------------------------------------------------ intro

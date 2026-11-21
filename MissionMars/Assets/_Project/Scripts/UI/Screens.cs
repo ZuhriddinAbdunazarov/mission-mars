@@ -107,22 +107,29 @@ namespace MissionMars
         {
             // ---------------- TITLE ----------------
             title = Layer("Title", false);
-            var grad = UIX.Img(title.transform, "LeftShade", new Color(0, 0, 0, 0.85f), UISprites.HGradient); grad.rectTransform.Set(new Vector2(0, 0), new Vector2(0.55f, 1), new Vector2(0, 0.5f), Vector2.zero, Vector2.zero);
-            grad.rectTransform.localScale = new Vector3(-1, 1, 1); grad.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            // dark on the left behind the menu, fading smoothly to clear (no hard edge)
+            var grad = UIX.Img(title.transform, "LeftShade", new Color(0, 0, 0, 0.8f), UISprites.HGradient); grad.rectTransform.Set(new Vector2(0, 0), new Vector2(0.6f, 1), new Vector2(0, 0.5f), Vector2.zero, Vector2.zero);
             var tp = UIX.Go("Panel", title.transform).RT(); tp.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(130, 30), new Vector2(900, 700));
             var pill = UIX.Text(tp, "NASA SPACE APPS 2026  ·  JUNIOR ASTRONAUT MISSION TRAINER", 17, HC.Amber, R.Bold); pill.characterSpacing = 6;
             pill.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(0, 0), new Vector2(0, 26));
             var t1 = UIX.Text(tp, "MISSION MARS", 96, HC.Text, R.Title); t1.characterSpacing = 6; t1.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(-4, -40), new Vector2(0, 110));
             var t2 = UIX.Text(tp, "THE 2-YEAR WINDOW", 34, HC.Cyan, R.Bold); t2.characterSpacing = 22; t2.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(4, -152), new Vector2(0, 44));
-            var t3 = UIX.Text(tp, "Your ship crashed on Mars. Find air, water and shelter, rebuild the rocket — and get home when Earth comes back around.", 24, HC.Dim, R.Body);
+            var t3 = UIX.Text(tp, "Your rocket crashed on Mars! Find air, water and a safe place to hide. Then fix your rocket and fly home.", 26, HC.Text, R.Body);
             t3.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -214), new Vector2(680, 80));
             Btn(tp, "START MISSION", () => OnPlay?.Invoke(), new Vector2(0, -350), 380, 70, HC.Amber, new Vector2(0, 1)).transform.SetAsLastSibling();
             Btn(tp, "NASA DATA", () => OpenData(false), new Vector2(0, -432), 380, 58, HC.Cyan, new Vector2(0, 1));
-            Btn(tp, "CONTROLS", () => Show(controls, true), new Vector2(0, -500), 380, 58, HC.Cyan, new Vector2(0, 1));
+            Btn(tp, "HOW TO PLAY", () => Show(controls, true), new Vector2(0, -500), 380, 58, HC.Cyan, new Vector2(0, 1));
             Btn(tp, "HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(0, -568), 186, 58, HC.Green, new Vector2(0, 1));
             Btn(tp, "GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(194, -568), 186, 58, HC.Green, new Vector2(0, 1));
-            if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(tp, "QUIT", () => Application.Quit(), new Vector2(0, -636), 380, 58, HC.Cyan, new Vector2(0, 1));
-            var foot = UIX.Text(title.transform, "Real NASA data: DONKI space weather · Curiosity RAD radiation · MOXIE oxygen · NASA 3D Resources.   Models: NASA 3D Resources · Astronaut by Jungle Jim (Sketchfab, CC-BY) · Earth textures by khanhnamn063 (CGTrader) · free rocket model and space panorama (CGTrader).   Not an official NASA product.", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
+            if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(tp, "QUIT", () => { if (OnQuit != null) OnQuit(); else Application.Quit(); }, new Vector2(0, -636), 380, 58, HC.Cyan, new Vector2(0, 1));
+            // speech bubble from the astronaut on the right
+            var bub = UIX.Img(title.transform, "HelloBubble", new Color(1f, 1f, 1f, 0.94f), UISprites.Round);
+            bub.rectTransform.Set(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-520, 300), new Vector2(470, 120));
+            var hi = UIX.Text(bub.transform, "<b>Hi, Junior Astronaut!</b>\nLet's learn about Mars together!", 28, new Color(0.07f, 0.1f, 0.17f), R.Body, TextAlignmentOptions.Center);
+            hi.rectTransform.Fill();
+            var tail = UIX.Img(bub.transform, "Tail", new Color(1f, 1f, 1f, 0.94f), UISprites.Diamond);
+            tail.rectTransform.Set(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(40, 2), new Vector2(34, 34));
+            var foot = UIX.Text(title.transform, "Made with real NASA data  ·  Astronaut model by Jungle Jim (CC-BY)  ·  Not an official NASA product", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
             foot.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(-80, 24));
 
             // ---------------- CONTROLS ----------------
