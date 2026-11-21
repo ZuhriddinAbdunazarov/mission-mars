@@ -176,9 +176,9 @@
     <h2>Read. Play. Come home.</h2>
     <p class="intro">The Handbook and the game teach the same ideas. Every puzzle in the game uses a question from the book's quiz.</p>
     <div class="steps">
-      <div class="step"><img src="book/img/game_hologram.png" alt="NOVA the robot guide" loading="lazy"><div class="body"><div class="n">STEP 1</div><h3>Read the Handbook</h3><p>21 illustrated pages about space, Mars, radiation, air and water, with activities and a quiz.</p></div></div>
-      <div class="step"><img src="book/img/game_storm.png" alt="A solar storm warning in the game" loading="lazy"><div class="body"><div class="n">STEP 2</div><h3>Survive on Mars</h3><p>A real NASA solar flare is coming. Find shelter, set up MOXIE for oxygen and melt ice for water.</p></div></div>
-      <div class="step"><img src="book/img/game_launch.png" alt="The rebuilt rocket launching" loading="lazy"><div class="body"><div class="n">STEP 3</div><h3>Fly home</h3><p>Solve puzzles for 3 rocket parts, rebuild your rocket and launch when the 26-month window opens.</p></div></div>
+      <div class="step"><img src="img/game_hologram.jpg" alt="NOVA the robot guide" loading="lazy"><div class="body"><div class="n">STEP 1</div><h3>Read the Handbook</h3><p>21 illustrated pages about space, Mars, radiation, air and water, with activities and a quiz.</p></div></div>
+      <div class="step"><img src="img/game_storm.jpg" alt="A solar storm warning in the game" loading="lazy"><div class="body"><div class="n">STEP 2</div><h3>Survive on Mars</h3><p>A real NASA solar flare is coming. Find shelter, set up MOXIE for oxygen and melt ice for water.</p></div></div>
+      <div class="step"><img src="img/game_launch.jpg" alt="The rebuilt rocket launching" loading="lazy"><div class="body"><div class="n">STEP 3</div><h3>Fly home</h3><p>Solve puzzles for 3 rocket parts, rebuild your rocket and launch when the 26-month window opens.</p></div></div>
     </div>
   </div>
 </section>
@@ -188,11 +188,11 @@
     <div class="kicker">Inside the game</div>
     <h2>Your mission, step by step</h2>
     <div class="gallery">
-      <figure><img src="book/img/game_wake.png" alt="Waking up on Mars next to the crashed rocket" loading="lazy"><figcaption>Wake up at the crash site</figcaption></figure>
-      <figure><img src="book/img/game_bunker.png" alt="Inside the shielded bunker" loading="lazy"><figcaption>Shelter in the bunker</figcaption></figure>
-      <figure><img src="book/img/game_puzzle.png" alt="A science puzzle" loading="lazy"><figcaption>Solve science puzzles</figcaption></figure>
-      <figure><img src="book/img/game_meteor.png" alt="A meteor shower" loading="lazy"><figcaption>Meteor showers</figcaption></figure>
-      <figure><img src="book/img/game_earth.png" alt="Earth seen from Mars" loading="lazy"><figcaption>Find Earth in the sky</figcaption></figure>
+      <figure><img src="img/game_wake.jpg" alt="Waking up on Mars next to the crashed rocket" loading="lazy"><figcaption>Wake up at the crash site</figcaption></figure>
+      <figure><img src="img/game_bunker.jpg" alt="Inside the shielded bunker" loading="lazy"><figcaption>Shelter in the bunker</figcaption></figure>
+      <figure><img src="img/game_puzzle.jpg" alt="A science puzzle" loading="lazy"><figcaption>Solve science puzzles</figcaption></figure>
+      <figure><img src="img/game_meteor.jpg" alt="A meteor shower" loading="lazy"><figcaption>Meteor showers</figcaption></figure>
+      <figure><img src="img/game_earth.jpg" alt="Earth seen from Mars" loading="lazy"><figcaption>Find Earth in the sky</figcaption></figure>
     </div>
   </div>
 </section>
@@ -215,7 +215,7 @@
 
 <section class="bookband">
   <div class="wrap bookrow">
-    <img class="cover" src="book/img/game_title.png" alt="Mission Mars title screen" loading="lazy">
+    <img class="cover" src="img/game_title.jpg" alt="Mission Mars title screen" loading="lazy">
     <div>
       <div class="kicker">The book</div>
       <h2>Junior Astronaut Handbook</h2>
@@ -250,5 +250,18 @@
   </div>
 </footer>
 
+<script>
+  // Start downloading the game quietly once this page has loaded, so "Play" opens much faster.
+  // Skipped on phones and on "save data" connections.
+  window.addEventListener("load", function () {
+    var c = navigator.connection;
+    if ((c && c.saveData) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+    setTimeout(function () {
+      ["game/Build/Web.loader.js", "game/Build/Web.framework.js.unityweb", "game/Build/Web.wasm.unityweb", "game/Build/Web.data.unityweb"].forEach(function (u) {
+        var l = document.createElement("link"); l.rel = "prefetch"; l.href = u; document.head.appendChild(l);
+      });
+    }, 1500);
+  });
+</script>
 </body>
 </html>

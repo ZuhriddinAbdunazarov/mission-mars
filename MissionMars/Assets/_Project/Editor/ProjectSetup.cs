@@ -161,8 +161,12 @@ namespace MissionMars.EditorTools
         {
             string outDir = Path.GetFullPath("../Build/Web");
             Directory.CreateDirectory(outDir);
-            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
-            PlayerSettings.WebGL.decompressionFallback = true; // works on any static host (GitHub Pages, Vercel)
+            // Brotli files served with "Content-Encoding: br" (Site/_headers on Netlify): the browser unpacks them natively
+            // and streams the wasm, much faster than the JavaScript decompression fallback.
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true; // safety net: still loads if a host ignores the headers
+            // release-optimized, smaller code (the default "shorter build time" makes a debug-sized wasm)
+            UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSize;
             PlayerSettings.WebGL.dataCaching = true;
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.memorySize = 512;
@@ -201,15 +205,28 @@ namespace MissionMars.EditorTools
 
     public class TexImport : AssetPostprocessor
     {
+        public override uint GetVersion() => 2; // bump to reimport textures when these rules change
+
         void OnPreprocessTexture()
         {
             if (!assetPath.Contains("_Project/Resources/Tex")) return;
             var ti = (TextureImporter)assetImporter;
-            if (assetPath.EndsWith("_nor.jpg")) ti.textureType = TextureImporterType.NormalMap;
-            ti.maxTextureSize = assetPath.Contains("Hipparcos") || assetPath.Contains("Mars.jpg") || assetPath.Contains("Earth") ? 4096 : 2048;
+            bool normal = assetPath.EndsWith("_nor.jpg");
+            if (normal) ti.textureType = TextureImporterType.NormalMap;
+            bool big = assetPath.Contains("Hipparcos") || assetPath.Contains("Mars.jpg") || assetPath.Contains("Earth");
+            ti.maxTextureSize = big ? 4096 : 2048;
             ti.anisoLevel = 4;
             ti.textureCompression = TextureImporterCompression.CompressedHQ;
             if (assetPath.Contains("Hipparcos")) { ti.mipmapEnabled = false; ti.wrapModeU = TextureWrapMode.Repeat; ti.wrapModeV = TextureWrapMode.Clamp; }
+            if (assetPath.Contains("QR_")) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.filterMode = FilterMode.Point; ti.mipmapEnabled = false; return; } // must stay sharp to scan
+            // web build: smaller and Crunch-compressed (downloads several times smaller; PC keeps full quality)
+            ti.SetPlatformTextureSettings(new TextureImporterPlatformSettings
+            {
+                name = "WebGL", overridden = true,
+                maxTextureSize = big ? 2048 : 1024,
+                format = normal || assetPath.EndsWith(".png") ? TextureImporterFormat.DXT5Crunched : TextureImporterFormat.DXT1Crunched,
+                crunchedCompression = true, compressionQuality = 50,
+            });
         }
     }
 }

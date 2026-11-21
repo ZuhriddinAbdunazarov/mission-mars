@@ -1,0 +1,13 @@
+{
+  "name": "missionmars-web-tools",
+  "private": true,
+  "type": "module",
+  "description": "Makes web-only, lighter copies of the 3D models before the WebGL build (see Site/build_web.sh).",
+  "dependencies": {
+    "@gltf-transform/core": "4.1.1",
+    "@gltf-transform/functions": "4.1.1",
+    "jimp": "0.22.12",
+    "jpeg-js": "0.4.4",
+    "meshoptimizer": "0.22.0"
+  }
+}
