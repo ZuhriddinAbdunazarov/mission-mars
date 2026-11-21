@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play Mission Mars</title>
+<style>
+  :root { --navy:#0b1a2b; --mars:#e2622b; --gold:#f5b82e; --cyan:#2fc6e8; --text:#eef3f8; --dim:#a9b7c6; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:#000; color:var(--text); font-family:"Nunito", Arial, sans-serif; overflow:hidden; }
+  .bar { position:fixed; top:0; left:0; right:0; height:44px; display:flex; align-items:center; gap:8px; padding:0 12px; background:rgba(11,26,43,.92); z-index:3; }
+  .bar .name { font-weight:800; letter-spacing:.08em; margin-right:auto; white-space:nowrap; }
+  .bar .name span { color:var(--mars); }
+  .bar a, .bar button { color:var(--text); background:transparent; border:1px solid rgba(255,255,255,.25); border-radius:8px; padding:6px 12px; font:inherit; font-size:14px; text-decoration:none; cursor:pointer; white-space:nowrap; }
+  .bar a:hover, .bar button:hover { border-color:var(--cyan); }
+  .bar .fs { background:var(--mars); border-color:var(--mars); }
+  #unity-canvas { position:fixed; top:44px; left:0; width:100vw; height:calc(100vh - 44px); background:#000; display:block; }
+  #unity-loading-bar { position:fixed; inset:44px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(0deg, rgba(7,13,24,.92) 0%, rgba(7,13,24,.55) 55%, rgba(7,13,24,.35) 100%), url("../book/img/PIA25681.jpg") center 65%/cover no-repeat, var(--navy); z-index:2; text-align:center; padding:16px; }
+  #unity-loading-bar h1 { margin:0; font-size:clamp(32px, 6vw, 64px); letter-spacing:.06em; }
+  #unity-loading-bar h1 span { color:var(--mars); }
+  .track { width:min(420px, 80vw); height:12px; border-radius:6px; background:rgba(255,255,255,.12); overflow:hidden; }
+  #unity-progress-bar-full { height:100%; width:0%; background:linear-gradient(90deg, var(--mars), var(--gold)); transition:width .3s; }
+  #pct { font-size:15px; color:var(--dim); }
+  .tip { max-width:520px; color:var(--dim); font-size:15px; }
+  #unity-warning { position:fixed; left:50%; top:56px; transform:translateX(-50%); z-index:4; }
+  #unity-warning div { padding:10px 14px; border-radius:8px; margin-bottom:6px; font-size:14px; }
+  @media (max-width:640px) { .bar .opt { display:none; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="name">MISSION <span>MARS</span></div>
+  <a href="../">Home</a>
+  <a class="opt" href="../book/" target="_blank" rel="noopener">Handbook</a>
+  <a class="opt" href="https://github.com/ZuhriddinAbdunazarov/mission-mars" target="_blank" rel="noopener">GitHub</a>
+  <button class="fs" id="fs" type="button">Full screen</button>
+</div>
+<canvas id="unity-canvas" tabindex="-1"></canvas>
+<div id="unity-loading-bar">
+  <h1>MISSION <span>MARS</span></h1>
+  <div class="track"><div id="unity-progress-bar-full"></div></div>
+  <div id="pct">Loading… 0%</div>
+  <p class="tip"><b style="color:#fff">Preparing your landing on Mars…</b><br>The first load takes about a minute. After that your browser remembers the game.<br>
+    Controls: W A S D to walk, mouse to look, E to use things, Esc to pause.</p>
+</div>
+<div id="unity-warning"></div>
+<script>
+  var canvas = document.querySelector("#unity-canvas");
+  var warn = document.querySelector("#unity-warning");
+  function unityShowBanner(msg, type) {
+    if (type !== "error" && type !== "warning") return;
+    var d = document.createElement("div");
+    d.style.background = type === "error" ? "#b3261e" : "#8a6d00";
+    d.textContent = msg; warn.appendChild(d);
+    if (type === "warning") setTimeout(function () { warn.removeChild(d); }, 6000);
+  }
+  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    unityShowBanner("Mission Mars is made for a computer with a keyboard and mouse. On a phone it may be slow.", "warning");
+  }
+  var buildUrl = "Build";
+  var config = {
+    arguments: [],
+    dataUrl: buildUrl + "/Web.data.unityweb",
+    frameworkUrl: buildUrl + "/Web.framework.js.unityweb",
+    codeUrl: buildUrl + "/Web.wasm.unityweb",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "SpaceAppsTeam",
+    productName: "Mission Mars - The Launch Window",
+    productVersion: "1.0",
+    showBanner: unityShowBanner,
+  };
+  var script = document.createElement("script");
+  script.src = buildUrl + "/Web.loader.js";
+  script.onload = function () {
+    createUnityInstance(canvas, config, function (p) {
+      document.querySelector("#unity-progress-bar-full").style.width = (100 * p) + "%";
+      document.querySelector("#pct").textContent = "Loading… " + Math.round(100 * p) + "%";
+    }).then(function (unityInstance) {
+      document.querySelector("#unity-loading-bar").style.display = "none";
+      document.querySelector("#fs").onclick = function () { unityInstance.SetFullscreen(1); };
+      canvas.focus();
+    }).catch(function (message) { unityShowBanner(String(message), "error"); });
+  };
+  document.body.appendChild(script);
+</script>
+</body>
+</html>

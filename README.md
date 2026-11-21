@@ -2,6 +2,8 @@
 
 A Junior Astronaut Mission Trainer built in Unity 6 for the **NASA Space Apps Challenge 2026**. It comes with an illustrated handbook for kids aged 7–12.
 
+**▶ Play it in your browser: [spacefrontier01.netlify.app](https://spacefrontier01.netlify.app)** · [Read the Handbook (PDF)](Book/Junior_Astronaut_Handbook.pdf)
+
 **How to use it:** kids read the *Junior Astronaut Handbook* (`Book/`) first, then practise in the game. The puzzles in the game use the same questions as the quiz in the book.
 
 ## The story

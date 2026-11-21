@@ -119,7 +119,9 @@ namespace MissionMars
             Btn(tp, "START MISSION", () => OnPlay?.Invoke(), new Vector2(0, -350), 380, 70, HC.Amber, new Vector2(0, 1)).transform.SetAsLastSibling();
             Btn(tp, "NASA DATA", () => OpenData(false), new Vector2(0, -432), 380, 58, HC.Cyan, new Vector2(0, 1));
             Btn(tp, "CONTROLS", () => Show(controls, true), new Vector2(0, -500), 380, 58, HC.Cyan, new Vector2(0, 1));
-            if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(tp, "QUIT", () => Application.Quit(), new Vector2(0, -568), 380, 58, HC.Cyan, new Vector2(0, 1));
+            Btn(tp, "HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(0, -568), 186, 58, HC.Green, new Vector2(0, 1));
+            Btn(tp, "GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(194, -568), 186, 58, HC.Green, new Vector2(0, 1));
+            if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(tp, "QUIT", () => Application.Quit(), new Vector2(0, -636), 380, 58, HC.Cyan, new Vector2(0, 1));
             var foot = UIX.Text(title.transform, "Real NASA data: DONKI space weather · Curiosity RAD radiation · MOXIE oxygen · NASA 3D Resources.   Models: NASA 3D Resources · Astronaut by Jungle Jim (Sketchfab, CC-BY) · Earth textures by khanhnamn063 (CGTrader) · free rocket model and space panorama (CGTrader).   Not an official NASA product.", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
             foot.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(-80, 24));
 
@@ -185,7 +187,10 @@ namespace MissionMars
                 var n = UIX.Text(row.transform, rowsD[i, 1], 24, HC.Text, R.Bold); n.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -10), new Vector2(-110, 30));
                 var b = UIX.Text(row.transform, rowsD[i, 2] + $"  <color={HC.Hex(HC.Amber)}>Why: {rowsD[i, 3]}</color>", 18, HC.Dim, R.Body); b.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -40), new Vector2(-110, 56));
             }
+            Btn(dc.transform, "HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(-300, 46), 280, 56, HC.Green, new Vector2(0.5f, 0));
             Btn(dc.transform, "CLOSE", () => CloseData(), new Vector2(0, 46), 280, 56, HC.Cyan, new Vector2(0.5f, 0));
+            Btn(dc.transform, "GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(300, 46), 280, 56, HC.Green, new Vector2(0.5f, 0));
+            GithubQr(dc.transform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-60, -16), 104);
 
             // ---------------- ENDING ----------------
             ending = Layer("Ending", false);
@@ -195,8 +200,24 @@ namespace MissionMars
             endStats = UIX.Text(ending.transform, "", 26, HC.Dim, R.Body, TextAlignmentOptions.Center); endStats.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(1200, 200));
             Btn(ending.transform, "PLAY AGAIN", () => { OnRestart?.Invoke(); }, new Vector2(-200, -170), 360, 66, HC.Amber);
             Btn(ending.transform, "NASA DATA", () => OpenData(false), new Vector2(200, -170), 360, 66);
+            Btn(ending.transform, "READ THE HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(-200, -256), 360, 60, HC.Green);
+            Btn(ending.transform, "SEE US ON GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(200, -256), 360, 60, HC.Green);
+            GithubQr(ending.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(560, -200), 150);
         }
         TextMeshProUGUI dataStatus;
+        const string BookUrl = "https://github.com/ZuhriddinAbdunazarov/mission-mars/blob/main/Book/Junior_Astronaut_Handbook.pdf";
+        const string GithubUrl = "https://github.com/ZuhriddinAbdunazarov/mission-mars";
+
+        /// <summary>QR code (Resources/Tex/QR_GitHub.png) that opens the GitHub repo, with a caption under it.</summary>
+        static void GithubQr(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 pos, float size)
+        {
+            var t = Resources.Load<Texture2D>("Tex/QR_GitHub");
+            if (!t) return;
+            var back = UIX.Img(parent, "QR", Color.white, Sprite.Create(t, new Rect(0, 0, t.width, t.height), Vector2.one * 0.5f));
+            back.rectTransform.Set(anchor, anchor, pivot, pos, new Vector2(size, size));
+            var cap = UIX.Text(back.transform, "SCAN: GITHUB", 15, HC.Dim, R.Bold, TextAlignmentOptions.Center);
+            cap.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(40, 22));
+        }
 
         // ---------------- info card (how a machine works + link to the book) ----------------
         CanvasGroup info; TextMeshProUGUI infoTitle, infoBody, infoBook; Image infoIcon; bool infoOk;

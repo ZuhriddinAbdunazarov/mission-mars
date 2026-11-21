@@ -167,6 +167,8 @@ namespace MissionMars.EditorTools
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.memorySize = 512;
             PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.Low);
+            PlayerSettings.stripEngineCode = false; // colliders etc. are added from code at runtime; stripping removed them
+            PlayerSettings.SplashScreen.show = false; // no Unity logo screen; our own Mars loader shows instead
             var opts = new BuildPlayerOptions
             {
                 scenes = new[] { P + "/Scenes/Main.unity" },

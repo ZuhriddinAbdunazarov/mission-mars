@@ -57,6 +57,7 @@ namespace MissionMars
             BuildParts();
             Rocks();
             BuildRover();
+            BuildOutpost();
             BuildInterior();
             SkyBodies();
             FX.DustBanks(new Vector3(0, MarsTerrain.Base + 2, 0)).transform.SetParent(Root.transform, true);
@@ -454,6 +455,33 @@ namespace MissionMars
             var site = new GameObject("RoverSite").transform; site.SetParent(Root.transform);
             Util.PlaceModel("Mars_2020_Perseverance_Rover", G(-58, 30), 3.0f, 120, site, false, true);
             Util.PlaceModel("Ingenuity_Mars_Helicopter", G(-52, 35), 1.2f, 30, site, false, true);
+        }
+
+        // ------------------------------------------------------------------
+        /// <summary>A small Mars outpost between the bunker and the launch pad (Kenney Space Kit, CC0):
+        /// habitat domes, a glass greenhouse, power, a big dish to talk to Earth, a supply rover.</summary>
+        static void BuildOutpost()
+        {
+            var site = new GameObject("Outpost").transform; site.SetParent(Root.transform);
+            var c = new Vector2(-4, -44); // between BunkerXZ (-36,-24) and PadXZ (40,-34)
+            void Put(string m, float dx, float dz, float size, float yaw, bool col = true)
+            {
+                var xz = c + new Vector2(dx, dz);
+                for (int i = 0; i < 6 && Avoid(xz, 0); i++) xz += new Vector2(0, -6); // step away from paths, bunker and pad
+                Util.PlaceModel("K_" + m, G(xz), size, yaw, site, false, col);
+            }
+            Put("hangar_roundGlass", 0, 0, 12, 0);          // greenhouse dome
+            Put("hangar_roundA", 15, 3, 11, 25);            // habitat dome
+            Put("hangar_smallA", -14, 2, 8, -20);           // storage module
+            Put("corridor", 7.5f, 1.5f, 5, 100);            // tunnel between domes
+            Put("satelliteDish_large", -6, 14, 9, 200);     // talks to Earth (message delay!)
+            Put("machine_wireless", 8, 13, 4, 160);         // antenna
+            Put("machine_generatorLarge", -15, -10, 6, 40); // power generator
+            Put("pipe_straight", -8, -7, 5, 40, false);
+            Put("rover", 20, -10, 6, -35);                  // supply rover
+            Put("barrels", 24, 8, 3, 10);
+            Put("barrels", -20, 12, 3, 70);
+            Put("rock_crystalsLargeA", -26, -4, 4, 0);      // ice crystals to mine
         }
 
         // ------------------------------------------------------------------

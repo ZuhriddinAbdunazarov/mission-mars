@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Mars — Junior Astronaut Mission Trainer</title>
+<meta name="description" content="A free 3D Mars mission game and illustrated handbook for kids aged 7–12, built with real NASA data. NASA Space Apps Challenge 2026.">
+<meta property="og:title" content="Mission Mars — Junior Astronaut Mission Trainer">
+<meta property="og:description" content="Play a Mars mission in your browser and read the Junior Astronaut Handbook. Real NASA data.">
+<meta property="og:image" content="book/img/PIA24542.jpg">
+<style>
+  @font-face { font-family:"Baloo"; src:url("book/fonts/Baloo2.ttf"); font-display:swap; }
+  @font-face { font-family:"Nunito"; src:url("book/fonts/Nunito.ttf"); font-display:swap; }
+  @font-face { font-family:"Orbitron"; src:url("book/fonts/Orbitron.ttf"); font-display:swap; }
+  :root {
+    --space:#070d18; --navy:#0b1a2b; --navy2:#102338; --rust:#c4532a; --mars:#e2622b; --mars2:#f39a54;
+    --sand:#f6e2c8; --dust:#e9c9a4; --gold:#f5b82e; --cyan:#2fc6e8; --text:#f4f6f9; --dim:#a9b7c6;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--space); color:var(--text); font-family:"Nunito", Arial, sans-serif; font-size:18px; line-height:1.55; }
+  img { max-width:100%; display:block; }
+  a { color:inherit; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 16px; }
+  h1, h2, h3 { font-family:"Baloo", "Nunito", sans-serif; line-height:1.05; margin:0; }
+  .kicker { font-family:"Orbitron", sans-serif; font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); }
+
+  /* nav */
+  nav { position:absolute; top:0; left:0; right:0; z-index:5; }
+  nav .wrap { display:flex; align-items:center; gap:24px; height:72px; }
+  nav .logo { font-family:"Orbitron", sans-serif; font-weight:700; letter-spacing:.16em; font-size:15px; margin-right:auto; text-decoration:none; }
+  nav .logo span { color:var(--mars2); }
+  nav a.link { text-decoration:none; font-weight:700; font-size:15px; opacity:.9; }
+  nav a.link:hover { opacity:1; color:var(--gold); }
+  nav .cta { background:var(--mars); padding:10px 18px; border-radius:999px; text-decoration:none; font-weight:800; font-size:15px; }
+
+  /* hero: real NASA photo */
+  .hero { position:relative; min-height:100vh; display:flex; align-items:flex-end; overflow:hidden; background:#3b2414; }
+  .hero .photo { position:absolute; inset:0; background:url("book/img/PIA24542.jpg") 70% 40%/cover no-repeat; transform:scale(1.04); animation:drift 30s ease-in-out infinite alternate; }
+  @keyframes drift { to { transform:scale(1.1) translateX(-1.5%); } }
+  .hero::after { content:""; position:absolute; inset:0; background:
+      linear-gradient(90deg, rgba(7,13,24,.92) 0%, rgba(7,13,24,.65) 38%, rgba(7,13,24,0) 70%),
+      linear-gradient(0deg, var(--space) 0%, rgba(7,13,24,0) 35%); }
+  .hero .wrap { position:relative; z-index:2; width:100%; padding-top:120px; padding-bottom:12vh; }
+  .badge { display:inline-flex; align-items:center; gap:10px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); backdrop-filter:blur(6px); padding:8px 14px; border-radius:999px; font-size:14px; font-weight:700; }
+  .badge i { width:8px; height:8px; border-radius:50%; background:#4cd28a; box-shadow:0 0 10px #4cd28a; }
+  .hero h1 { font-size:clamp(56px, 11vw, 140px); letter-spacing:.01em; margin:18px 0 0; text-shadow:0 6px 40px rgba(0,0,0,.5); }
+  .hero h1 span { color:var(--mars2); }
+  .hero .sub { font-family:"Orbitron", sans-serif; letter-spacing:.32em; color:var(--dust); font-size:clamp(13px, 2vw, 18px); margin-top:4px; }
+  .hero p.lead { max-width:560px; font-size:21px; margin:22px 0 32px; color:#e7ebf0; }
+  .btns { display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
+  .btn { display:inline-flex; align-items:center; gap:10px; padding:16px 26px; border-radius:16px; font-family:"Baloo", sans-serif; font-size:22px; text-decoration:none; transition:transform .15s, box-shadow .15s, background .15s; border:2px solid transparent; }
+  .btn:hover { transform:translateY(-3px); }
+  .btn svg { width:24px; height:24px; flex:none; }
+  .btn.play { background:linear-gradient(135deg, var(--mars), #ff8a3d); color:#fff; font-size:27px; padding:20px 36px; box-shadow:0 12px 36px rgba(226,98,43,.45); }
+  .btn.play:hover { box-shadow:0 16px 44px rgba(226,98,43,.6); }
+  .btn.book { background:var(--gold); color:var(--navy); }
+  .btn.ghost { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.35); color:var(--text); backdrop-filter:blur(6px); }
+  .btn.ghost:hover { border-color:var(--gold); }
+  .note { margin-top:14px; font-size:14px; color:var(--dim); }
+  .credit { position:absolute; right:16px; bottom:12px; z-index:2; font-size:12px; color:rgba(255,255,255,.55); }
+
+  /* mission numbers */
+  .numbers { background:linear-gradient(180deg, var(--space), var(--navy)); padding:40px 0 64px; }
+  .numgrid { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; }
+  .num { border-top:3px solid var(--mars); padding-top:14px; }
+  .num b { display:block; font-family:"Baloo", sans-serif; font-size:clamp(34px, 5vw, 52px); line-height:1; color:#fff; }
+  .num span { color:var(--dim); font-size:16px; }
+
+  section { padding:88px 0; }
+  section h2 { font-size:clamp(36px, 5.5vw, 60px); margin:10px 0 14px; }
+  section .intro { color:var(--dim); max-width:700px; margin:0 0 40px; font-size:19px; }
+
+  /* journey */
+  .journey { background:var(--navy); }
+  .steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:22px; }
+  .step { background:var(--navy2); border-radius:22px; overflow:hidden; border:1px solid rgba(255,255,255,.07); transition:transform .2s; }
+  .step:hover { transform:translateY(-6px); }
+  .step img { aspect-ratio:16/10; object-fit:cover; width:100%; }
+  .step .body { padding:22px 24px 26px; }
+  .step .n { font-family:"Orbitron", sans-serif; color:var(--mars2); font-size:13px; letter-spacing:.2em; }
+  .step h3 { font-size:28px; margin:6px 0 8px; }
+  .step p { margin:0; color:var(--dim); font-size:17px; }
+
+  /* gallery */
+  .gallery { display:grid; grid-template-columns:2fr 1fr 1fr; grid-auto-rows:220px; gap:14px; }
+  .gallery figure { margin:0; position:relative; border-radius:18px; overflow:hidden; background:#000; }
+  .gallery figure:first-child { grid-row:span 2; }
+  .gallery img { width:100%; height:100%; object-fit:cover; transition:transform .4s; }
+  .gallery figure:hover img { transform:scale(1.05); }
+  .gallery figcaption { position:absolute; left:0; right:0; bottom:0; padding:28px 16px 12px; background:linear-gradient(0deg, rgba(0,0,0,.8), transparent); font-weight:800; font-size:16px; }
+
+  /* data */
+  .data { background:linear-gradient(180deg, var(--navy) 0%, #1a1310 100%); }
+  .cards { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; }
+  .card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:24px; display:flex; flex-direction:column; gap:10px; }
+  .card .tag { font-family:"Orbitron", sans-serif; font-size:11px; letter-spacing:.18em; color:var(--cyan); }
+  .card h3 { font-size:23px; }
+  .card p { margin:0; color:var(--dim); font-size:16px; }
+  .card .why { color:var(--gold); font-size:15px; margin-top:auto; }
+  .card a { color:var(--cyan); font-size:15px; }
+
+  /* book */
+  .bookband { background:var(--sand); color:var(--navy); }
+  .bookband .kicker { color:var(--rust); }
+  .bookrow { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+  .bookrow .cover { border-radius:18px; box-shadow:0 30px 60px rgba(60,30,10,.35); transform:rotate(-2deg); }
+  .bookrow ul { padding-left:20px; font-size:19px; color:#3a4654; }
+  .bookband .btn.ghost { background:transparent; color:var(--navy); border-color:rgba(11,26,43,.3); }
+
+  /* final cta */
+  .final { position:relative; text-align:center; overflow:hidden; background:url("book/img/PIA25681.jpg") center 60%/cover no-repeat; }
+  .final::before { content:""; position:absolute; inset:0; background:rgba(7,13,24,.72); }
+  .final .wrap { position:relative; }
+  .final .btns { justify-content:center; }
+
+  footer { padding:36px 0 48px; color:var(--dim); font-size:14px; background:var(--space); }
+  footer .row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; }
+  footer a { color:var(--cyan); }
+
+  @media (max-width:900px) {
+    nav a.link { display:none; }
+    .numgrid { grid-template-columns:repeat(2, 1fr); }
+    .steps, .cards, .bookrow { grid-template-columns:1fr; }
+    .gallery { grid-template-columns:1fr 1fr; grid-auto-rows:160px; }
+    .gallery figure:first-child { grid-column:span 2; grid-row:span 1; }
+    .hero::after { background:linear-gradient(0deg, var(--space) 10%, rgba(7,13,24,.6) 60%, rgba(7,13,24,.4) 100%); }
+    .btn { font-size:19px; padding:14px 20px; }
+    .btn.play { font-size:23px; padding:16px 26px; }
+  }
+  @media (prefers-reduced-motion:reduce) { .hero .photo { animation:none; } * { transition:none !important; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#">MISSION <span>MARS</span></a>
+    <a class="link" href="#journey">How it works</a>
+    <a class="link" href="#data">NASA data</a>
+    <a class="link" href="book/">Handbook</a>
+    <a class="link" href="https://github.com/ZuhriddinAbdunazarov/mission-mars" target="_blank" rel="noopener">GitHub</a>
+    <a class="cta" href="game/">Play</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="photo" role="img" aria-label="NASA's Perseverance rover and Ingenuity helicopter on Mars"></div>
+  <div class="wrap">
+    <div class="badge"><i></i> NASA Space Apps Challenge 2026 · Junior Astronaut Mission Trainer</div>
+    <h1>MISSION <span>MARS</span></h1>
+    <div class="sub">THE 2-YEAR WINDOW</div>
+    <p class="lead">Your ship has crashed on Mars. Hide from a real solar storm, make air and water, rebuild your rocket and fly home when Earth comes back around. A free 3D game and handbook for kids aged 7–12, built on real NASA data.</p>
+    <div class="btns">
+      <a class="btn play" href="game/"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play the game</a>
+      <a class="btn book" href="book/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg>Read the Handbook</a>
+      <a class="btn ghost" href="https://github.com/ZuhriddinAbdunazarov/mission-mars" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</a>
+    </div>
+    <p class="note">Best on a computer with keyboard and mouse (Chrome or Edge). First load takes about a minute.</p>
+  </div>
+  <div class="credit">Photo: Perseverance and Ingenuity on Mars · NASA/JPL-Caltech/MSSS</div>
+</header>
+
+<div class="numbers">
+  <div class="wrap numgrid">
+    <div class="num"><b>225M km</b><span>average distance from Earth to Mars</span></div>
+    <div class="num"><b>26 months</b><span>between launch windows home</span></div>
+    <div class="num"><b>38%</b><span>of Earth's gravity: you jump higher!</span></div>
+    <div class="num"><b>−60 °C</b><span>average temperature on Mars</span></div>
+  </div>
+</div>
+
+<section class="journey" id="journey">
+  <div class="wrap">
+    <div class="kicker">How it works</div>
+    <h2>Read. Play. Come home.</h2>
+    <p class="intro">The Handbook and the game teach the same ideas. Every puzzle in the game uses a question from the book's quiz.</p>
+    <div class="steps">
+      <div class="step"><img src="book/img/game_hologram.png" alt="NOVA the robot guide" loading="lazy"><div class="body"><div class="n">STEP 1</div><h3>Read the Handbook</h3><p>21 illustrated pages about space, Mars, radiation, air and water, with activities and a quiz.</p></div></div>
+      <div class="step"><img src="book/img/game_storm.png" alt="A solar storm warning in the game" loading="lazy"><div class="body"><div class="n">STEP 2</div><h3>Survive on Mars</h3><p>A real NASA solar flare is coming. Find shelter, set up MOXIE for oxygen and melt ice for water.</p></div></div>
+      <div class="step"><img src="book/img/game_launch.png" alt="The rebuilt rocket launching" loading="lazy"><div class="body"><div class="n">STEP 3</div><h3>Fly home</h3><p>Solve puzzles for 3 rocket parts, rebuild your rocket and launch when the 26-month window opens.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kicker">Inside the game</div>
+    <h2>Your mission, step by step</h2>
+    <div class="gallery">
+      <figure><img src="book/img/game_wake.png" alt="Waking up on Mars next to the crashed rocket" loading="lazy"><figcaption>Wake up at the crash site</figcaption></figure>
+      <figure><img src="book/img/game_bunker.png" alt="Inside the shielded bunker" loading="lazy"><figcaption>Shelter in the bunker</figcaption></figure>
+      <figure><img src="book/img/game_puzzle.png" alt="A science puzzle" loading="lazy"><figcaption>Solve science puzzles</figcaption></figure>
+      <figure><img src="book/img/game_meteor.png" alt="A meteor shower" loading="lazy"><figcaption>Meteor showers</figcaption></figure>
+      <figure><img src="book/img/game_earth.png" alt="Earth seen from Mars" loading="lazy"><figcaption>Find Earth in the sky</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="data" id="data">
+  <div class="wrap">
+    <div class="kicker">Real science</div>
+    <h2>Real NASA data inside</h2>
+    <p class="intro">Every danger and machine in Mission Mars comes from a real NASA mission or dataset.</p>
+    <div class="cards">
+      <div class="card"><div class="tag">SPACE WEATHER</div><h3>NASA DONKI</h3><p>The solar storm in the game is a real flare measured by NASA: live flares from the last 30 days, or real archived ones (like X9.0 on 3 Oct 2024).</p><p class="why">Your shelter decision follows real space weather.</p><a href="https://kauai.ccmc.gsfc.nasa.gov/DONKI/" target="_blank" rel="noopener">DONKI →</a></div>
+      <div class="card"><div class="tag">RADIATION</div><h3>Curiosity RAD</h3><p>Your radiation meter uses Curiosity's measurement: about 0.67 mSv per sol on the Martian surface.</p><p class="why">Mars has no magnetic field, so you need shielding.</p><a href="https://science.nasa.gov/mission/msl-curiosity/" target="_blank" rel="noopener">Curiosity →</a></div>
+      <div class="card"><div class="tag">OXYGEN</div><h3>Perseverance MOXIE</h3><p>MOXIE turned Mars CO₂ into oxygen: 122 g in total, up to 12 g per hour. Your oxygen maker works the same way.</p><p class="why">Making air on Mars is real NASA technology.</p><a href="https://science.nasa.gov/mission/mars-2020-perseverance/" target="_blank" rel="noopener">Perseverance →</a></div>
+      <div class="card"><div class="tag">WATER</div><h3>MRO SHARAD radar</h3><p>NASA radar found large sheets of ice under the ground. Your ice-to-water machine melts it.</p><p class="why">Water is the key to living on Mars.</p><a href="https://science.nasa.gov/mission/mars-reconnaissance-orbiter/" target="_blank" rel="noopener">MRO →</a></div>
+      <div class="card"><div class="tag">ORBITS</div><h3>Launch windows</h3><p>Earth and Mars line up for the shortest trip only about every 26 months. That is the countdown above your base.</p><p class="why">Astronauts can't fly home whenever they want.</p></div>
+      <div class="card"><div class="tag">MODELS</div><h3>NASA 3D Resources</h3><p>Perseverance, Ingenuity, the Mars Reconnaissance Orbiter and the Saturn V in the game are official NASA models.</p><p class="why">Real hardware kids can recognise.</p><a href="https://science.nasa.gov/3d-resources/" target="_blank" rel="noopener">3D Resources →</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="bookband">
+  <div class="wrap bookrow">
+    <img class="cover" src="book/img/game_title.png" alt="Mission Mars title screen" loading="lazy">
+    <div>
+      <div class="kicker">The book</div>
+      <h2>Junior Astronaut Handbook</h2>
+      <ul>
+        <li>21 landscape pages to print or read on screen</li>
+        <li>Space basics, the planets, Mars and how astronauts survive</li>
+        <li>Activities, a quiz and a certificate</li>
+        <li>Page references that match the game</li>
+      </ul>
+      <div class="btns">
+        <a class="btn book" href="book/">Open the Handbook</a>
+        <a class="btn ghost" href="book/Junior_Astronaut_Handbook.pdf">Download PDF</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <div class="kicker">Ready, Commander?</div>
+    <h2>Your mission starts now</h2>
+    <p class="intro" style="margin:0 auto 32px">Free, in your browser, no download needed.</p>
+    <div class="btns"><a class="btn play" href="game/"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play Mission Mars</a></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <div>Mission Mars · Team EXCRIM · NASA Space Apps Challenge 2026. Built with Unity and real NASA open data.<br>
+      Photos and models: NASA/JPL-Caltech · Outpost models: Kenney Space Kit (CC0) · Astronaut by Jungle Jim (Sketchfab, CC-BY). Not an official NASA product.</div>
+    <div><a href="https://github.com/ZuhriddinAbdunazarov/mission-mars" target="_blank" rel="noopener">Source code on GitHub</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

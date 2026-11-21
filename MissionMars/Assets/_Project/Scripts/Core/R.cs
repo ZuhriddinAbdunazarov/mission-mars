@@ -21,7 +21,11 @@ namespace MissionMars
 
         public static Material Template(string n) => Load<Material>("Mats/" + n);
         public static Texture2D Tex(string n) => Load<Texture2D>("Tex/" + n);
-        public static GameObject Model(string n) { var g = Resources.Load<GameObject>("Sketchfab/" + n); return g ? g : (n.StartsWith("SF_") ? null : Load<GameObject>("NASA/" + n)); }
+        public static GameObject Model(string n)
+        {
+            if (n.StartsWith("K_")) return Resources.Load<GameObject>("Kenney/" + n.Substring(2)); // Kenney Space Kit (CC0)
+            var g = Resources.Load<GameObject>("Sketchfab/" + n); return g ? g : (n.StartsWith("SF_") ? null : Load<GameObject>("NASA/" + n));
+        }
 
         public static TMP_FontAsset Title => Load<TMP_FontAsset>("Fonts/Orbitron SDF");
         public static TMP_FontAsset Body => Load<TMP_FontAsset>("Fonts/Rajdhani-Medium SDF");
