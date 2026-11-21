@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -213,14 +214,21 @@ namespace MissionMars
             Vector3 c = G(BunkerXZ); Bunker.position = c;
             Vector3 toWake = new Vector3(WakeXZ.x - BunkerXZ.x, 0, WakeXZ.y - BunkerXZ.y).normalized;
             Bunker.rotation = Quaternion.LookRotation(toWake);
-            var glass = R.Lit(new Color(0.35f, 0.38f, 0.42f), 0.92f, 0.85f);
-            var frame = R.Lit(new Color(0.75f, 0.76f, 0.78f), 0.55f, 0.8f);
-            // Tharsis-style cluster of geodesic domes, half covered with regolith for radiation shielding
-            Dome(Bunker, new Vector3(0, 0, 0), 7.5f, glass, frame);
-            Dome(Bunker, new Vector3(-9.5f, 0, -3), 4.6f, glass, frame);
-            Dome(Bunker, new Vector3(8.5f, 0, -4), 4.0f, glass, frame);
-            Tube(Bunker, new Vector3(-5.5f, 0, -1.5f), new Vector3(-7.5f, 0, -2.4f), frame);
-            Tube(Bunker, new Vector3(5.5f, 0, -2f), new Vector3(7f, 0, -3.2f), frame);
+            // UNDERGROUND shelter: the rooms are dug in and covered by a hill of Mars soil (regolith).
+            // Studies of Mars habitats say about 1-2 m of soil (or a lava tube) is needed to block most space radiation;
+            // a building standing alone on the surface would not protect the crew.
+            var soil = R.LitTex("red_laterite_soil_stones_diff", "red_laterite_soil_stones_nor", new Color(0.86f, 0.55f, 0.4f), 3f, 0.08f, 0f);
+            var mound = ProcMesh.MeshObj("SoilMound", ProcMesh.Dome(32, 10, 0), soil, Bunker);
+            mound.transform.localPosition = new Vector3(0, -0.6f, -1.5f); mound.transform.localScale = new Vector3(9.5f, 4.6f, 9.5f);
+            var mmc = mound.AddComponent<MeshCollider>(); mmc.sharedMesh = mound.GetComponent<MeshFilter>().sharedMesh;
+            var mound2 = ProcMesh.MeshObj("SoilMound2", ProcMesh.Dome(24, 8, 0), soil, Bunker);
+            mound2.transform.localPosition = new Vector3(-8.5f, -0.4f, -5f); mound2.transform.localScale = new Vector3(5.5f, 3f, 5.5f);
+            var mmc2 = mound2.AddComponent<MeshCollider>(); mmc2.sharedMesh = mound2.GetComponent<MeshFilter>().sharedMesh;
+            // air vents and a periscope camera poking out of the soil
+            ProcMesh.Prim(PrimitiveType.Cylinder, "Vent", Bunker, new Vector3(-2.5f, 4.2f, -2.5f), new Vector3(0.5f, 0.6f, 0.5f), R.Panel);
+            ProcMesh.Prim(PrimitiveType.Cylinder, "VentCap", Bunker, new Vector3(-2.5f, 4.85f, -2.5f), new Vector3(0.8f, 0.08f, 0.8f), R.Orange, null, false);
+            ProcMesh.Prim(PrimitiveType.Cylinder, "Periscope", Bunker, new Vector3(2.2f, 4.4f, -3.5f), new Vector3(0.25f, 0.9f, 0.25f), R.HullDark);
+            ProcMesh.Prim(PrimitiveType.Sphere, "PeriscopeEye", Bunker, new Vector3(2.2f, 5.35f, -3.5f), Vector3.one * 0.35f, R.CyanGlow, null, false);
             // sandbags ring
             var bag = R.Lit(new Color(0.62f, 0.42f, 0.3f), 0.1f);
             for (int i = 0; i < 26; i++)
@@ -240,7 +248,14 @@ namespace MissionMars
             ProcMesh.Prim(PrimitiveType.Cube, "Stripe", lockT, new Vector3(0, 0.25f, 0.82f), new Vector3(2.8f, 0.2f, 0.05f), R.Orange, null, false);
             var dl = new GameObject("DoorLamp").AddComponent<Light>(); dl.transform.SetParent(lockT, false); dl.transform.localPosition = new Vector3(0, 2.8f, 1.6f);
             dl.type = LightType.Point; dl.range = 9; dl.intensity = 3.5f; dl.color = new Color(0.4f, 1f, 0.7f);
-            BunkerDoor = Interactable.Add(door, "Enter", "Bunker", null); BunkerDoor.Range = 4.5f;
+            // the entrance is a concrete portal half buried in the soil hill, with steps going DOWN inside
+            ProcMesh.Prim(PrimitiveType.Cube, "SoilOverEntrance", lockT, new Vector3(0, 3.1f, -0.6f), new Vector3(3.6f, 0.8f, 2.8f), soil, null, false);
+            for (int s = 0; s < 3; s++)
+                ProcMesh.Prim(PrimitiveType.Cube, "Step", lockT, new Vector3(0, 0.05f - s * 0.12f, 0.6f - s * 0.35f), new Vector3(1.6f, 0.12f, 0.4f), R.HullDark, null, false);
+            var sign = World3DText(lockT, new Vector3(0, 4.3f, 0.6f), "UNDERGROUND SHELTER", 3.2f, new Color(1f, 0.85f, 0.4f));
+            var sign2 = World3DText(lockT, new Vector3(0, 3.75f, 0.6f), "2 m of Mars soil blocks space rays", 2.2f, new Color(0.85f, 0.95f, 1f));
+            sign.transform.localRotation = sign2.transform.localRotation = Quaternion.Euler(0, 180, 0); // face the player outside
+            BunkerDoor = Interactable.Add(door, "Go down into", "Underground shelter", null); BunkerDoor.Range = 4.5f;
             BunkerOutside = lockT.TransformPoint(new Vector3(0, 0.1f, 3.2f)); BunkerOutside.y = MarsTerrain.H(BunkerOutside.x, BunkerOutside.z) + 0.1f;
             BunkerOutsideYaw = Bunker.eulerAngles.y;
             // solar field + antenna
@@ -458,30 +473,141 @@ namespace MissionMars
         }
 
         // ------------------------------------------------------------------
-        /// <summary>A small Mars outpost between the bunker and the launch pad (Kenney Space Kit, CC0):
-        /// habitat domes, a glass greenhouse, power, a big dish to talk to Earth, a supply rover.</summary>
+        /// <summary>The MARS COLONY between the shelter and the launch pad: our own cartoon-style base for kids
+        /// (white modules, orange trim, blue windows). Every building teaches something:
+        /// greenhouse dome = food, dish tower = message delay to Earth, solar field = power, landing pad, rover.</summary>
         static void BuildOutpost()
         {
-            var site = new GameObject("Outpost").transform; site.SetParent(Root.transform);
+            var site = new GameObject("Colony").transform; site.SetParent(Root.transform);
             var c = new Vector2(-4, -44); // between BunkerXZ (-36,-24) and PadXZ (40,-34)
-            GameObject Put(string m, float dx, float dz, float size, float yaw, bool col = true)
+            var white = R.Lit(new Color(0.94f, 0.94f, 0.96f), 0.55f, 0.05f);
+            var trim = R.Orange;
+            var window = R.Emissive(new Color(0.08f, 0.2f, 0.35f), new Color(0.15f, 0.6f, 1.3f), 0.9f);
+            var leaf = R.Lit(new Color(0.3f, 0.72f, 0.28f), 0.3f, 0f);
+            var soilBox = R.Lit(new Color(0.42f, 0.26f, 0.16f), 0.15f, 0f);
+            Vector3 Spot(float dx, float dz) { var xz = c + new Vector2(dx, dz); for (int i = 0; i < 6 && Avoid(xz, 0); i++) xz += new Vector2(0, -6); return G(xz); }
+            GameObject Prim(PrimitiveType t, string n, Vector3 p, Vector3 s, Material m, Vector3? rot = null, bool col = true)
+                => ProcMesh.Prim(t, n, site, p, s, m, rot, col);
+            GameObject Model(string m, Vector3 p, float size, float yaw, bool col = true) => Util.PlaceModel("K_" + m, p, size, yaw, site, false, col);
+
+            // 1. GREENHOUSE HUB: big glass dome on a white ring with an orange stripe (plant potatoes = food)
+            var hub = Spot(0, 0);
+            Prim(PrimitiveType.Cylinder, "HubRing", hub + Vector3.up * 0.6f, new Vector3(15.5f, 0.6f, 15.5f), white);
+            Prim(PrimitiveType.Cylinder, "HubStripe", hub + Vector3.up * 1.05f, new Vector3(15.7f, 0.12f, 15.7f), trim, null, false);
+            var dome = Model("hangar_roundGlass", hub + Vector3.up * 1.15f, 13.5f, 0);
+            Greenhouse(dome);
+            Prim(PrimitiveType.Cube, "HubDoor", hub + new Vector3(0, 1.4f, -7.6f), new Vector3(2.4f, 2.8f, 1.2f), white);
+            Prim(PrimitiveType.Cube, "HubDoorGlow", hub + new Vector3(0, 1.3f, -8.22f), new Vector3(1.4f, 2.2f, 0.05f), window, null, false);
+            var title = World3DText(site, hub + Vector3.up * 12f, "MARS COLONY", 14, new Color(1f, 0.8f, 0.35f));
+            title.gameObject.AddComponent<Billboard>();
+
+            // 2. DISH TOWER: talk to Earth and wait for the answer (light needs minutes to cross space)
+            var tw = Spot(-15, 11);
+            var towerBase = Prim(PrimitiveType.Cylinder, "TowerBase", tw + Vector3.up * 1.5f, new Vector3(4.4f, 1.5f, 4.4f), white);
+            Prim(PrimitiveType.Cylinder, "TowerStripe", tw + Vector3.up * 2.9f, new Vector3(4.5f, 0.12f, 4.5f), trim, null, false);
+            Prim(PrimitiveType.Cylinder, "TowerMid", tw + Vector3.up * 4.4f, new Vector3(3.2f, 1.5f, 3.2f), white);
+            Prim(PrimitiveType.Cylinder, "TowerWindows", tw + Vector3.up * 4.6f, new Vector3(3.25f, 0.35f, 3.25f), window, null, false);
+            Prim(PrimitiveType.Cylinder, "TowerTop", tw + Vector3.up * 6.0f, new Vector3(3.8f, 0.15f, 3.8f), trim, null, false);
+            Util.PlaceModel("Tall_Dish__dish_", tw + Vector3.up * 6.1f, 6.5f, 200, site, false, false); // NASA dish model
+            EarthLink(towerBase);
+
+            // 3. HABITAT: white dome with blue windows and an orange cap
+            var hab = Spot(15, 9);
+            var habDome = ProcMesh.MeshObj("Habitat", ProcMesh.Dome(28, 10, 0), white, site);
+            habDome.transform.position = hab; habDome.transform.localScale = new Vector3(5f, 4.6f, 5f);
+            var hmc = habDome.AddComponent<MeshCollider>(); hmc.sharedMesh = habDome.GetComponent<MeshFilter>().sharedMesh;
+            Prim(PrimitiveType.Cylinder, "HabWindows", hab + Vector3.up * 1.9f, new Vector3(9.7f, 0.35f, 9.7f), window, null, false);
+            Prim(PrimitiveType.Sphere, "HabCap", hab + Vector3.up * 4.5f, new Vector3(1.8f, 0.8f, 1.8f), trim, null, false);
+            Model("machine_wireless", hab + new Vector3(3.5f, 0, 3.5f), 3f, 160, false);
+
+            // 4. LITTLE GLASS LAB dome
+            var lab = Spot(13, -9);
+            Prim(PrimitiveType.Cylinder, "LabRing", lab + Vector3.up * 0.4f, new Vector3(8.6f, 0.4f, 8.6f), white);
+            Model("hangar_roundGlass", lab + Vector3.up * 0.75f, 7.5f, 40);
+
+            // 5. TUNNELS that connect the hub to the other buildings
+            Tube(site, hub + new Vector3(-5.5f, 0.3f, 4f), tw + new Vector3(2f, 0.3f, -1.5f), white);
+            Tube(site, hub + new Vector3(6f, 0.3f, 3.5f), hab + new Vector3(-4f, 0.3f, -2f), white);
+            Tube(site, hub + new Vector3(6f, 0.3f, -3.5f), lab + new Vector3(-3.5f, 0.3f, 1.5f), white);
+
+            // 6. GARDEN BOXES outside (soil + green plants)
+            for (int i = 0; i < 3; i++)
             {
-                var xz = c + new Vector2(dx, dz);
-                for (int i = 0; i < 6 && Avoid(xz, 0); i++) xz += new Vector2(0, -6); // step away from paths, bunker and pad
-                return Util.PlaceModel("K_" + m, G(xz), size, yaw, site, false, col);
+                var gb = Spot(-13 + i * 4.5f, -10);
+                Prim(PrimitiveType.Cube, "GardenBox", gb + Vector3.up * 0.35f, new Vector3(3.4f, 0.7f, 1.6f), soilBox);
+                Prim(PrimitiveType.Cube, "GardenTrim", gb + Vector3.up * 0.72f, new Vector3(3.6f, 0.08f, 1.8f), white, null, false);
+                for (int k = 0; k < 4; k++) Prim(PrimitiveType.Sphere, "Sprout", gb + new Vector3(-1.2f + k * 0.8f, 0.95f, 0), new Vector3(0.6f, 0.5f, 0.6f), leaf, null, false);
             }
-            Greenhouse(Put("hangar_roundGlass", 0, 0, 12, 0)); // greenhouse dome: plant potatoes, then eat
-            Put("hangar_roundA", 15, 3, 11, 25);            // habitat dome
-            Put("hangar_smallA", -14, 2, 8, -20);           // storage module
-            Put("corridor", 7.5f, 1.5f, 5, 100);            // tunnel between domes
-            Put("satelliteDish_large", -6, 14, 9, 200);     // talks to Earth (message delay!)
-            Put("machine_wireless", 8, 13, 4, 160);         // antenna
-            Put("machine_generatorLarge", -15, -10, 6, 40); // power generator
-            Put("pipe_straight", -8, -7, 5, 40, false);
-            Put("rover", 20, -10, 6, -35);                  // supply rover
-            Put("barrels", 24, 8, 3, 10);
-            Put("barrels", -20, 12, 3, 70);
-            Put("rock_crystalsLargeA", -26, -4, 4, 0);      // ice crystals to mine
+
+            // 7. SOLAR FIELD: power from the Sun (Mars gets only about half of Earth's sunlight)
+            GameObject firstPanel = null;
+            for (int row = 0; row < 2; row++)
+                for (int i = 0; i < 3; i++)
+                {
+                    var sp = Spot(24 + i * 3.4f, -4 + row * 3.4f);
+                    Prim(PrimitiveType.Cylinder, "SolarPost", sp + Vector3.up * 0.7f, new Vector3(0.14f, 0.7f, 0.14f), white);
+                    var pan = Prim(PrimitiveType.Cube, "SolarPanel", sp + Vector3.up * 1.5f, new Vector3(3f, 0.07f, 2f), R.Emissive(new Color(0.05f, 0.1f, 0.3f), new Color(0.04f, 0.12f, 0.4f), 0.95f), new Vector3(28, 0, 0));
+                    if (!firstPanel) firstPanel = pan;
+                }
+            SolarInfo(firstPanel);
+
+            // 8. LANDING PAD with a yellow ring and an X, plus the colony rover
+            var lp = Spot(4, -22);
+            Prim(PrimitiveType.Cylinder, "LandingPad", lp + Vector3.up * 0.15f, new Vector3(12f, 0.15f, 12f), R.Lit(new Color(0.55f, 0.55f, 0.58f), 0.3f));
+            Prim(PrimitiveType.Cylinder, "PadYellow", lp + Vector3.up * 0.31f, new Vector3(9f, 0.02f, 9f), R.Lit(new Color(1f, 0.78f, 0.15f), 0.4f), null, false);
+            Prim(PrimitiveType.Cylinder, "PadInner", lp + Vector3.up * 0.32f, new Vector3(7.8f, 0.02f, 7.8f), R.Lit(new Color(0.55f, 0.55f, 0.58f), 0.3f), null, false);
+            Prim(PrimitiveType.Cube, "PadX1", lp + Vector3.up * 0.34f, new Vector3(5.5f, 0.02f, 0.8f), white, new Vector3(0, 45, 0), false);
+            Prim(PrimitiveType.Cube, "PadX2", lp + Vector3.up * 0.34f, new Vector3(5.5f, 0.02f, 0.8f), white, new Vector3(0, -45, 0), false);
+            Model("rover", Spot(-4, -21), 5.5f, -35);
+            Model("barrels", Spot(-20, 2), 3f, 70);
+            Model("machine_generatorLarge", Spot(-21, -6), 5f, 40);
+        }
+
+        /// <summary>Dish tower: send a message to Earth. It travels at the speed of light and still needs
+        /// several minutes (3-22 min one way, depending on where the planets are). In the game 1 second = 1 minute.</summary>
+        static void EarthLink(GameObject tower)
+        {
+            bool busy = false;
+            string[] replies =
+            {
+                "Great job, Junior Astronaut! Fun fact: a day on Mars lasts 24 hours and 39 minutes.",
+                "Message received! Mars has the biggest volcano in the solar system: Olympus Mons.",
+                "Hello from Earth! On Mars you weigh only about a third of what you weigh at home.",
+                "We hear you! Mars is red because its dust has rust (iron oxide) in it.",
+                "Hi from Mission Control! Mars has two small moons: Phobos and Deimos.",
+            };
+            var link = Interactable.Add(tower, "Send a message to", "Earth (dish tower)", null);
+            link.Range = 6f;
+            link.OnUse = () =>
+            {
+                if (busy) { if (Game.Hud) Game.Hud.Toast("STILL WAITING…", "Your message is still flying through space!", "clock", HC.Amber); return; }
+                busy = true;
+                Game.Story.StartCoroutine(Co());
+            };
+            IEnumerator Co()
+            {
+                int minutes = UnityEngine.Random.Range(4, 21);
+                float mkm = minutes * 60f * 299792f / 1e6f; // light-minutes -> million km
+                if (Game.Hud)
+                {
+                    Game.Hud.Toast("MESSAGE SENT TO EARTH!", $"Earth is {mkm:0} million km away. Even at the speed of light it takes {minutes} minutes!", "clock", HC.Cyan);
+                    Game.Hud.Say($"Our message needs {minutes} minutes to reach Earth, and the answer needs {minutes} minutes back. Let's wait!");
+                }
+                yield return new WaitForSeconds(minutes * 2f); // there and back: 1 game second = 1 real minute
+                if (Game.Hud) Game.Hud.Toast("REPLY FROM EARTH", replies[UnityEngine.Random.Range(0, replies.Length)], "clock", HC.Green);
+                busy = false;
+            }
+        }
+
+        /// <summary>Solar field: explains why power is precious on Mars.</summary>
+        static void SolarInfo(GameObject panel)
+        {
+            if (!panel) return;
+            var i = Interactable.Add(panel, "Check", "Solar panels", () =>
+            {
+                if (Game.Hud) Game.Hud.Toast("SOLAR POWER", "Mars gets only about HALF the sunlight Earth gets. Dust on the panels makes even less power, so astronauts keep them clean!", "power", HC.Amber);
+            });
+            i.Range = 5f;
         }
 
         /// <summary>The glass dome is a greenhouse: press E to plant potatoes (learn that plants make food AND oxygen),

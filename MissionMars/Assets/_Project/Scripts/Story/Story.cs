@@ -234,7 +234,7 @@ namespace MissionMars
             yield return hud.SayWait($"WARNING! NASA just measured a {CurrentFlare.Size} solar flare — class {CurrentFlare.Class}! A radiation storm is coming.", 3);
             hud.Toast("REAL SPACE WEATHER", FlareLine(CurrentFlare), "flare", HC.Amber);
             wpBunker = hud.AddWaypoint("BUNKER", () => MarsWorld.BunkerOutside, HC.Green);
-            hud.Objective("GET TO THE BUNKER!", "Space rays are hurting you! The bunker's thick walls keep you safe. Follow the GREEN marker.");
+            hud.Objective("GET TO THE BUNKER!", "Space rays are hurting you! Hide UNDERGROUND: Mars soil blocks the rays. Follow the GREEN marker.");
             hud.Say("Mars has no magnetic shield like Earth. Run to the bunker — hold SHIFT to run!", 6);
             // storm ramps up
             StartCoroutine(StormRamp(Mathf.Clamp(0.55f * CurrentFlare.Strength, 0.4f, 0.9f), 4f));
@@ -253,7 +253,7 @@ namespace MissionMars
             Game.Sky.TimeOfDay = 0.45f;
             yield return new WaitForSeconds(0.9f);
             yield return Cinema.I.FromBlack(0.3f);
-            hud.Toast("YOU SURVIVED THE STORM", $"Real flare {CurrentFlare.Class} ({CurrentFlare.Date}). The bunker's thick walls blocked the radiation.", "shield", HC.Green);
+            hud.Toast("YOU SURVIVED THE STORM", $"Real flare {CurrentFlare.Class} ({CurrentFlare.Date}). 2 metres of Mars soil above the shelter blocked the radiation.", "shield", HC.Green);
             MarsWorld.AlarmLight.intensity = 3; MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(3);
             Sfx.Play("alarm", 0.5f);
             yield return hud.SayWait("Safe! But the bunker has no machines — air and water are running out!", 3f);
@@ -390,6 +390,7 @@ namespace MissionMars
             ClockRunning = true; DaysLeft = 779;
             hud.Toast("EARTH LAUNCH WINDOW", "Earth and Mars line up every ~26 months. Next window: in 2 years.", "clock", HC.Cyan);
             yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the bunker!");
+            yield return hud.SayWait("Look, a MARS COLONY is nearby! Grow food in the glass dome, call Earth from the dish tower and check the solar panels.");
             yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
             hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the bunker for air and water.", "parts");
             foreach (var p in MarsWorld.Parts)
@@ -521,10 +522,18 @@ namespace MissionMars
                 var r = ps.GetComponent<ParticleSystemRenderer>(); r.renderMode = ParticleSystemRenderMode.Stretch; r.velocityScale = 0.08f;
             });
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 1f, 3f);
-            float t = 0; while (t < 4) { t += Time.deltaTime; Game.Sky.DustStorm = t / 4; yield return null; }
+            // the storm is OUTSIDE only: hide the dust and haze while the player is in the bunker
+            void Level(float k)
+            {
+                bool show = !inside;
+                if (wind.gameObject.activeSelf != show) { wind.gameObject.SetActive(show); streaks.gameObject.SetActive(show); if (show) { wind.Play(); streaks.Play(); } }
+                Game.Sky.DustStorm = show ? k : 0;
+            }
+            float t = 0; while (t < 4) { t += Time.deltaTime; Level(t / 4); yield return null; }
             suit.O2Drain = 0.42f;
-            t = 0; while (t < 40) { t += Time.deltaTime; if (!inside) player.Shake(0.05f, 0.1f); yield return null; }
-            t = 0; while (t < 5) { t += Time.deltaTime; Game.Sky.DustStorm = 1 - t / 5; yield return null; }
+            t = 0; while (t < 40) { t += Time.deltaTime; Level(1); if (!inside) player.Shake(0.05f, 0.1f); yield return null; }
+            t = 0; while (t < 5) { t += Time.deltaTime; Level(1 - t / 5); yield return null; }
+            wind.gameObject.SetActive(true); streaks.gameObject.SetActive(true);
             Game.Sky.DustStorm = 0; suit.O2Drain = 0.32f;
             wind.Stop(); streaks.Stop(); Destroy(wind.gameObject, 3); Destroy(streaks.gameObject, 2);
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, inside ? 0.05f : 0.35f, 3f);

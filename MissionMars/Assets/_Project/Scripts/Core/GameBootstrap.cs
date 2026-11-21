@@ -53,6 +53,9 @@ namespace MissionMars
 
             string vid = Arg("-video");
             if (vid != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(VideoTour(vid)); }
+            // developer preview for checking the world: .../game/?preview=colony or ?preview=shelter
+            string url = Application.absoluteURL ?? "";
+            if (url.Contains("preview=")) { Story.QuickStart = true; StartCoroutine(Preview(url.Contains("preview=shelter"))); }
             string tshot = Arg("-titleshot");
             if (tshot != null) { Application.runInBackground = true; StartCoroutine(TitleShot(tshot)); }
             string shots = Arg("-shots");
@@ -98,6 +101,20 @@ namespace MissionMars
                 var tex = ScreenCapture.CaptureScreenshotAsTexture();
                 File.WriteAllBytes(Path.Combine(recDir, $"f_{recFrame++:00000}.jpg"), tex.EncodeToJPG(90));
                 Destroy(tex);
+            }
+        }
+
+        IEnumerator Preview(bool shelter)
+        {
+            while (!Game.Player || UIState.Cinematic) yield return null;
+            yield return new WaitForSeconds(3f);
+            Vector2 target = shelter ? MarsWorld.BunkerXZ : new Vector2(-4, -44);
+            Vector2 from = shelter ? target + new Vector2(14, 14) : target + new Vector2(-26, -26);
+            for (int i = 0; i < 400; i++) // hold the view for a few seconds
+            {
+                Game.Player.Teleport(MarsWorld.G(from, shelter ? 1f : 9f), 0);
+                Game.Player.LookAt(MarsWorld.G(target, 2f));
+                yield return null;
             }
         }
 
