@@ -188,9 +188,9 @@ namespace MissionMars
                 { "robot", "NASA 3D Resources + NASA fact sheet", $"Official NASA models (Perseverance, Ingenuity, rockets). Mars facts: gravity is only 38% of Earth's, a sol lasts {MarsFacts.SolLength}, average {MarsFacts.MeanTempC} °C.", "Real hardware and real numbers kids can trust." },
             };
             // LIVE panel: today's real Earth–Mars distance (JPL Horizons via our research site's REST API), Mars clock (Mars24), NASA photos
-            var live = UIX.Img(dc.transform, "Live", new Color(0.3f, 0.9f, 1f, 0.07f), UISprites.Round); live.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -138), new Vector2(-120, 150));
+            var live = UIX.Img(dc.transform, "Live", new Color(0.3f, 0.9f, 1f, 0.07f), UISprites.Round); live.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -138), new Vector2(-120, 172));
             var lh = UIX.Text(live.transform, "MARS TODAY", 20, HC.Cyan, R.Bold); lh.characterSpacing = 8; lh.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -12), new Vector2(700, 26));
-            liveText = UIX.Text(live.transform, "", 20, HC.Text, R.Body); liveText.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -38), new Vector2(840, 108));
+            liveText = UIX.Text(live.transform, "", 20, HC.Text, R.Body); liveText.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -38), new Vector2(840, 130));
             for (int k = 0; k < livePhotos.Length; k++)
             {
                 livePhotos[k] = new GameObject("Photo" + k).AddComponent<RawImage>(); livePhotos[k].transform.SetParent(live.transform, false);
@@ -199,7 +199,7 @@ namespace MissionMars
             }
             for (int i = 0; i < rowsD.GetLength(0); i++)
             {
-                var row = UIX.Img(dc.transform, "Row", new Color(1, 1, 1, 0.035f), UISprites.Round); row.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -300 - i * 94), new Vector2(-120, 88));
+                var row = UIX.Img(dc.transform, "Row", new Color(1, 1, 1, 0.035f), UISprites.Round); row.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -320 - i * 94), new Vector2(-120, 88));
                 var ic = UIX.Img(row.transform, "Icon", HC.Cyan, Icons.Get(rowsD[i, 0])); ic.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(22, 0), new Vector2(44, 44));
                 var n = UIX.Text(row.transform, rowsD[i, 1], 23, HC.Text, R.Bold); n.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -8), new Vector2(-110, 28));
                 var b = UIX.Text(row.transform, rowsD[i, 2] + $"  <color={HC.Hex(HC.Amber)}>Why: {rowsD[i, 3]}</color>", 17, HC.Dim, R.Body); b.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -36), new Vector2(-110, 50));
@@ -233,9 +233,22 @@ namespace MissionMars
             string dot = nl.DistanceLive ? $"<color={HC.Hex(HC.Green)}>● LIVE</color>" : $"<color={HC.Hex(HC.Amber)}>● JPL TABLE</color>";
             liveText.text = $"{dot}  Mars is <b>{nl.DistanceText}</b> from Earth. A radio message takes <b>{nl.DelayText}</b> one way.\n" +
                 $"On Mars right now: <b>{Mars24.Clock(mtc)}</b> (Mars time), <b>northern {Mars24.Season(ls)}</b>, Mars sol date {msd:0}. {next}\n" +
-                $"<size=16><color={HC.Hex(HC.Dim)}>Sources: NASA/JPL Horizons ({nl.SourceText}), NASA GISS Mars24, NASA Image Library.</color></size>";
-            for (int k = 0; k < livePhotos.Length; k++)
-                if (nl.Photos[k]) { livePhotos[k].texture = nl.Photos[k]; livePhotos[k].color = Color.white; }
+                Weather() +
+                $"<size=16><color={HC.Hex(HC.Dim)}>Sources: NASA/JPL Horizons ({nl.SourceText}), NASA GISS Mars24, NASA InSight, NASA APOD + Image Library.</color></size>";
+            // first picture = NASA Astronomy Picture of the Day (if it loaded), then NASA Image Library Mars photos
+            var api = NasaApi.I; int slot = 0;
+            if (api && api.ApodImage) { livePhotos[slot].texture = api.ApodImage; livePhotos[slot].color = Color.white; slot++; }
+            for (int k = 0; slot < livePhotos.Length && k < nl.Photos.Length; k++)
+                if (nl.Photos[k]) { livePhotos[slot].texture = nl.Photos[k]; livePhotos[slot].color = Color.white; slot++; }
+        }
+
+        /// <summary>One line of real Mars weather from NASA's InSight lander.</summary>
+        static string Weather()
+        {
+            var api = NasaApi.I; if (!api) return "";
+            var w = api.LastSol;
+            string tag = api.WeatherLive ? $"<color={HC.Hex(HC.Green)}>● LIVE API</color>" : $"<color={HC.Hex(HC.Amber)}>● SAVED</color>";
+            return $"{tag}  Mars weather by NASA InSight (sol {w.sol}): <b>{w.tempMinC:0} to {w.tempMaxC:0} °C</b>, air pressure {w.pressurePa:0} Pa (Earth: 101 325 Pa), wind {w.windMs:0.0} m/s.\n";
         }
         const string BookUrl = "https://github.com/ZuhriddinAbdunazarov/mission-mars/blob/main/Book/Junior_Astronaut_Handbook.pdf";
         const string GithubUrl = "https://github.com/ZuhriddinAbdunazarov/mission-mars";
@@ -302,7 +315,7 @@ namespace MissionMars
             bool live; string sun = NasaData.SunStatus(out live);
             var api = NasaApi.I;
             var recent = NasaData.FlarePool(); string list = ""; for (int i = 0; i < Mathf.Min(4, recent.Count); i++) list += (i > 0 ? ",  " : "") + $"{recent[i].Class} ({recent[i].Date})";
-            dataStatus.text = (live ? "● LIVE  " : "● ARCHIVED  ") + sun + "   ·   Real flares used: " + list;
+            dataStatus.text = (live ? "● LIVE  " : "● ARCHIVED  ") + sun + "   ·   Real flares used: " + list + (api != null && api.CmeCount30d >= 0 ? $"   ·   {api.CmeCount30d} solar plasma clouds (CMEs) in 30 days" : "");
             dataStatus.color = live ? HC.Green : HC.Amber;
             if (!Game.InMenu && !fromPause && !PauseOpen) UIState.Push();
             RefreshLive();

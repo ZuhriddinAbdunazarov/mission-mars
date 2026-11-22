@@ -101,7 +101,7 @@ namespace MissionMars
             SkyMat.SetFloat("_Space", 0);
             SkyMat.SetFloat("_Exposure", 1);
 
-            OutsideTempC = Mathf.Lerp(-81f, -12f, Day) + Mathf.Sin(Time.time * 0.1f) * 1.5f;
+            OutsideTempC = (NasaApi.I ? NasaApi.I.TempC(Day) : Mathf.Lerp(-81f, -12f, Day)) + Mathf.Sin(Time.time * 0.1f) * 1.5f; // real NASA InSight readings
         }
 
         void ApplySpace()

@@ -34,7 +34,10 @@ namespace MissionMars
         public string SunText()
         {
             bool live; string s = NasaData.SunStatus(out live);
-            return (live ? "● LIVE NASA DONKI  " : "● NASA DONKI (archived)  ") + s.Replace("Real Sun: ", "").Replace("Sun data: archived", "real flares 2024");
+            string sun = !live ? "Sun: 2024 data" : s.Contains("VERY") ? "Sun: very active" : s.Contains("active") ? "Sun: active" : "Sun: calm";
+            // outside temperature = real readings of NASA's InSight lander; Sun = real flares from NASA DONKI
+            string temp = Game.Sky ? $"{Game.Sky.OutsideTempC:0}°C" : "";
+            return $"● {temp} NASA InSight  ·  {sun}";
         }
 
         void Update()
@@ -226,6 +229,7 @@ namespace MissionMars
             bot.Teleport(player.transform.position + new Vector3(12, 8, 18));
             yield return new WaitForSeconds(1.0f);
             yield return hud.SayWait("Commander! You're awake! I'm NOVA, your helper robot. Our ship crashed — but you made it!");
+            if (NasaApi.I) { var ins = NasaApi.I.LastSol; yield return hud.SayWait($"Brrr! NASA's InSight lander measured real Mars weather: {ins.tempMaxC:0} °C in the day and {ins.tempMinC:0} °C at night. Your suit keeps you warm!", 5); }
             hud.Objective("LOOK AROUND", "Move the MOUSE to look. Find the burning rocket. Then find EARTH in the sky!");
             yield return hud.SayWait("See that blue dot in the sky? That's EARTH, our home! The grey rock is PHOBOS, a moon of Mars.");
             float w = 0;
