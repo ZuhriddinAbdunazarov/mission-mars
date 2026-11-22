@@ -29,7 +29,7 @@ namespace MissionMars
 
         public static NasaApi I;
         public Apod ApodData; public Texture2D ApodImage; public Flare LatestFlare; public int FlareCount30d; public Flare[] AllFlares = new Flare[0]; public bool FlaresLive;
-        public int CmeCount30d = -1; public Cme LatestCme;
+        public int CmeCount30d = -1; public Cme LatestCme; public bool CmeLive;
         public Sol[] Weather; public bool WeatherLive;
         public bool ApodDone, FlaresDone;
         public event Action Updated;
@@ -127,7 +127,7 @@ namespace MissionMars
             if (json != null)
             {
                 var l = JsonUtility.FromJson<CmeList>(json);
-                if (l?.items != null) { CmeCount30d = l.items.Length; if (l.items.Length > 0) LatestCme = l.items[l.items.Length - 1]; }
+                if (l?.items != null) { CmeCount30d = l.items.Length; CmeLive = true; if (l.items.Length > 0) LatestCme = l.items[l.items.Length - 1]; }
             }
             Updated?.Invoke();
         }

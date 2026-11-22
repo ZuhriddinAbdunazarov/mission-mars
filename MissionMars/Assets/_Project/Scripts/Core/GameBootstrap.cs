@@ -14,6 +14,9 @@ namespace MissionMars
         IEnumerator Start()
         {
             Game.Runner = this;
+            // always English numbers and dates (187.4 not 187,4; "Feb" not "февр.") whatever the browser language is
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             QualitySettings.vSyncCount = 1;
             Time.timeScale = 1; Game.Paused = false; Game.InMenu = true;
             UIState.Reset(); UIState.Cinematic = false;
@@ -57,6 +60,8 @@ namespace MissionMars
             // developer preview for checking the world: .../game/?preview=colony or ?preview=shelter
             string url = Application.absoluteURL ?? "";
             if (url.Contains("preview=")) { Story.QuickStart = true; StartCoroutine(Preview(url.Contains("preview=shelter"))); }
+            string dshot = Arg("-datashot");
+            if (dshot != null) { Application.runInBackground = true; StartCoroutine(DataShot(dshot)); }
             string tshot = Arg("-titleshot");
             if (tshot != null) { Application.runInBackground = true; StartCoroutine(TitleShot(tshot)); }
             string shots2 = Arg("-shots2");
@@ -80,6 +85,17 @@ namespace MissionMars
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(Path.Combine(dir, name + ".png"));
             yield return null; yield return null;
+        }
+
+        IEnumerator DataShot(string file)
+        {
+            yield return new WaitForSeconds(12f);
+            Screens.I.OpenData(false);
+            yield return new WaitForSeconds(2f);
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(file);
+            yield return new WaitForSeconds(1f);
+            Application.Quit();
         }
 
         IEnumerator TitleShot(string file)

@@ -83,16 +83,22 @@ try {
 
 // 5. Three real Mars photos (NASA Image and Video Library)
 try {
-  const j = await get('https://images-api.nasa.gov/search?q=' + encodeURIComponent('perseverance rover mars surface') + '&media_type=image&page_size=20');
-  const photos = [];
-  for (const it of j.collection.items) {
+  // real pictures taken ON Mars (rover selfies, Jezero Crater, Gale Crater), not drawings or logos
+  const photos = [], seen = new Set();
+  for (const query of ['perseverance selfie', 'curiosity rover selfie mars', 'jezero crater perseverance', 'gale crater mount sharp curiosity']) {
     if (photos.length >= 3) break;
-    const href = (it.links || []).find((l) => /~thumb\.jpg$/.test(l.href))?.href; if (!href) continue;
-    try {
-      const n = photos.length;
-      fs.writeFileSync(path.join(TEX, `NASA_photo${n}.jpg`), await get(href, { json: false }));
-      photos.push({ title: it.data[0].title, nasaId: it.data[0].nasa_id, image: `NASA_photo${n}` });
-    } catch { /* try the next one */ }
+    let j; try { j = await get('https://images-api.nasa.gov/search?q=' + encodeURIComponent(query) + '&media_type=image&page_size=40'); } catch { continue; }
+    for (const it of j.collection.items) {
+      if (photos.length >= 3) break;
+      const href = (it.links || []).find((l) => /~thumb.jpg$/.test(l.href))?.href; if (!href) continue;
+      const d0 = it.data?.[0] || {};
+      if (seen.has(d0.nasa_id) || !/^PIA/.test(d0.nasa_id || "") || /annotated|logo|insignia|meatball|emblem|patch|illustration|artist|concept|animation|graphic|render|diagram|map/i.test(`${d0.title} ${(d0.keywords || []).join(' ')} ${(d0.description || '').slice(0, 300)}`)) continue;
+      try {
+        const n = photos.length;
+        fs.writeFileSync(path.join(TEX, `NASA_photo${n}.jpg`), await get(href, { json: false }));
+        photos.push({ title: d0.title, nasaId: d0.nasa_id, image: `NASA_photo${n}` }); seen.add(d0.nasa_id);
+      } catch { /* try the next one */ }
+    }
   }
   if (photos.length) { snap.photos = photos; snap.sources.photos = { from: 'images-api.nasa.gov', at: snap.retrievedAt }; }
   log('NASA photos', photos.length > 0, `${photos.length}`);
