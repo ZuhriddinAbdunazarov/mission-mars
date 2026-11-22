@@ -60,6 +60,8 @@ namespace MissionMars
             // developer preview for checking the world: .../game/?preview=colony or ?preview=shelter
             string url = Application.absoluteURL ?? "";
             if (url.Contains("preview=")) { Story.QuickStart = true; StartCoroutine(Preview(url.Contains("preview=shelter"))); }
+            string bshot = Arg("-baseshot");
+            if (bshot != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(BaseShot(bshot)); }
             string dshot = Arg("-datashot");
             if (dshot != null) { Application.runInBackground = true; StartCoroutine(DataShot(dshot)); }
             string tshot = Arg("-titleshot");
@@ -85,6 +87,21 @@ namespace MissionMars
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(Path.Combine(dir, name + ".png"));
             yield return null; yield return null;
+        }
+
+        IEnumerator BaseShot(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            while (!Game.Player || Game.Player.Frozen) yield return null;
+            var b = MarsWorld.MarsBase; if (!b) { Application.Quit(); yield break; }
+            Vector3[] from = { b.TransformPoint(new Vector3(0, 0, 40)), b.TransformPoint(new Vector3(30, 0, 30)), b.TransformPoint(new Vector3(-8, 0, 16)) };
+            for (int i = 0; i < from.Length; i++)
+            {
+                var p = from[i]; p.y = MarsTerrain.H(p.x, p.z) + 0.2f; if (i == 2) p.y = b.position.y + 0.05f * MarsWorld.BaseSize + 0.3f;
+                for (int f = 0; f < 60; f++) { Game.Player.Teleport(p, 0); Game.Player.LookAt(b.position + Vector3.up * (i == 2 ? 6 : 8)); yield return null; }
+                yield return Shot(dir, "base" + i, 0.5f);
+            }
+            Application.Quit();
         }
 
         IEnumerator DataShot(string file)

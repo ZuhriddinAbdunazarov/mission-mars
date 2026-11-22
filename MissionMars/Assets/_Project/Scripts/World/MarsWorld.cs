@@ -26,7 +26,10 @@ namespace MissionMars
         public static readonly Vector2 BunkerXZ = new Vector2(-36, -24);
         public static readonly Vector2 PadXZ = new Vector2(40, -34);
         public static readonly Vector3 InteriorOrigin = new Vector3(0, -90, 0);
-        public static readonly Vector2[] IceXZ = { new Vector2(-82, -8), new Vector2(-74, -66), new Vector2(-14, -78) };
+        public static readonly Vector2[] IceXZ = { new Vector2(-82, -8), new Vector2(-74, -66), new Vector2(-48, -96) };
+        public static readonly Vector2 BaseXZ = new Vector2(4, -70); // the MARS BASE (bought Tripo model, Assets/Paid)
+        public const float BaseSize = 44f;                            // metres across
+        public static Transform MarsBase;
 
         public static GameObject Root, Interior;
         public static Transform Wreck, Bunker, Pad, Rocket;
@@ -66,6 +69,7 @@ namespace MissionMars
             BuildPad();
             BuildParts();
             BuildRoverAndIce();
+            BuildMarsBase();
             Rocks();
             BuildRover();
             BuildInterior();
@@ -80,6 +84,7 @@ namespace MissionMars
             if (Vector2.Distance(xz, BunkerXZ) < 20 + pad) return true;
             if (Vector2.Distance(xz, PadXZ) < 16 + pad) return true;
             foreach (var q in IceXZ) if (Vector2.Distance(xz, q) < 5 + pad) return true;
+            if (Vector2.Distance(xz, BaseXZ) < BaseSize * 0.75f + pad) return true;
             if (Parts != null) foreach (var p in Parts) foreach (var q in p.Path) if (Vector2.Distance(xz, q) < 5 + pad) return true;
             return false;
         }
@@ -569,6 +574,99 @@ namespace MissionMars
                 AstroPass.Award("earthcall", "Called Earth", 1);
                 busy = false;
             }
+        }
+
+        // ------------------------------------------------------------------ MARS BASE
+        /// <summary>The MARS BASE: the team's bought cartoon model (one Tripo mesh, 1 x 0.49 x 1 units, origin at the bottom centre).
+        /// It is set into the ground so you can walk onto its platform; invisible colliders stop you walking through the buildings;
+        /// invisible "click zones" turn its buildings into lessons with real NASA data. Not in git (paid licence): without it, nothing is built.</summary>
+        static void BuildMarsBase()
+        {
+            var prefab = R.Model("P_MarsBase"); if (!prefab) return;
+            float S = BaseSize;
+            var root = new GameObject("MarsBase").transform; root.SetParent(Root.transform); MarsBase = root;
+            // ground height: average under the footprint, so the platform sits on the ground and only edges dip in
+            float h = 0; int n = 0;
+            for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) { h += MarsTerrain.H(BaseXZ.x + i * S * 0.35f, BaseXZ.y + k * S * 0.35f); n++; }
+            h /= n;
+            const float platformTop = 0.05f; // model units: the flat red platform
+            root.position = new Vector3(BaseXZ.x, h + 0.25f - platformTop * S, BaseXZ.y);
+            var toBunker = new Vector3(BunkerXZ.x - BaseXZ.x, 0, BunkerXZ.y - BaseXZ.y);
+            root.rotation = Quaternion.LookRotation(-toBunker) * Quaternion.Euler(0, 180, 0); // model front (+z) faces the shelter
+            var model = Object.Instantiate(prefab, root, false); model.name = "Model";
+            model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.identity; model.transform.localScale = Vector3.one * S;
+            foreach (var r in model.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+
+            // where things are inside the model (model units, measured from its height map)
+            Vector3 M(float x, float y, float z) => new Vector3(x * S, y * S, z * S);
+            GameObject Solid(string name, Vector3 c) { var g = new GameObject(name); g.transform.SetParent(root, false); g.transform.localPosition = c; return g; }
+            { var b = Solid("Platform", M(0, 0.025f, 0)).AddComponent<BoxCollider>(); b.size = M(0.92f, 0.05f, 0.92f); }
+            // each building's wall is both what stops you and what you press E on
+            var dome = Solid("BigDome", M(0.02f, 0.12f, -0.02f)); dome.AddComponent<SphereCollider>().radius = 0.18f * S;
+            var dish = Solid("DishTower", M(0f, 0.25f, -0.375f)); { var c = dish.AddComponent<CapsuleCollider>(); c.radius = 0.06f * S; c.height = 0.5f * S; }
+            var ant = Solid("WeatherTower", M(0.31f, 0.2f, 0.15f)); { var c = ant.AddComponent<CapsuleCollider>(); c.radius = 0.05f * S; c.height = 0.4f * S; }
+            var hab = Solid("SmallDome", M(0.15f, 0.08f, 0.375f)); hab.AddComponent<SphereCollider>().radius = 0.1f * S;
+            var farm = Solid("Greenhouse", M(-0.31f, 0.1f, -0.1f)); farm.AddComponent<BoxCollider>().size = M(0.17f, 0.19f, 0.33f);
+            BaseFarm(farm, "Greenhouse (potatoes)");
+            BaseFarm(dome, "Big glass dome farm");
+            EarthLink(dish);
+            WeatherStation(ant);
+            Habitat(hab);
+
+            var title = World3DText(root, M(0.02f, 0.44f, -0.02f), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
+            title.gameObject.AddComponent<Billboard>();
+        }
+
+        /// <summary>Farm: plant potatoes, wait, eat (plants make food AND oxygen; astronauts must grow their own food).</summary>
+        static void BaseFarm(GameObject zone, string label)
+        {
+            bool planted = false; float ready = 0;
+            Interactable use = null;
+            use = Interactable.Add(zone, "Plant potatoes in", label, () =>
+            {
+                var suit = Game.Suit; var hud = Game.Hud;
+                if (!planted)
+                {
+                    planted = true; ready = Time.time + 20; use.Verb = "Eat from";
+                    if (hud) hud.Toast("POTATOES PLANTED!", "Plants make FOOD and OXYGEN. On Mars, astronauts must grow their own food. Come back in 20 seconds!", "food", HC.Green);
+                    AstroPass.Award("farm", "Mars farmer", 1);
+                }
+                else if (Time.time >= ready)
+                {
+                    if (suit) suit.Drink(25); ready = Time.time + 60;
+                    if (hud) hud.Toast("YUM! FRESH POTATOES", "Food gives you energy. Life support +25", "food", HC.Green);
+                }
+                else if (hud) hud.Toast("STILL GROWING…", $"Plants need time. Ready in {Mathf.CeilToInt(ready - Time.time)} seconds!", "food", HC.Amber);
+            });
+            use.Range = 6f;
+        }
+
+        /// <summary>Weather station: the REAL Mars weather measured by NASA's InSight lander.</summary>
+        static void WeatherStation(GameObject zone)
+        {
+            var use = Interactable.Add(zone, "Check", "Weather station", () =>
+            {
+                var api = NasaApi.I; var hud = Game.Hud; if (!api || !hud) return;
+                var w = api.LastSol;
+                hud.Toast("MARS WEATHER (NASA InSight)", $"Night {w.tempMinC:0} °C, day {w.tempMaxC:0} °C. Air pressure {w.pressurePa:0} Pa: less than 1% of Earth's!", "sun", HC.Amber);
+                hud.Say($"This is real weather that NASA's InSight lander measured on Mars (sol {w.sol}). The air is so thin that water boils away and ice turns straight into gas!", 6);
+                AstroPass.Award("weather", "Weather watcher", 1);
+            });
+            use.Range = 6f;
+        }
+
+        /// <summary>Habitat dome: a safe room with fresh air.</summary>
+        static void Habitat(GameObject zone)
+        {
+            float next = 0;
+            var use = Interactable.Add(zone, "Rest in", "Habitat dome", () =>
+            {
+                var suit = Game.Suit; var hud = Game.Hud;
+                if (Time.time < next) { if (hud) hud.Toast("THE AIR IS REFILLING", "Come back in a minute.", "air", HC.Amber); return; }
+                next = Time.time + 60; if (suit) suit.Drink(30);
+                if (hud) hud.Toast("FRESH AIR!", "The habitat keeps air at the right pressure, like home. Life support +30", "air", HC.Cyan);
+            });
+            use.Range = 6f;
         }
 
         /// <summary>Solar field: explains why power is precious on Mars.</summary>

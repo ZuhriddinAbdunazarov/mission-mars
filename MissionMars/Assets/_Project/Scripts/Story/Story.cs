@@ -51,6 +51,12 @@ namespace MissionMars
             if (Game.InMenu && SpaceSet.I && SpaceSet.I.gameObject.activeSelf && cineCam && cineCam.enabled) SpaceSet.I.MenuTick();
             if (partsHunt && player && !busy) PartsUpdate();
             if (iceOn && player && !busy && !inside && !UIState.Modal) IceUpdate();
+            if (wpBase != null && player && !inside && Vector3.Distance(player.transform.position, MarsWorld.MarsBase.position) < MarsWorld.BaseSize * 0.7f)
+            {
+                hud.RemoveWaypoint(wpBase); wpBase = null;
+                AstroPass.Award("base", "Visited the Mars base", 1);
+                hud.Say("Welcome to the MARS BASE! Walk up to a building and press E: the domes are farms, the tall dish calls Earth, the thin tower is a weather station.", 6);
+            }
             // the oxygen-leak alarm happens once, the first time you come back into the shelter during the rocket hunt
             if (partsHunt) huntTime += Time.deltaTime;
             if (partsHunt && inside && !busy && !Hazard && !leakDone && huntTime > 40 && MarsWorld.PowerOn && suit && suit.MoxieOn)
@@ -58,7 +64,7 @@ namespace MissionMars
         }
 
         // ================================================================== mission: fix the oxygen leak
-        float huntTime; bool leakDone;
+        float huntTime; bool leakDone; Waypoint wpBase;
         public IEnumerator AirLeak()
         {
             Hazard = true;
@@ -531,8 +537,13 @@ namespace MissionMars
             hud.Toast("EARTH LAUNCH WINDOW", "Earth and Mars line up every ~26 months. Next window: in 2 years.", "clock", HC.Cyan);
             yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the shelter!");
             if (NasaLive.NextClosest(out var closeDate, out var closeKm)) yield return hud.SayWait($"Real NASA JPL data: the next time Earth and Mars come close is {closeDate:MMMM yyyy}, only {closeKm / 1e6:0} million km apart. Space agencies plan Mars trips around those dates!", 5);
+            if (MarsWorld.MarsBase)
+            {
+                yield return hud.SayWait("Look, there is a MARS BASE nearby! Grow potatoes in the glass domes, call Earth from the dish tower and check the real NASA weather station.", 5);
+                wpBase = hud.AddWaypoint("MARS BASE", () => MarsWorld.MarsBase.position + Vector3.up * 22f, HC.Amber);
+            }
             yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
-            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the shelter for air and water.\n<color=#8FD8FF>BONUS: drive to the 3 blue ICE blocks. Call Earth from the big dish next to the shelter.</color>", "parts");
+            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the shelter for air and water.\n<color=#8FD8FF>BONUS: drive to the 3 blue ICE blocks and visit the MARS BASE.</color>", "parts");
             foreach (var p in MarsWorld.Parts)
             {
                 var pp = p;
