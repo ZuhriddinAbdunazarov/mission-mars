@@ -101,6 +101,17 @@ namespace MissionMars
                 for (int f = 0; f < 60; f++) { Game.Player.Teleport(p, 0); Game.Player.LookAt(b.position + Vector3.up * (i == 2 ? 6 : 8)); yield return null; }
                 yield return Shot(dir, "base" + i, 0.5f);
             }
+            { // walk straight at the big dome: the walls must stop us
+                var cc = Game.Player.GetComponent<CharacterController>();
+                var start = b.TransformPoint(new Vector3(0, 0, 30)); start.y = MarsTerrain.H(start.x, start.z) + 0.3f;
+                Game.Player.Teleport(start, 0); yield return null;
+                var walk = (b.position - start); walk.y = 0; walk.Normalize();
+                for (int f = 0; f < 300; f++) { cc.Move(walk * 0.15f + Vector3.down * 0.1f); yield return null; }
+                float left = Vector3.Distance(new Vector3(Game.Player.transform.position.x, 0, Game.Player.transform.position.z), new Vector3(b.position.x, 0, b.position.z));
+                Debug.Log($"WALLTEST walked toward the dome centre, stopped {left:0.0} m from it (dome radius ~{0.18f * MarsWorld.BaseSize:0.0} m)");
+                Game.Player.LookAt(b.position + Vector3.up * 6);
+                yield return Shot(dir, "base_wall", 0.5f);
+            }
             Application.Quit();
         }
 

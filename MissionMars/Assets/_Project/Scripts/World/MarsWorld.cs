@@ -28,7 +28,7 @@ namespace MissionMars
         public static readonly Vector3 InteriorOrigin = new Vector3(0, -90, 0);
         public static readonly Vector2[] IceXZ = { new Vector2(-82, -8), new Vector2(-74, -66), new Vector2(-48, -96) };
         public static readonly Vector2 BaseXZ = new Vector2(4, -70); // the MARS BASE (bought Tripo model, Assets/Paid)
-        public const float BaseSize = 44f;                            // metres across
+        public const float BaseSize = 34f;                            // metres across (smaller = sharper texture, real-size doors)
         public static Transform MarsBase;
 
         public static GameObject Root, Interior;
@@ -70,6 +70,7 @@ namespace MissionMars
             BuildParts();
             BuildRoverAndIce();
             BuildMarsBase();
+            PlaceLabels();
             Rocks();
             BuildRover();
             BuildInterior();
@@ -84,7 +85,7 @@ namespace MissionMars
             if (Vector2.Distance(xz, BunkerXZ) < 20 + pad) return true;
             if (Vector2.Distance(xz, PadXZ) < 16 + pad) return true;
             foreach (var q in IceXZ) if (Vector2.Distance(xz, q) < 5 + pad) return true;
-            if (Vector2.Distance(xz, BaseXZ) < BaseSize * 0.75f + pad) return true;
+            if (Vector2.Distance(xz, BaseXZ) < BaseSize * 1.15f + pad) return true; // keep big boulders away from the base view
             if (Parts != null) foreach (var p in Parts) foreach (var q in p.Path) if (Vector2.Distance(xz, q) < 5 + pad) return true;
             return false;
         }
@@ -598,23 +599,93 @@ namespace MissionMars
             foreach (var r in model.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
 
             // where things are inside the model (model units, measured from its height map)
-            Vector3 M(float x, float y, float z) => new Vector3(x * S, y * S, z * S);
+            Vector3 M(float x, float y, float z) => new Vector3(-x * S, y * S, z * S); // glTF -> Unity mirrors X
             GameObject Solid(string name, Vector3 c) { var g = new GameObject(name); g.transform.SetParent(root, false); g.transform.localPosition = c; return g; }
             { var b = Solid("Platform", M(0, 0.025f, 0)).AddComponent<BoxCollider>(); b.size = M(0.92f, 0.05f, 0.92f); }
-            // each building's wall is both what stops you and what you press E on
-            var dome = Solid("BigDome", M(0.02f, 0.12f, -0.02f)); dome.AddComponent<SphereCollider>().radius = 0.18f * S;
-            var dish = Solid("DishTower", M(0f, 0.25f, -0.375f)); { var c = dish.AddComponent<CapsuleCollider>(); c.radius = 0.06f * S; c.height = 0.5f * S; }
-            var ant = Solid("WeatherTower", M(0.31f, 0.2f, 0.15f)); { var c = ant.AddComponent<CapsuleCollider>(); c.radius = 0.05f * S; c.height = 0.4f * S; }
-            var hab = Solid("SmallDome", M(0.15f, 0.08f, 0.375f)); hab.AddComponent<SphereCollider>().radius = 0.1f * S;
-            var farm = Solid("Greenhouse", M(-0.31f, 0.1f, -0.1f)); farm.AddComponent<BoxCollider>().size = M(0.17f, 0.19f, 0.33f);
-            BaseFarm(farm, "Greenhouse (potatoes)");
-            BaseFarm(dome, "Big glass dome farm");
+            // SOLID like it looks: walls built from the model's real height map (every building, rock and the rover)
+            BaseWalls(root, S);
+            // press-E zones: invisible triggers a bit INSIDE each building (you stand at the wall and look at it)
+            var dome = Solid("PlantationZone", M(0.02f, 0.12f, -0.02f)); { var c = dome.AddComponent<SphereCollider>(); c.radius = 0.15f * S; c.isTrigger = true; }
+            var dish = Solid("DishZone", M(0f, 0.2f, -0.375f)); { var c = dish.AddComponent<CapsuleCollider>(); c.radius = 0.045f * S; c.height = 0.4f * S; c.isTrigger = true; }
+            var ant = Solid("WeatherZone", M(0.31f, 0.15f, 0.15f)); { var c = ant.AddComponent<CapsuleCollider>(); c.radius = 0.04f * S; c.height = 0.3f * S; c.isTrigger = true; }
+            var hab = Solid("HabitatZone", M(0.15f, 0.08f, 0.375f)); { var c = hab.AddComponent<SphereCollider>(); c.radius = 0.08f * S; c.isTrigger = true; }
+            var farm = Solid("GreenhouseZone", M(-0.31f, 0.1f, -0.1f)); { var c = farm.AddComponent<BoxCollider>(); c.size = M(0.14f, 0.16f, 0.3f); c.isTrigger = true; }
+            BaseFarm(farm, "Greenhouse (vegetables)");
+            BaseFarm(dome, "Plantation dome");
             EarthLink(dish);
             WeatherStation(ant);
             Habitat(hab);
 
-            var title = World3DText(root, M(0.02f, 0.44f, -0.02f), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
+            // big floating names, so kids always know what each building is
+            BaseStops.Clear();
+            void Stop(Vector3 local, string name, string what, string line, Color c)
+            {
+                var w = root.TransformPoint(local);
+                Label(Root.transform, w, name, what, c);
+                BaseStops.Add((w, line));
+            }
+            Stop(M(0.02f, 0.38f, -0.02f), "PLANTATION", "grows food + oxygen", "This big glass dome is the PLANTATION. Plants make FOOD and OXYGEN. Press E here to plant potatoes!", HC.Green);
+            Stop(M(-0.31f, 0.24f, -0.1f), "GREENHOUSE", "more vegetables", "This long tunnel is a GREENHOUSE. More vegetables grow inside. Press E to plant here too.", HC.Green);
+            Stop(M(0f, 0.55f, -0.375f), "DISH TOWER", "talks to Earth", "The DISH TOWER sends messages to Earth. They need about 10 minutes to get there, even at the speed of light!", HC.Cyan);
+            Stop(M(0.31f, 0.47f, 0.15f), "WEATHER STATION", "real NASA weather", "The thin tower is the WEATHER STATION. It shows real Mars weather measured by NASA's InSight lander.", HC.Amber);
+            Stop(M(0.15f, 0.27f, 0.375f), "HABITAT", "rest + fresh air", "This small dome is the HABITAT. Astronauts eat, sleep and breathe fresh air here.", HC.Cyan);
+            var title = World3DText(root, M(0.02f, 0.66f, -0.02f), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
             title.gameObject.AddComponent<Billboard>();
+        }
+
+        /// <summary>Big floating names over the main places, so kids always know where they are.</summary>
+        static void PlaceLabels()
+        {
+            Label(Root.transform, Bunker.TransformPoint(new Vector3(0, 7.5f, -1.5f)), "YOUR SHELTER", "underground: safe from space rays", HC.Green);
+            if (TheRover) Label(TheRover.transform, TheRover.transform.position + Vector3.up * 4.5f, "ROVER", "press E to drive", HC.Amber);
+            Label(Root.transform, Pad.position + Vector3.up * 28f, "LAUNCH PAD", "build your new rocket here", HC.Amber);
+            Label(Root.transform, G(CrashXZ, 14f), "CRASHED SHIP", "the air + water machines are here", HC.Red);
+        }
+
+        /// <summary>Points NOVA shows on the base tour: where to look + what NOVA says.</summary>
+        public static readonly List<(Vector3 pos, string line)> BaseStops = new List<(Vector3, string)>();
+
+        /// <summary>Solid walls from the model's height map (Assets/Paid/Resources/Paid/MarsBase_heights.txt): one block per cell
+        /// that is higher than the platform, as one mesh collider created at runtime (so it is readable).</summary>
+        static void BaseWalls(Transform root, float S)
+        {
+            var ta = Resources.Load<TextAsset>("Paid/MarsBase_heights"); if (!ta) return;
+            var lines = new List<string>(); foreach (var l in ta.text.Split('\n')) { var t = l.Trim(); if (t.Length > 0 && t[0] != '#') lines.Add(t); }
+            int N = int.Parse(lines[0]);
+            var h = new float[N, N];
+            for (int z = 0; z < N; z++) { var p = lines[1 + z].Split(' '); for (int x = 0; x < N; x++) h[x, z] = float.Parse(p[x], System.Globalization.CultureInfo.InvariantCulture); }
+            const float walk = 0.075f; // lower than this = the walkable platform (the box collider)
+            float cell = S / N;
+            var v = new List<Vector3>(); var tri = new List<int>();
+            void Quad(Vector3 a, Vector3 b, Vector3 c2, Vector3 d) { int i = v.Count; v.Add(a); v.Add(b); v.Add(c2); v.Add(d); tri.AddRange(new[] { i, i + 1, i + 2, i, i + 2, i + 3, i, i + 2, i + 1, i, i + 3, i + 2 }); } // both sides
+            float Hc(int x, int z) => x < 0 || z < 0 || x >= N || z >= N || h[x, z] < walk ? 0 : h[x, z];
+            for (int z = 0; z < N; z++)
+                for (int x = 0; x < N; x++)
+                {
+                    float y = Hc(x, z); if (y <= 0) continue;
+                    float x0 = -S / 2 + x * cell, x1 = x0 + cell, z0 = -S / 2 + z * cell, z1 = z0 + cell, Y = y * S;
+                    Quad(new Vector3(x0, Y, z0), new Vector3(x1, Y, z0), new Vector3(x1, Y, z1), new Vector3(x0, Y, z1));
+                    void Wall(float ny, Vector3 a, Vector3 b) { if (ny >= y) return; float Y0 = ny * S; Quad(new Vector3(a.x, Y0, a.z), new Vector3(b.x, Y0, b.z), new Vector3(b.x, Y, b.z), new Vector3(a.x, Y, a.z)); }
+                    Wall(Hc(x - 1, z), new Vector3(x0, 0, z0), new Vector3(x0, 0, z1));
+                    Wall(Hc(x + 1, z), new Vector3(x1, 0, z0), new Vector3(x1, 0, z1));
+                    Wall(Hc(x, z - 1), new Vector3(x0, 0, z0), new Vector3(x1, 0, z0));
+                    Wall(Hc(x, z + 1), new Vector3(x0, 0, z1), new Vector3(x1, 0, z1));
+                }
+            var mesh = new Mesh { name = "MarsBaseWalls", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            mesh.SetVertices(v); mesh.SetTriangles(tri, 0); mesh.RecalculateBounds();
+            var g = new GameObject("Walls"); g.transform.SetParent(root, false); g.transform.localScale = new Vector3(-1, 1, 1); // glTF -> Unity mirrors X
+            g.AddComponent<MeshCollider>().sharedMesh = mesh;
+        }
+
+        /// <summary>A big floating name (and a short "what it is") above a place. Always faces you; only shows when you are near.</summary>
+        public static void Label(Transform parent, Vector3 world, string name, string what, Color c)
+        {
+            var g = new GameObject("Label_" + name); g.transform.SetParent(parent, true); g.transform.position = world;
+            var t = World3DText(g.transform, Vector3.zero, name, 11, c); t.fontStyle = TMPro.FontStyles.Bold;
+            t.outlineWidth = 0.25f; t.outlineColor = new Color32(0, 0, 0, 200);
+            var s2 = World3DText(g.transform, new Vector3(0, -1.9f, 0), what, 7, Color.white);
+            s2.outlineWidth = 0.25f; s2.outlineColor = new Color32(0, 0, 0, 200);
+            g.AddComponent<Billboard>(); g.AddComponent<NearOnly>();
         }
 
         /// <summary>Farm: plant potatoes, wait, eat (plants make food AND oxygen; astronauts must grow their own food).</summary>
@@ -961,6 +1032,18 @@ namespace MissionMars
             if (!open) Sfx.Play("thud", 0.3f, 1.3f);
         }
         public void Snap(bool open) { transform.localPosition = Closed + (open ? Vector3.right * Slide : Vector3.zero); }
+    }
+
+    /// <summary>Shows its children only when the camera is near (so labels do not clutter the sky).</summary>
+    public class NearOnly : MonoBehaviour
+    {
+        public float Far = 110f; bool shown = true;
+        void LateUpdate()
+        {
+            var c = Game.Cam; if (!c) return;
+            bool show = Vector3.Distance(c.transform.position, transform.position) < Far;
+            if (show != shown) { shown = show; foreach (Transform ch in transform) ch.gameObject.SetActive(show); }
+        }
     }
 
     public class Billboard : MonoBehaviour

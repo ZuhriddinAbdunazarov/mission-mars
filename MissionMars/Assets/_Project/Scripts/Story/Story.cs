@@ -51,11 +51,11 @@ namespace MissionMars
             if (Game.InMenu && SpaceSet.I && SpaceSet.I.gameObject.activeSelf && cineCam && cineCam.enabled) SpaceSet.I.MenuTick();
             if (partsHunt && player && !busy) PartsUpdate();
             if (iceOn && player && !busy && !inside && !UIState.Modal) IceUpdate();
-            if (wpBase != null && player && !inside && Vector3.Distance(player.transform.position, MarsWorld.MarsBase.position) < MarsWorld.BaseSize * 0.7f)
+            if (wpBase != null && player && !inside && !busy && !Hazard && !UIState.Modal && Vector3.Distance(player.transform.position, MarsWorld.MarsBase.position) < MarsWorld.BaseSize * 0.9f)
             {
                 hud.RemoveWaypoint(wpBase); wpBase = null;
                 AstroPass.Award("base", "Visited the Mars base", 1);
-                hud.Say("Welcome to the MARS BASE! Walk up to a building and press E: the domes are farms, the tall dish calls Earth, the thin tower is a weather station.", 6);
+                StartCoroutine(BaseTour());
             }
             // the oxygen-leak alarm happens once, the first time you come back into the shelter during the rocket hunt
             if (partsHunt) huntTime += Time.deltaTime;
@@ -63,6 +63,30 @@ namespace MissionMars
             { leakDone = true; StartCoroutine(AirLeak()); }
         }
 
+
+        // ================================================================== guided tour of the Mars base
+        /// <summary>NOVA explains the base from zero: the camera turns to each building while NOVA says what it is for.</summary>
+        IEnumerator BaseTour()
+        {
+            if (MarsWorld.TheRover && MarsWorld.TheRover.Driving) MarsWorld.TheRover.Exit();
+            busy = true; player.Frozen = true;
+            var eye = player.Cam.transform;
+            Vector3 look = eye.position + eye.forward * 20f;
+            IEnumerator TurnTo(Vector3 target)
+            {
+                Vector3 from = look; float t = 0;
+                while (t < 1f) { t += Time.deltaTime / 0.9f; look = Vector3.Lerp(from, target, Tween.EaseInOut(t)); player.LookAt(look); yield return null; }
+            }
+            yield return TurnTo(MarsWorld.MarsBase.position + Vector3.up * 12f);
+            yield return hud.SayWait("Welcome to the MARS BASE! Let me show you around.", 2.5f);
+            foreach (var (pos, line) in MarsWorld.BaseStops)
+            {
+                yield return TurnTo(pos - Vector3.up * 4f);
+                yield return hud.SayWait(line, 3.5f);
+            }
+            yield return hud.SayWait("Now it's your turn: walk up to a building and press E!", 2.5f);
+            player.Frozen = false; busy = false;
+        }
         // ================================================================== mission: fix the oxygen leak
         float huntTime; bool leakDone; Waypoint wpBase;
         public IEnumerator AirLeak()
