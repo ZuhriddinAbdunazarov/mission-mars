@@ -205,10 +205,11 @@ namespace MissionMars.EditorTools
 
     public class TexImport : AssetPostprocessor
     {
-        public override uint GetVersion() => 2; // bump to reimport textures when these rules change
+        public override uint GetVersion() => 3; // bump to reimport textures when these rules change
 
         void OnPreprocessTexture()
         {
+            if (assetPath.StartsWith("Assets/Paid/")) { PaidTexture(); return; }
             if (!assetPath.Contains("_Project/Resources/Tex")) return;
             var ti = (TextureImporter)assetImporter;
             bool normal = assetPath.EndsWith("_nor.jpg");
@@ -225,6 +226,25 @@ namespace MissionMars.EditorTools
                 name = "WebGL", overridden = true,
                 maxTextureSize = big ? 2048 : 1024,
                 format = normal || assetPath.EndsWith(".png") ? TextureImporterFormat.DXT5Crunched : TextureImporterFormat.DXT1Crunched,
+                crunchedCompression = true, compressionQuality = 50,
+            });
+        }
+
+        /// <summary>Bought props come with 4K textures: they are small objects, so 512 px on the web (1024 on PC) looks the same.</summary>
+        void PaidTexture()
+        {
+            var ti = (TextureImporter)assetImporter;
+            bool tiny = assetPath.Contains("/Reactor/"); // palette textures, already a few pixels: keep them sharp
+            if (tiny) { ti.filterMode = FilterMode.Point; ti.textureCompression = TextureImporterCompression.Uncompressed; return; }
+            bool normal = assetPath.EndsWith("_Normal.png");
+            if (normal) ti.textureType = TextureImporterType.NormalMap;
+            ti.maxTextureSize = 1024;
+            ti.textureCompression = TextureImporterCompression.Compressed;
+            bool alpha = assetPath.Contains("MetallicSmoothness"); // smoothness lives in alpha
+            ti.SetPlatformTextureSettings(new TextureImporterPlatformSettings
+            {
+                name = "WebGL", overridden = true, maxTextureSize = 512,
+                format = normal || alpha ? TextureImporterFormat.DXT5Crunched : TextureImporterFormat.DXT1Crunched,
                 crunchedCompression = true, compressionQuality = 50,
             });
         }

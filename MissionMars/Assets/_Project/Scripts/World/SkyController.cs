@@ -18,6 +18,7 @@ namespace MissionMars
         public float OutsideTempC { get; private set; }
         public float SpaceSunIntensity = 2.2f;
         public float DustStorm; // 0..1 dust storm strength (thick brown haze, dim sun)
+        public float InteriorBright = 1f; // bunker ambient light: low while the power is off
         public Vector3 SpaceSunDir = new Vector3(1, 0.25f, 0.35f);
 
         Texture pano, stars;
@@ -79,7 +80,7 @@ namespace MissionMars
             Color skyA = Color.Lerp(new Color(0.06f, 0.07f, 0.12f), new Color(0.64f, 0.48f, 0.38f), Day);
             Color eqA = Color.Lerp(new Color(0.045f, 0.045f, 0.07f), new Color(0.58f, 0.40f, 0.30f), Day);
             Color gA = Color.Lerp(new Color(0.02f, 0.02f, 0.025f), new Color(0.30f, 0.19f, 0.13f), Day);
-            if (inside) { skyA = new Color(0.07f, 0.075f, 0.09f); eqA = new Color(0.05f, 0.05f, 0.06f); gA = new Color(0.02f, 0.02f, 0.025f); }
+            if (inside) { skyA = new Color(0.2f, 0.2f, 0.22f) * InteriorBright; eqA = new Color(0.15f, 0.15f, 0.16f) * InteriorBright; gA = new Color(0.06f, 0.06f, 0.07f) * InteriorBright; }
             RenderSettings.ambientSkyColor = skyA; RenderSettings.ambientEquatorColor = eqA; RenderSettings.ambientGroundColor = gA;
 
             RenderSettings.fog = true;

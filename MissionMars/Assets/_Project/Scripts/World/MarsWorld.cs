@@ -26,6 +26,7 @@ namespace MissionMars
         public static readonly Vector2 BunkerXZ = new Vector2(-36, -24);
         public static readonly Vector2 PadXZ = new Vector2(40, -34);
         public static readonly Vector3 InteriorOrigin = new Vector3(0, -90, 0);
+        public static readonly Vector2[] IceXZ = { new Vector2(-82, -8), new Vector2(-74, -66), new Vector2(-14, -78) };
 
         public static GameObject Root, Interior;
         public static Transform Wreck, Bunker, Pad, Rocket;
@@ -39,6 +40,14 @@ namespace MissionMars
         public static readonly List<Light> InteriorLights = new List<Light>();
         public static Light AlarmLight;
         public static ParticleSystem MoxieBubbles, WaterDrip;
+        // new missions: closed doors, power-up, oxygen leak, rover + ice
+        public static Transform BunkerDoorPanel, ExitDoorPanel;
+        public static Interactable BatteryPlug, PowerSwitch, LeakValve;
+        public static GameObject Cable; public static ParticleSystem LeakSteam; public static Vector3 LeakPos;
+        public static Rover TheRover; public static readonly List<GameObject> IceBlocks = new List<GameObject>();
+        static readonly List<(Light l, float on)> powerLights = new List<(Light, float)>();
+        static readonly List<(Material m, Color c)> powerGlows = new List<(Material, Color)>();
+        static Light emergency;
 
         static Material holoCyan, holoAmber;
 
@@ -56,9 +65,9 @@ namespace MissionMars
             BuildBunker();
             BuildPad();
             BuildParts();
+            BuildRoverAndIce();
             Rocks();
             BuildRover();
-            BuildOutpost();
             BuildInterior();
             SkyBodies();
             FX.DustBanks(new Vector3(0, MarsTerrain.Base + 2, 0)).transform.SetParent(Root.transform, true);
@@ -70,6 +79,7 @@ namespace MissionMars
             if (Vector2.Distance(xz, CrashXZ) < 26 + pad) return true;
             if (Vector2.Distance(xz, BunkerXZ) < 20 + pad) return true;
             if (Vector2.Distance(xz, PadXZ) < 16 + pad) return true;
+            foreach (var q in IceXZ) if (Vector2.Distance(xz, q) < 5 + pad) return true;
             if (Parts != null) foreach (var p in Parts) foreach (var q in p.Path) if (Vector2.Distance(xz, q) < 5 + pad) return true;
             return false;
         }
@@ -241,9 +251,10 @@ namespace MissionMars
             // airlock
             var lockT = new GameObject("Airlock").transform; lockT.SetParent(Bunker, false); lockT.localPosition = new Vector3(0, 0, 7.2f);
             ProcMesh.Prim(PrimitiveType.Cube, "Frame", lockT, new Vector3(0, 1.45f, -0.4f), new Vector3(2.8f, 2.9f, 2.4f), R.Panel);
-            // door is OPEN: panel slid aside, lit doorway you walk into
-            ProcMesh.Prim(PrimitiveType.Cube, "DoorPanelOpen", lockT, new Vector3(1.05f, 1.25f, 0.9f), new Vector3(1.4f, 2.3f, 0.1f), R.HullDark);
-            var door = ProcMesh.Prim(PrimitiveType.Cube, "Door", lockT, new Vector3(0, 1.25f, 0.81f), new Vector3(1.4f, 2.3f, 0.02f), R.Emissive(new Color(0.75f, 0.8f, 0.85f), new Color(0.9f, 1.0f, 1.1f)));
+            // the door is CLOSED (it keeps the air in). Press E: it slides open, you go in, it shuts behind you.
+            ProcMesh.Prim(PrimitiveType.Cube, "Doorway", lockT, new Vector3(0, 1.25f, 0.81f), new Vector3(1.4f, 2.3f, 0.02f), R.Emissive(new Color(0.75f, 0.8f, 0.85f), new Color(0.9f, 1.0f, 1.1f)), null, false);
+            BunkerDoorPanel = DoorPanel(lockT, new Vector3(0, 1.25f, 0.9f), new Vector3(1.5f, 2.4f, 0.12f));
+            var door = BunkerDoorPanel.gameObject;
             ProcMesh.Prim(PrimitiveType.Cube, "DoorLight", lockT, new Vector3(0, 2.6f, 0.85f), new Vector3(1.2f, 0.08f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.4f, 1.0f)), null, false);
             ProcMesh.Prim(PrimitiveType.Cube, "Stripe", lockT, new Vector3(0, 0.25f, 0.82f), new Vector3(2.8f, 0.2f, 0.05f), R.Orange, null, false);
             var dl = new GameObject("DoorLamp").AddComponent<Light>(); dl.transform.SetParent(lockT, false); dl.transform.localPosition = new Vector3(0, 2.8f, 1.6f);
@@ -472,95 +483,50 @@ namespace MissionMars
             Util.PlaceModel("Ingenuity_Mars_Helicopter", G(-52, 35), 1.2f, 30, site, false, true);
         }
 
-        // ------------------------------------------------------------------
-        /// <summary>The MARS COLONY between the shelter and the launch pad: our own cartoon-style base for kids
-        /// (white modules, orange trim, blue windows). Every building teaches something:
-        /// greenhouse dome = food, dish tower = message delay to Earth, solar field = power, landing pad, rover.</summary>
-        static void BuildOutpost()
+        /// <summary>Our drivable crew rover parked next to the shelter, glowing path lights, and 3 blocks of Mars ice
+        /// for the bonus mission (NASA orbiters found water ice just under the ground in many places on Mars).</summary>
+        static void BuildRoverAndIce()
         {
-            var site = new GameObject("Colony").transform; site.SetParent(Root.transform);
-            var c = new Vector2(-4, -44); // between BunkerXZ (-36,-24) and PadXZ (40,-34)
-            var white = R.Lit(new Color(0.94f, 0.94f, 0.96f), 0.55f, 0.05f);
-            var trim = R.Orange;
-            var window = R.Emissive(new Color(0.08f, 0.2f, 0.35f), new Color(0.15f, 0.6f, 1.3f), 0.9f);
-            var leaf = R.Lit(new Color(0.3f, 0.72f, 0.28f), 0.3f, 0f);
-            var soilBox = R.Lit(new Color(0.42f, 0.26f, 0.16f), 0.15f, 0f);
-            Vector3 Spot(float dx, float dz) { var xz = c + new Vector2(dx, dz); for (int i = 0; i < 6 && Avoid(xz, 0); i++) xz += new Vector2(0, -6); return G(xz); }
-            GameObject Prim(PrimitiveType t, string n, Vector3 p, Vector3 s, Material m, Vector3? rot = null, bool col = true)
-                => ProcMesh.Prim(t, n, site, p, s, m, rot, col);
-            GameObject Model(string m, Vector3 p, float size, float yaw, bool col = true) => Util.PlaceModel("K_" + m, p, size, yaw, site, false, col);
-
-            // 1. GREENHOUSE HUB: big glass dome on a white ring with an orange stripe (plant potatoes = food)
-            var hub = Spot(0, 0);
-            Prim(PrimitiveType.Cylinder, "HubRing", hub + Vector3.up * 0.6f, new Vector3(15.5f, 0.6f, 15.5f), white);
-            Prim(PrimitiveType.Cylinder, "HubStripe", hub + Vector3.up * 1.05f, new Vector3(15.7f, 0.12f, 15.7f), trim, null, false);
-            var dome = Model("hangar_roundGlass", hub + Vector3.up * 1.15f, 13.5f, 0);
-            Greenhouse(dome);
-            Prim(PrimitiveType.Cube, "HubDoor", hub + new Vector3(0, 1.4f, -7.6f), new Vector3(2.4f, 2.8f, 1.2f), white);
-            Prim(PrimitiveType.Cube, "HubDoorGlow", hub + new Vector3(0, 1.3f, -8.22f), new Vector3(1.4f, 2.2f, 0.05f), window, null, false);
-            var title = World3DText(site, hub + Vector3.up * 12f, "MARS COLONY", 14, new Color(1f, 0.8f, 0.35f));
-            title.gameObject.AddComponent<Billboard>();
-
-            // 2. DISH TOWER: talk to Earth and wait for the answer (light needs minutes to cross space)
-            var tw = Spot(-15, 11);
-            var towerBase = Prim(PrimitiveType.Cylinder, "TowerBase", tw + Vector3.up * 1.5f, new Vector3(4.4f, 1.5f, 4.4f), white);
-            Prim(PrimitiveType.Cylinder, "TowerStripe", tw + Vector3.up * 2.9f, new Vector3(4.5f, 0.12f, 4.5f), trim, null, false);
-            Prim(PrimitiveType.Cylinder, "TowerMid", tw + Vector3.up * 4.4f, new Vector3(3.2f, 1.5f, 3.2f), white);
-            Prim(PrimitiveType.Cylinder, "TowerWindows", tw + Vector3.up * 4.6f, new Vector3(3.25f, 0.35f, 3.25f), window, null, false);
-            Prim(PrimitiveType.Cylinder, "TowerTop", tw + Vector3.up * 6.0f, new Vector3(3.8f, 0.15f, 3.8f), trim, null, false);
-            Util.PlaceModel("Tall_Dish__dish_", tw + Vector3.up * 6.1f, 6.5f, 200, site, false, false); // NASA dish model
-            EarthLink(towerBase);
-
-            // 3. HABITAT: white dome with blue windows and an orange cap
-            var hab = Spot(15, 9);
-            var habDome = ProcMesh.MeshObj("Habitat", ProcMesh.Dome(28, 10, 0), white, site);
-            habDome.transform.position = hab; habDome.transform.localScale = new Vector3(5f, 4.6f, 5f);
-            var hmc = habDome.AddComponent<MeshCollider>(); hmc.sharedMesh = habDome.GetComponent<MeshFilter>().sharedMesh;
-            Prim(PrimitiveType.Cylinder, "HabWindows", hab + Vector3.up * 1.9f, new Vector3(9.7f, 0.35f, 9.7f), window, null, false);
-            Prim(PrimitiveType.Sphere, "HabCap", hab + Vector3.up * 4.5f, new Vector3(1.8f, 0.8f, 1.8f), trim, null, false);
-            Model("machine_wireless", hab + new Vector3(3.5f, 0, 3.5f), 3f, 160, false);
-
-            // 4. LITTLE GLASS LAB dome
-            var lab = Spot(13, -9);
-            Prim(PrimitiveType.Cylinder, "LabRing", lab + Vector3.up * 0.4f, new Vector3(8.6f, 0.4f, 8.6f), white);
-            Model("hangar_roundGlass", lab + Vector3.up * 0.75f, 7.5f, 40);
-
-            // 5. TUNNELS that connect the hub to the other buildings
-            Tube(site, hub + new Vector3(-5.5f, 0.3f, 4f), tw + new Vector3(2f, 0.3f, -1.5f), white);
-            Tube(site, hub + new Vector3(6f, 0.3f, 3.5f), hab + new Vector3(-4f, 0.3f, -2f), white);
-            Tube(site, hub + new Vector3(6f, 0.3f, -3.5f), lab + new Vector3(-3.5f, 0.3f, 1.5f), white);
-
-            // 6. GARDEN BOXES outside (soil + green plants)
-            for (int i = 0; i < 3; i++)
-            {
-                var gb = Spot(-13 + i * 4.5f, -10);
-                Prim(PrimitiveType.Cube, "GardenBox", gb + Vector3.up * 0.35f, new Vector3(3.4f, 0.7f, 1.6f), soilBox);
-                Prim(PrimitiveType.Cube, "GardenTrim", gb + Vector3.up * 0.72f, new Vector3(3.6f, 0.08f, 1.8f), white, null, false);
-                for (int k = 0; k < 4; k++) Prim(PrimitiveType.Sphere, "Sprout", gb + new Vector3(-1.2f + k * 0.8f, 0.95f, 0), new Vector3(0.6f, 0.5f, 0.6f), leaf, null, false);
-            }
-
-            // 7. SOLAR FIELD: power from the Sun (Mars gets only about half of Earth's sunlight)
-            GameObject firstPanel = null;
-            for (int row = 0; row < 2; row++)
-                for (int i = 0; i < 3; i++)
+            var lockT = Bunker.Find("Airlock");
+            // path lights from the shelter door
+            for (int s = -1; s <= 1; s += 2)
+                for (int k = 0; k < 3; k++)
                 {
-                    var sp = Spot(24 + i * 3.4f, -4 + row * 3.4f);
-                    Prim(PrimitiveType.Cylinder, "SolarPost", sp + Vector3.up * 0.7f, new Vector3(0.14f, 0.7f, 0.14f), white);
-                    var pan = Prim(PrimitiveType.Cube, "SolarPanel", sp + Vector3.up * 1.5f, new Vector3(3f, 0.07f, 2f), R.Emissive(new Color(0.05f, 0.1f, 0.3f), new Color(0.04f, 0.12f, 0.4f), 0.95f), new Vector3(28, 0, 0));
-                    if (!firstPanel) firstPanel = pan;
+                    var wp = lockT.TransformPoint(new Vector3(s * 1.9f, 0, 2.4f + k * 3f)); wp.y = MarsTerrain.H(wp.x, wp.z);
+                    var b = Prop("P_Sci_Fi_Bollard_Light", Root.transform, Vector3.zero, 0, 2.4f);
+                    if (b) b.transform.position = wp;
+                    else
+                    {
+                        ProcMesh.Prim(PrimitiveType.Cylinder, "Bollard", Root.transform, wp + Vector3.up * 0.45f, new Vector3(0.18f, 0.45f, 0.18f), R.Panel, null, false);
+                        ProcMesh.Prim(PrimitiveType.Cylinder, "BollardTop", Root.transform, wp + Vector3.up * 0.92f, new Vector3(0.2f, 0.04f, 0.2f), R.CyanGlow, null, false);
+                    }
                 }
-            SolarInfo(firstPanel);
+            var rp = Bunker.TransformPoint(new Vector3(8f, 0, 12f));
+            TheRover = Rover.Create(rp, Bunker.eulerAngles.y + 20, Root.transform);
 
-            // 8. LANDING PAD with a yellow ring and an X, plus the colony rover
-            var lp = Spot(4, -22);
-            Prim(PrimitiveType.Cylinder, "LandingPad", lp + Vector3.up * 0.15f, new Vector3(12f, 0.15f, 12f), R.Lit(new Color(0.55f, 0.55f, 0.58f), 0.3f));
-            Prim(PrimitiveType.Cylinder, "PadYellow", lp + Vector3.up * 0.31f, new Vector3(9f, 0.02f, 9f), R.Lit(new Color(1f, 0.78f, 0.15f), 0.4f), null, false);
-            Prim(PrimitiveType.Cylinder, "PadInner", lp + Vector3.up * 0.32f, new Vector3(7.8f, 0.02f, 7.8f), R.Lit(new Color(0.55f, 0.55f, 0.58f), 0.3f), null, false);
-            Prim(PrimitiveType.Cube, "PadX1", lp + Vector3.up * 0.34f, new Vector3(5.5f, 0.02f, 0.8f), white, new Vector3(0, 45, 0), false);
-            Prim(PrimitiveType.Cube, "PadX2", lp + Vector3.up * 0.34f, new Vector3(5.5f, 0.02f, 0.8f), white, new Vector3(0, -45, 0), false);
-            Model("rover", Spot(-4, -21), 5.5f, -35);
-            Model("barrels", Spot(-20, 2), 3f, 70);
-            Model("machine_generatorLarge", Spot(-21, -6), 5f, 40);
+            IceBlocks.Clear();
+            var parent = new GameObject("Ice").transform; parent.SetParent(Root.transform);
+            var ice = new Color(0.7f, 0.9f, 1f);
+            foreach (var xz in IceXZ)
+            {
+                var g = new GameObject("IceBlock"); g.transform.SetParent(parent); g.transform.position = G(xz);
+                var m = Util.PlaceModel("K_rock_crystalsLargeA", G(xz), 2.6f, xz.x * 7, g.transform);
+                foreach (var r in m.GetComponentsInChildren<Renderer>())
+                {
+                    var mats = r.materials;
+                    foreach (var mm in mats) { if (mm.HasProperty("baseColorFactor")) mm.SetColor("baseColorFactor", ice); if (mm.HasProperty("_BaseColor")) mm.SetColor("_BaseColor", ice); }
+                    r.materials = mats;
+                }
+                if (m.transform.childCount == 0) ProcMesh.Prim(PrimitiveType.Cube, "Ice", g.transform, new Vector3(0, 0.8f, 0), Vector3.one * 1.4f, R.Lit(ice, 0.95f), new Vector3(20, 30, 10), false);
+                var ring = ProcMesh.Prim(PrimitiveType.Cylinder, "Ring", g.transform, new Vector3(0, 0.05f, 0), new Vector3(4.5f, 0.01f, 4.5f), R.Holo(new Color(0.5f, 0.85f, 1f), 1.6f, 0.2f), null, false);
+                ring.AddComponent<Spin>().Speed = 50;
+                var beam = ProcMesh.Prim(PrimitiveType.Cylinder, "Beacon", g.transform, new Vector3(0, 25, 0), new Vector3(0.5f, 25, 0.5f), R.Holo(new Color(0.5f, 0.85f, 1f), 1.2f, 0.2f, 1f), null, false);
+                beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                var l = new GameObject("Light").AddComponent<Light>(); l.transform.SetParent(g.transform, false); l.transform.localPosition = Vector3.up * 2f;
+                l.type = LightType.Point; l.range = 8; l.intensity = 3; l.color = new Color(0.5f, 0.85f, 1f); l.shadows = LightShadows.None;
+                g.SetActive(false);
+                IceBlocks.Add(g);
+            }
         }
 
         /// <summary>Dish tower: send a message to Earth. It travels at the speed of light and still needs
@@ -664,27 +630,78 @@ namespace MissionMars
                 ProcMesh.Prim(PrimitiveType.Cube, "RibN", t, new Vector3(i * 2.2f, Hh / 2, D / 2 - 0.12f), new Vector3(0.25f, Hh, 0.08f), R.HullDark, null, false);
                 ProcMesh.Prim(PrimitiveType.Cube, "RibS", t, new Vector3(i * 2.2f, Hh / 2, -D / 2 + 0.12f), new Vector3(0.25f, Hh, 0.08f), R.HullDark, null, false);
             }
-            var strip = R.Emissive(Color.black, new Color(1.6f, 1.7f, 1.9f));
-            for (int i = -1; i <= 1; i += 2) ProcMesh.Prim(PrimitiveType.Cube, "Strip", t, new Vector3(i * 1.1f, Hh - 0.02f, 0), new Vector3(0.12f, 0.03f, D - 1), strip, null, false);
             ProcMesh.Prim(PrimitiveType.Cube, "FloorStripe", t, new Vector3(0, 0.005f, 0), new Vector3(W - 1, 0.01f, 0.25f), R.Orange, null, false);
 
-            InteriorLights.Clear();
+            // ---- LIGHTS: bright and warm once the power is on (the power-up mission turns them on) ----
+            powerLights.Clear(); powerGlows.Clear(); InteriorLights.Clear();
+            var strip = R.Emissive(Color.black, new Color(2.2f, 2.3f, 2.5f)); Glow(strip);
+            bool paidLamps = R.Model("P_P_Sci_Fi_Corridor_Ceiling_Strip");
             for (int i = -1; i <= 1; i += 2)
             {
-                var l = new GameObject("Light").AddComponent<Light>(); l.transform.SetParent(t, false); l.transform.localPosition = new Vector3(i * 2.6f, Hh - 0.4f, 0);
-                l.type = LightType.Point; l.range = 10; l.intensity = 2.2f; l.color = new Color(0.9f, 0.95f, 1f); l.shadows = LightShadows.None;
-                InteriorLights.Add(l);
+                if (!paidLamps) ProcMesh.Prim(PrimitiveType.Cube, "Strip", t, new Vector3(i * 1.1f, Hh - 0.02f, 0), new Vector3(0.12f, 0.03f, D - 1), strip, null, false);
+                else for (int k = -1; k <= 1; k++) Glow(Prop("P_Sci_Fi_Corridor_Ceiling_Strip", t, new Vector3(i * 1.1f, Hh, k * 2.6f), 90, 1.3f));
             }
+            for (int i = -1; i <= 1; i += 2)
+                for (int k = -1; k <= 1; k += 2)
+                {
+                    var l = new GameObject("Light").AddComponent<Light>(); l.transform.SetParent(t, false); l.transform.localPosition = new Vector3(i * 2.6f, Hh - 0.5f, k * 1.9f);
+                    l.type = LightType.Point; l.range = 11; l.intensity = 3.2f; l.color = new Color(1f, 0.96f, 0.9f); l.shadows = LightShadows.None;
+                    InteriorLights.Add(l); powerLights.Add((l, l.intensity));
+                }
+            // wall lamps (one per wall)
+            Glow(Prop("P_Sci_Fi_Patterned_Wall_Light", t, new Vector3(-W / 2 + 0.12f, 2.3f, -1.2f), 90, 1.4f));
+            Glow(Prop("P_Sci_Fi_Patterned_Wall_Light", t, new Vector3(W / 2 - 0.12f, 2.4f, 0), -90, 1.4f));
+            Glow(Prop("P_Sci_Fi_Patterned_Wall_Light", t, new Vector3(3.7f, 2.3f, D / 2 - 0.12f), 180, 1.4f));
+            Glow(Prop("P_Sci_Fi_Patterned_Wall_Light", t, new Vector3(0.6f, 2.3f, -D / 2 + 0.12f), 0, 1.4f));
+            // dim orange emergency light: all you have while the power is off
+            emergency = new GameObject("Emergency").AddComponent<Light>(); emergency.transform.SetParent(t, false); emergency.transform.localPosition = new Vector3(-2f, Hh - 0.4f, 1.5f);
+            emergency.type = LightType.Point; emergency.range = 12; emergency.intensity = 0; emergency.color = new Color(1f, 0.55f, 0.25f); emergency.shadows = LightShadows.None;
             AlarmLight = new GameObject("Alarm").AddComponent<Light>(); AlarmLight.transform.SetParent(t, false); AlarmLight.transform.localPosition = new Vector3(0, Hh - 0.3f, -2);
             AlarmLight.type = LightType.Point; AlarmLight.range = 12; AlarmLight.intensity = 0; AlarmLight.color = new Color(1f, 0.15f, 0.08f);
             AlarmLight.gameObject.AddComponent<Blink>().Rate = 1.2f;
 
-            // exit
-            // exit door is OPEN: panel slid aside, Mars daylight in the doorway
-            ProcMesh.Prim(PrimitiveType.Cube, "ExitPanelOpen", t, new Vector3(-3.2f + 1.0f, 1.15f, -D / 2 + 0.22f), new Vector3(1.3f, 2.3f, 0.1f), R.HullDark);
-            var door = ProcMesh.Prim(PrimitiveType.Cube, "ExitDoor", t, new Vector3(-3.2f, 1.15f, -D / 2 + 0.16f), new Vector3(1.3f, 2.3f, 0.02f), R.Emissive(new Color(0.9f, 0.55f, 0.35f), new Color(1.6f, 0.85f, 0.5f)));
-            ProcMesh.Prim(PrimitiveType.Cube, "ExitSign", t, new Vector3(-3.2f, 2.5f, -D / 2 + 0.15f), new Vector3(0.7f, 0.18f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.2f, 0.9f)), null, false);
-            ExitDoor = Interactable.Add(door, "Go outside", "Airlock", null);
+            // ---- POWER CORNER (north wall): battery + cable reel + main switch ----
+            var bat = Prop("P_Sci_Fi_Battery_Unit", t, new Vector3(-3.0f, 0, D / 2 - 0.45f), 180, 1.8f);
+            if (!bat)
+            {
+                bat = ProcMesh.Prim(PrimitiveType.Cube, "Battery", t, new Vector3(-3.0f, 0.38f, D / 2 - 0.45f), new Vector3(1.1f, 0.75f, 0.6f), R.Panel);
+                ProcMesh.Prim(PrimitiveType.Cube, "Charge", bat.transform, new Vector3(0, 0.1f, -0.51f), new Vector3(0.7f, 0.25f, 0.02f), R.Emissive(Color.black, new Color(0.3f, 2f, 0.6f)), null, false);
+            }
+            Glow(bat);
+            BatteryPlug = Interactable.Add(bat, "Plug in", "Battery (stores solar power)", null); BatteryPlug.enabled = false;
+            PropH("CRM_Reactor_HoseReel", t, new Vector3(-4.0f, 0, D / 2 - 0.5f), 180, 0.9f);
+            var sw = PropH("CRM_Reactor_PowerModule", t, new Vector3(-1.4f, 0, D / 2 - 0.5f), 180, 1.8f);
+            if (!sw)
+            {
+                sw = new GameObject("MainSwitch"); sw.transform.SetParent(t, false); sw.transform.localPosition = new Vector3(-1.4f, 0, D / 2 - 0.5f);
+                ProcMesh.Prim(PrimitiveType.Cube, "Box", sw.transform, new Vector3(0, 0.9f, 0), new Vector3(1f, 1.8f, 0.6f), R.Panel);
+                ProcMesh.Prim(PrimitiveType.Cube, "Lever", sw.transform, new Vector3(0, 1.2f, -0.35f), new Vector3(0.15f, 0.45f, 0.12f), R.Orange, null, false);
+            }
+            Glow(sw);
+            PowerSwitch = Interactable.Add(sw, "Hold E: turn on", "MAIN POWER SWITCH", null, 1.0f); PowerSwitch.enabled = false;
+            // the cable appears when you plug it in
+            Cable = ProcMesh.Prim(PrimitiveType.Cylinder, "Cable", t, new Vector3(-2.2f, 0.05f, D / 2 - 0.75f), new Vector3(0.07f, 0.8f, 0.07f), R.CyanGlow, new Vector3(0, 0, 90), false);
+            Cable.SetActive(false);
+            var powerSign = World3DText(t, new Vector3(-2.2f, 2.55f, D / 2 - 0.15f), "POWER", 2.6f, new Color(1f, 0.8f, 0.3f));
+            powerSign.transform.localRotation = Quaternion.Euler(0, 0, 0);
+
+            // ---- AIR FILTER (south wall): this is where the oxygen leak happens ----
+            var filter = PropH("CRM_Reactor_FilterUnit", t, new Vector3(2.4f, 0, -D / 2 + 0.6f), 0, 1.8f);
+            if (!filter) filter = ProcMesh.Prim(PrimitiveType.Cube, "AirFilter", t, new Vector3(2.4f, 0.9f, -D / 2 + 0.55f), new Vector3(1.2f, 1.8f, 0.7f), R.Panel);
+            PropH("CRM_Reactor_Canister_01", t, new Vector3(3.7f, 0, -D / 2 + 0.55f), 0, 1.4f);
+            PropH("CRM_Reactor_UtilityCabinet_02", t, new Vector3(4.7f, 0, -D / 2 + 0.5f), 0, 1.9f);
+            Glow(PropH("CRM_Reactor_Light_03", t, new Vector3(-0.7f, 0, -D / 2 + 0.45f), 0, 1.0f));
+            var pipe = ProcMesh.Prim(PrimitiveType.Cylinder, "AirPipe", t, new Vector3(2.4f, 2.7f, -D / 2 + 0.3f), new Vector3(0.22f, 0.9f, 0.22f), R.Hull);
+            LeakPos = t.TransformPoint(new Vector3(2.4f, 2.5f, -D / 2 + 0.5f));
+            LeakSteam = FX.Mist(LeakPos, t, new Color(0.9f, 0.95f, 1f, 0.9f));
+            { var m = LeakSteam.main; m.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 2.2f); var e = LeakSteam.emission; e.rateOverTime = 45; var s = LeakSteam.shape; s.shapeType = ParticleSystemShapeType.Cone; s.angle = 18; s.radius = 0.05f; LeakSteam.transform.localRotation = Quaternion.Euler(0, 0, 0); LeakSteam.Stop(); }
+            LeakValve = Interactable.Add(pipe, "Hold E: patch", "AIR LEAK", null, 1.5f); LeakValve.enabled = false;
+
+            // exit: a CLOSED airlock door; Mars daylight shows behind it when it slides open
+            ProcMesh.Prim(PrimitiveType.Cube, "ExitDoorway", t, new Vector3(-3.2f, 1.15f, -D / 2 + 0.12f), new Vector3(1.3f, 2.3f, 0.02f), R.Emissive(new Color(0.9f, 0.55f, 0.35f), new Color(1.6f, 0.85f, 0.5f)), null, false);
+            ProcMesh.Prim(PrimitiveType.Cube, "ExitSign", t, new Vector3(-3.2f, 2.55f, -D / 2 + 0.15f), new Vector3(0.7f, 0.18f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.2f, 0.9f)), null, false);
+            ExitDoorPanel = DoorPanel(t, new Vector3(-3.2f, 1.15f, -D / 2 + 0.24f), new Vector3(1.4f, 2.35f, 0.1f));
+            ExitDoor = Interactable.Add(ExitDoorPanel.gameObject, "Go outside", "Airlock", null);
             InteriorSpawn = t.TransformPoint(new Vector3(-3.2f, 0.05f, -D / 2 + 1.4f)); InteriorYaw = 0;
 
             // MOXIE station (east wall)
@@ -733,6 +750,56 @@ namespace MissionMars
             Interior.SetActive(false);
         }
 
+        // ------------------------------------------------------------------ props, power, doors
+        /// <summary>A bought prop at its real size (times scale). Returns null when the paid files are not in the project (GitHub copy).</summary>
+        static GameObject Prop(string name, Transform parent, Vector3 lpos, float yaw, float scale = 1f)
+        {
+            var prefab = R.Model("P_" + name); if (!prefab) return null;
+            var g = Object.Instantiate(prefab, parent, false); g.name = name;
+            g.transform.localPosition = lpos; g.transform.localRotation = Quaternion.Euler(0, yaw, 0); g.transform.localScale = Vector3.one * scale;
+            foreach (var r in g.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return g;
+        }
+        /// <summary>A bought prop scaled to a height (in metres), standing on the floor at lpos.</summary>
+        static GameObject PropH(string name, Transform parent, Vector3 lpos, float yaw, float height)
+        {
+            var g = Prop(name, parent, lpos, yaw); if (!g) return null;
+            var b = Util.Bounds(g); float s = height / Mathf.Max(0.01f, b.size.y);
+            g.transform.localScale = Vector3.one * s;
+            b = Util.Bounds(g); g.transform.position += Vector3.up * (parent.TransformPoint(lpos).y - b.min.y);
+            return g;
+        }
+        static void Glow(Material m) { if (m && m.HasProperty("_EmissionColor")) powerGlows.Add((m, m.GetColor("_EmissionColor"))); }
+        static void Glow(GameObject g)
+        {
+            if (!g) return;
+            foreach (var r in g.GetComponentsInChildren<Renderer>()) foreach (var m in r.materials) Glow(m);
+        }
+        public static bool PowerOn { get; private set; } = true;
+        /// <summary>0 = power off (dark, orange emergency light), 1 = all lights on.</summary>
+        public static void SetPower(float k)
+        {
+            PowerOn = k > 0.99f;
+            foreach (var (l, on) in powerLights) if (l) { l.intensity = on * k; l.enabled = l.intensity > 0.01f; }
+            foreach (var (m, c) in powerGlows) if (m) m.SetColor("_EmissionColor", c * k);
+            if (emergency) emergency.intensity = Mathf.Lerp(1.6f, 0, k);
+            if (Game.Sky) Game.Sky.InteriorBright = Mathf.Lerp(0.35f, 1f, k);
+        }
+
+        static Transform DoorPanel(Transform parent, Vector3 lp, Vector3 size)
+        {
+            var root = new GameObject("DoorPanel").transform; root.SetParent(parent, false); root.localPosition = lp;
+            float fz = size.z / 2 + 0.01f;
+            ProcMesh.Prim(PrimitiveType.Cube, "Slab", root, Vector3.zero, size, R.Panel);
+            for (int i = -1; i <= 1; i += 2)
+                ProcMesh.Prim(PrimitiveType.Cube, "Stripe", root, new Vector3(0, i * size.y * 0.38f, fz), new Vector3(size.x, 0.16f, 0.02f), R.Orange, null, false);
+            ProcMesh.Prim(PrimitiveType.Cube, "Window", root, new Vector3(0, size.y * 0.16f, fz), new Vector3(size.x * 0.4f, 0.32f, 0.02f), R.Emissive(new Color(0.05f, 0.15f, 0.2f), new Color(0.2f, 0.9f, 1.3f)), null, false);
+            ProcMesh.Prim(PrimitiveType.Cube, "Handle", root, new Vector3(-size.x * 0.36f, -0.05f, fz + 0.03f), new Vector3(0.08f, 0.5f, 0.06f), R.HullDark, null, false);
+            ProcMesh.Prim(PrimitiveType.Sphere, "Status", root, new Vector3(size.x * 0.36f, 0.1f, fz), Vector3.one * 0.12f, R.Emissive(Color.black, new Color(0.3f, 2.5f, 0.6f)), null, false);
+            var sd = root.gameObject.AddComponent<SlideDoor>(); sd.Closed = lp; sd.Slide = size.x + 0.05f;
+            return root;
+        }
+
         static GameObject StationGhost(Transform parent, Material holo, string label)
         {
             var g = new GameObject("Ghost"); g.transform.SetParent(parent, false);
@@ -774,6 +841,22 @@ namespace MissionMars
             transform.Rotate(0, Spin * Time.deltaTime, 0, Space.Self);
             if (m) m.SetVector("_SunDirW", (-Dir + Vector3.up * 0.3f + Vector3.Cross(Vector3.up, Dir) * 0.5f).normalized);
         }
+    }
+
+    /// <summary>An airlock door that slides sideways.</summary>
+    public class SlideDoor : MonoBehaviour
+    {
+        public Vector3 Closed; public float Slide = 1.5f;
+        public IEnumerator Move(bool open, float d = 0.45f)
+        {
+            Vector3 from = transform.localPosition, to = Closed + (open ? Vector3.right * Slide : Vector3.zero);
+            Sfx.Play("whoosh", 0.35f, open ? 1.4f : 1.1f);
+            float t = 0;
+            while (t < d) { t += Time.deltaTime; transform.localPosition = Vector3.Lerp(from, to, Tween.EaseInOut(t / d)); yield return null; }
+            transform.localPosition = to;
+            if (!open) Sfx.Play("thud", 0.3f, 1.3f);
+        }
+        public void Snap(bool open) { transform.localPosition = Closed + (open ? Vector3.right * Slide : Vector3.zero); }
     }
 
     public class Billboard : MonoBehaviour

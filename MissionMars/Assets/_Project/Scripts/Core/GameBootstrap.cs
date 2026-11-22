@@ -58,6 +58,8 @@ namespace MissionMars
             if (url.Contains("preview=")) { Story.QuickStart = true; StartCoroutine(Preview(url.Contains("preview=shelter"))); }
             string tshot = Arg("-titleshot");
             if (tshot != null) { Application.runInBackground = true; StartCoroutine(TitleShot(tshot)); }
+            string shots2 = Arg("-shots2");
+            if (shots2 != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(Tour2(shots2)); }
             string shots = Arg("-shots");
             if (shots != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(Tour(shots)); }
             yield return story.Run();
@@ -180,6 +182,52 @@ namespace MissionMars
             Game.Story.StartCoroutine(Game.Story.SecondStorm());
             yield return new WaitForSeconds(42f);
             Rec(dir, "h_report"); yield return new WaitForSeconds(3.5f); Stop();
+            Application.Quit();
+        }
+
+        /// <summary>Screenshots of the new missions: closed door, dark shelter, power-up, rover, ice, air leak.</summary>
+        IEnumerator Tour2(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            while (!Game.Player || Game.Player.Frozen) yield return null;
+            while (Game.Suit.Storm < 0.2f) yield return null;
+            var door = MarsWorld.BunkerOutside;
+            var away = door - MarsWorld.Bunker.position; away.y = 0; Game.Player.Teleport(MarsWorld.G(door.x + away.normalized.x * 5f, door.z + away.normalized.z * 5f, 0.1f), 0); Game.Player.LookAt(MarsWorld.BunkerDoorPanel.position + Vector3.up * 1.5f);
+            yield return Shot(dir, "a_door_closed", 1.5f);
+            MarsWorld.BunkerDoor.Use();
+            yield return Shot(dir, "b_door_opening", 0.25f);
+            while (!MarsWorld.BatteryPlug.enabled) yield return null;
+            Game.Player.LookAt(MarsWorld.BatteryPlug.transform.position + Vector3.up * 0.6f);
+            yield return Shot(dir, "c_dark_power_corner", 2f);
+            MarsWorld.BatteryPlug.Use(); yield return new WaitForSeconds(1f); MarsWorld.PowerSwitch.Use();
+            yield return Shot(dir, "d_power_on", 3f);
+            Game.Player.LookAt(MarsWorld.LeakPos - Vector3.up * 1.2f);
+            yield return Shot(dir, "e_south_wall", 1f);
+            Game.Player.LookAt(MarsWorld.Interior.transform.TransformPoint(new Vector3(5.5f, 1.5f, 0)));
+            yield return Shot(dir, "e2_east_wall", 1f);
+            while (!MarsWorld.MoxieSlot.enabled) yield return null;
+            MarsWorld.MoxieCrate.Use(); yield return new WaitForSeconds(0.3f); MarsWorld.MoxieSlot.Use();
+            yield return new WaitForSeconds(0.5f); MarsWorld.WaterCrate.Use(); yield return new WaitForSeconds(0.3f); MarsWorld.WaterSlot.Use();
+            yield return new WaitForSeconds(2f);
+            for (int k = 0; k < 3; k++) { Screens.I.SendMessage("CloseInfoForTour", SendMessageOptions.DontRequireReceiver); yield return new WaitForSeconds(0.4f); }
+            MarsWorld.ExitDoor.Use();
+            yield return new WaitForSeconds(2f);
+            Game.Player.LookAt(MarsWorld.TheRover.transform.position);
+            yield return Shot(dir, "f_outside_rover", 0.5f);
+            MarsWorld.TheRover.Enter();
+            yield return Shot(dir, "g_rover_cam", 2f);
+            MarsWorld.TheRover.Exit();
+            while (!MarsWorld.IceBlocks[0].activeSelf) yield return null;
+            var ice = MarsWorld.IceBlocks[0].transform.position;
+            Game.Player.Teleport(MarsWorld.G(ice.x + 9, ice.z + 6, 0.1f), 0); Game.Player.LookAt(ice + Vector3.up);
+            yield return Shot(dir, "h_ice", 2f);
+            Game.Player.Teleport(MarsWorld.BunkerOutside, MarsWorld.BunkerOutsideYaw);
+            yield return new WaitForSeconds(20f);
+            MarsWorld.BunkerDoor.Use(); yield return new WaitForSeconds(2f);
+            Game.Story.StartCoroutine(Game.Story.AirLeak());
+            Game.Player.LookAt(MarsWorld.LeakPos);
+            yield return Shot(dir, "i_leak", 4f);
+            yield return Shot(dir, "j_leak2", 3f);
             Application.Quit();
         }
 

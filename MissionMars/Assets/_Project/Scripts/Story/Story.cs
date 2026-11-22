@@ -47,6 +47,45 @@ namespace MissionMars
             UpdateTimerHolo();
             if (Game.InMenu && SpaceSet.I && SpaceSet.I.gameObject.activeSelf && cineCam && cineCam.enabled) SpaceSet.I.MenuTick();
             if (partsHunt && player && !busy) PartsUpdate();
+            if (iceOn && player && !busy && !inside && !UIState.Modal) IceUpdate();
+            // the oxygen-leak alarm happens once, the first time you come back into the shelter during the rocket hunt
+            if (partsHunt) huntTime += Time.deltaTime;
+            if (partsHunt && inside && !busy && !Hazard && !leakDone && huntTime > 40 && MarsWorld.PowerOn && suit && suit.MoxieOn)
+            { leakDone = true; StartCoroutine(AirLeak()); }
+        }
+
+        // ================================================================== mission: fix the oxygen leak
+        float huntTime; bool leakDone;
+        public IEnumerator AirLeak()
+        {
+            Hazard = true;
+            yield return new WaitForSeconds(2f);
+            MarsWorld.LeakSteam.Play();
+            var hiss = AudioManager.I.Loop("wind", 0.7f, MarsWorld.LeakSteam.transform, 1, 18); hiss.pitch = 2.4f;
+            MarsWorld.AlarmLight.intensity = 3; MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(3);
+            hud.Warn("AIR LEAK! FIX IT FAST!", 5);
+            var wp = hud.AddWaypoint("AIR LEAK", () => MarsWorld.LeakPos, HC.Red);
+            hud.Objective("FIX THE AIR LEAK!", "Air is escaping from a pipe! Find the white steam and <b>hold E</b> on the pipe to patch it.");
+            hud.Say("ALARM! Air is leaking out of that pipe! Look for the white steam and hold E to patch it, quick!", 5);
+            bool fixedIt = false; float t = 0;
+            MarsWorld.LeakValve.enabled = true; MarsWorld.LeakValve.OnUse = () => fixedIt = true;
+            while (!fixedIt)
+            {
+                t += Time.deltaTime;
+                if (inside && !UIState.Modal) suit.O2 = Mathf.Max(8, suit.O2 - 10f * Time.deltaTime); // the air rushes out
+                yield return null;
+            }
+            MarsWorld.LeakValve.enabled = false;
+            MarsWorld.LeakSteam.Stop();
+            AudioManager.I.FadeSource(hiss, 0, 0.5f); Destroy(hiss.gameObject, 1f);
+            MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(0); MarsWorld.AlarmLight.intensity = 0;
+            hud.RemoveWaypoint(wp);
+            Sfx.Play("build", 0.7f); Sfx.Play("powerup", 0.5f);
+            hud.Toast("LEAK FIXED!", "MOXIE will refill the air now.", "air", HC.Green);
+            AstroPass.Award("leak", t < 25 ? "Super-fast leak fix" : "Leak fixed", t < 25 ? 3 : 2);
+            yield return hud.SayWait("You saved our air! Real fact: in 2020, astronauts on the Space Station found a tiny air leak by watching floating TEA LEAVES drift toward the hole!", 6);
+            hud.Objective("BUILD A NEW ROCKET", $"{partsInstalled} of {MarsWorld.Parts.Length} sections built. Follow the coloured beams to the next detail!", "parts");
+            Hazard = false;
         }
 
         void Tick()
@@ -137,6 +176,9 @@ namespace MissionMars
             suit.O2 = 64; suit.Water = 70; suit.Health = 72;
             suit.OnCollapse = why => StartCoroutine(Collapse(why));
             hud = Game.Hud; hud.Interactor = inter;
+            AstroPass.Create(hud);
+            MarsWorld.SetPower(0); // the crash knocked out the shelter's power: the first job inside is to turn it back on
+            if (MarsWorld.TheRover) MarsWorld.TheRover.Use.enabled = false; // the rover is unlocked after the storm
             bot = Robot.Create(spawn + new Vector3(30, 20, 30));
             Game.Sky.TimeOfDay = 0.36f; Game.Sky.Apply();
             AudioManager.I.Wind = AudioManager.I.Loop("wind", 0.35f);
@@ -254,9 +296,37 @@ namespace MissionMars
             yield return new WaitForSeconds(0.9f);
             yield return Cinema.I.FromBlack(0.3f);
             hud.Toast("YOU SURVIVED THE STORM", $"Real flare {CurrentFlare.Class} ({CurrentFlare.Date}). 2 metres of Mars soil above the shelter blocked the radiation.", "shield", HC.Green);
+            AstroPass.Award("storm", "Hid from the space storm", 2);
+            yield return PowerUp();
             MarsWorld.AlarmLight.intensity = 3; MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(3);
             Sfx.Play("alarm", 0.5f);
-            yield return hud.SayWait("Safe! But the bunker has no machines — air and water are running out!", 3f);
+            yield return hud.SayWait("Lights are on! But the shelter has no machines: air and water are running out!", 3f);
+        }
+
+        // ================================================================== mission: power up the shelter
+        IEnumerator PowerUp()
+        {
+            yield return hud.SayWait("Phew, we're safe! But it's so DARK in here. The crash knocked out our POWER!");
+            hud.Objective("POWER UP THE SHELTER", "1. Plug the cable into the <b>BATTERY</b> (press E).\n2. Hold E on the <b>MAIN SWITCH</b>.");
+            var wp = hud.AddWaypoint("BATTERY", () => MarsWorld.BatteryPlug.transform.position + Vector3.up * 1.2f, HC.Amber);
+            bool plugged = false, on = false;
+            MarsWorld.BatteryPlug.enabled = true;
+            MarsWorld.BatteryPlug.OnUse = () => { if (plugged) return; plugged = true; MarsWorld.BatteryPlug.enabled = false; MarsWorld.Cable.SetActive(true); Sfx.Play("build", 0.7f); };
+            while (!plugged) yield return null;
+            hud.RemoveWaypoint(wp);
+            hud.Say("Cable in! This battery stores energy from the SOLAR PANELS on top of the shelter. Now hold E on the MAIN SWITCH!", 5);
+            wp = hud.AddWaypoint("MAIN SWITCH", () => MarsWorld.PowerSwitch.transform.position + Vector3.up * 2f, HC.Amber);
+            MarsWorld.PowerSwitch.enabled = true; MarsWorld.PowerSwitch.OnUse = () => on = true;
+            while (!on) yield return null;
+            MarsWorld.PowerSwitch.enabled = false; hud.RemoveWaypoint(wp); hud.ClearObjective();
+            // the lights flicker... and come on!
+            Sfx.Play("powerup", 0.8f);
+            foreach (var k in new[] { 0.35f, 0f, 0.6f, 0.1f, 1f }) { MarsWorld.SetPower(k); Sfx.Play("click", 0.6f, 0.7f + k); yield return new WaitForSeconds(0.18f); }
+            MarsWorld.SetPower(1);
+            Sfx.Play("hum", 0.4f);
+            hud.Toast("POWER ON!", "Solar panels charge the battery in the day. At night the battery keeps the lights on.", "power", HC.Amber);
+            AstroPass.Award("power", "Power restored", 2);
+            yield return new WaitForSeconds(1.2f);
         }
 
         Coroutine stormCo;
@@ -273,8 +343,12 @@ namespace MissionMars
         {
             busy = true;
             player.Frozen = true;
-            Sfx.Play("thud", 0.5f);
+            var outer = MarsWorld.BunkerDoorPanel.GetComponent<SlideDoor>();
+            yield return outer.Move(true); // the door slides open...
             yield return Cinema.I.ToBlack(0.35f);
+            outer.Snap(false);              // ...and shuts behind you
+            MarsWorld.ExitDoorPanel.GetComponent<SlideDoor>().Snap(false);
+            Sfx.Play("thud", 0.4f, 1.2f);
             Sfx.Play("whoosh", 0.4f, 0.6f);
             MarsWorld.SetSurface(false); MarsWorld.Interior.SetActive(true);
             Game.Sky.Mode = SkyMode.Interior; Game.Sky.Apply();
@@ -290,9 +364,15 @@ namespace MissionMars
         {
             busy = true;
             player.Frozen = true;
+            var inner = MarsWorld.ExitDoorPanel.GetComponent<SlideDoor>();
+            yield return inner.Move(true);
             yield return Cinema.I.ToBlack(0.35f);
+            inner.Snap(false);
             Sfx.Play("whoosh", 0.4f, 0.6f);
             MarsWorld.Interior.SetActive(false); MarsWorld.SetSurface(true);
+            var outer = MarsWorld.BunkerDoorPanel.GetComponent<SlideDoor>();
+            outer.Snap(true); // you come out of the open door, then it closes behind you
+            Game.Runner.StartCoroutine(CloseLater(outer));
             Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
             player.Teleport(MarsWorld.BunkerOutside, MarsWorld.BunkerOutsideYaw);
             bot.Teleport(MarsWorld.BunkerOutside + new Vector3(1.5f, 2, 1.5f));
@@ -300,6 +380,12 @@ namespace MissionMars
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
             yield return Cinema.I.FromBlack(0.4f);
             player.Frozen = false; busy = false;
+        }
+
+        static IEnumerator CloseLater(SlideDoor d)
+        {
+            yield return new WaitForSeconds(1.1f);
+            if (d && d.gameObject.activeInHierarchy) yield return d.Move(false);
         }
 
         void WireDoors()
@@ -314,7 +400,20 @@ namespace MissionMars
             WireDoors();
             hud.Objective("SALVAGE THE MACHINES", "Go back to the rocket. Bring the <b>AIR MAKER</b> and the <b>WATER MAKER</b> to the bunker. Carry one at a time!");
             yield return hud.SayWait("Our rocket brought 2 machines: MOXIE makes AIR to breathe. The other turns ICE into WATER.");
-            hud.Say("They're at the crash site. Bring them here and plug them in. Walk to the door and press E to go outside.", 6);
+            yield return hud.SayWait("They're at the crash site. They are HEAVY, so take the ROVER parked outside the shelter!", 4);
+            hud.Say("Walk to the door and press E to go outside. Then press E next to the rover to drive.", 6);
+            var rover = MarsWorld.TheRover; Waypoint wpRover = null;
+            if (rover)
+            {
+                rover.Use.enabled = true;
+                wpRover = hud.AddWaypoint("ROVER", () => rover.transform.position + Vector3.up * 3f, HC.Amber);
+                rover.OnFirstDrive = () =>
+                {
+                    hud.RemoveWaypoint(wpRover);
+                    hud.Say("Vroom! W and S to drive, A and D to steer, E to get out. Real astronauts drove a rover on the Moon in 1971!", 6);
+                    AstroPass.Award("rover", "First rover drive", 1);
+                };
+            }
             wpMoxie = hud.AddWaypoint("MOXIE", () => MarsWorld.MoxieCrate ? MarsWorld.MoxieCrate.transform.position : Vector3.zero, HC.Cyan);
             wpWater = hud.AddWaypoint("ICE MACHINE", () => MarsWorld.WaterCrate ? MarsWorld.WaterCrate.transform.position : Vector3.zero, new Color(0.5f, 0.7f, 1f));
             wpBunker = hud.AddWaypoint("BUNKER", () => MarsWorld.BunkerOutside, HC.Green); wpBunker.On = false;
@@ -339,6 +438,40 @@ namespace MissionMars
             hud.RemoveWaypoint(wpBunker); wpBunker = null;
             MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(0); MarsWorld.AlarmLight.intensity = 0;
             yield return new WaitForSeconds(2.5f);
+            hud.RemoveWaypoint(wpRover);
+            StartIce();
+        }
+
+        // ================================================================== bonus mission: collect ice with the rover
+        bool iceOn; int iceGot; readonly Dictionary<GameObject, Waypoint> iceWps = new Dictionary<GameObject, Waypoint>();
+        void StartIce()
+        {
+            if (MarsWorld.IceBlocks.Count == 0) return;
+            iceOn = true;
+            foreach (var g in MarsWorld.IceBlocks) { var gg = g; gg.SetActive(true); iceWps[gg] = hud.AddWaypoint("ICE", () => gg.transform.position + Vector3.up * 2f, new Color(0.55f, 0.85f, 1f)); }
+            hud.Toast("BONUS MISSION: ICE HUNT", "Drive to the 3 blue ICE blocks. Water on Mars is frozen!", "water", HC.Cyan);
+        }
+        void IceUpdate()
+        {
+            var pp = player.transform.position;
+            foreach (var g in MarsWorld.IceBlocks)
+            {
+                if (!g.activeSelf || Vector3.Distance(pp, g.transform.position) > 5.5f) continue;
+                g.SetActive(false);
+                if (iceWps.TryGetValue(g, out var w)) { hud.RemoveWaypoint(w); iceWps.Remove(g); }
+                iceGot++;
+                suit.Drink(15);
+                FX.BurstSparks(g.transform.position + Vector3.up, new Color(0.6f, 0.9f, 1f), 70);
+                Sfx.Play("pickup", 0.8f, 1.3f);
+                hud.Toast($"ICE {iceGot} / 3", "Melted ice = water to drink and air to breathe. Life support +15", "water", HC.Cyan);
+                if (iceGot >= MarsWorld.IceBlocks.Count)
+                {
+                    iceOn = false;
+                    AstroPass.Award("ice", "Ice hunter", 3);
+                    hud.Say("All the ice! NASA's orbiters found ice just under the dust in many places on Mars. Future astronauts will melt it for water!", 6);
+                }
+                break;
+            }
         }
 
         void TryPickMachine(string id, string name, string icon, Color c, Interactable crate, Waypoint wp)
@@ -372,6 +505,7 @@ namespace MissionMars
             MarsWorld.MoxieGhost.SetActive(false); MarsWorld.MoxieInstalled.SetActive(true);
             suit.MoxieOn = true; Sfx.Play("build", 0.7f); Sfx.Play("powerup", 0.6f);
             hud.Toast("MOXIE ONLINE", "CO2 in → O2 out. Oxygen refills inside the bunker.", "air", HC.Cyan);
+            AstroPass.Award("moxie", "Air maker installed", 1);
             yield return hud.SayWait("MOXIE works! It makes oxygen from Mars air. NASA really did this on Mars in 2021!");
         }
         IEnumerator InstallWater()
@@ -379,6 +513,7 @@ namespace MissionMars
             MarsWorld.WaterGhost.SetActive(false); MarsWorld.WaterInstalled.SetActive(true);
             suit.WaterOn = true; Sfx.Play("build", 0.7f); Sfx.Play("powerup", 0.6f);
             hud.Toast("WATER MACHINE ONLINE", "Melts underground ice. Press E at the tap to drink.", "water", HC.Cyan);
+            AstroPass.Award("water", "Water maker installed", 1);
             yield return hud.SayWait("Water is flowing! NASA found ice under the ground on Mars. Press E at the tap to drink.");
         }
 
@@ -390,9 +525,8 @@ namespace MissionMars
             ClockRunning = true; DaysLeft = 779;
             hud.Toast("EARTH LAUNCH WINDOW", "Earth and Mars line up every ~26 months. Next window: in 2 years.", "clock", HC.Cyan);
             yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the bunker!");
-            yield return hud.SayWait("Look, a MARS COLONY is nearby! Grow food in the glass dome, call Earth from the dish tower and check the solar panels.");
             yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
-            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the bunker for air and water.", "parts");
+            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the shelter for air and water.\n<color=#8FD8FF>BONUS: drive to the 3 blue ICE blocks.</color>", "parts");
             foreach (var p in MarsWorld.Parts)
             {
                 var pp = p;
@@ -477,6 +611,7 @@ namespace MissionMars
             p.Go.SetActive(false);
             if (partWps.TryGetValue(p, out var w)) { hud.RemoveWaypoint(w); partWps.Remove(p); }
             hud.Toast("FOUND: " + p.Name.ToUpper(), "Take it to the LAUNCH PAD (orange marker).", p.Icon, p.Color);
+            AstroPass.Award("part_" + p.Id, ok ? p.Name + " (first try!)" : p.Name, ok ? 2 : 1);
             busy = false;
         }
 
@@ -538,9 +673,11 @@ namespace MissionMars
             wind.Stop(); streaks.Stop(); Destroy(wind.gameObject, 3); Destroy(streaks.gameObject, 2);
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, inside ? 0.05f : 0.35f, 3f);
             hud.Say("The storm has passed. On real Mars, dust storms can last for weeks!", 4);
+            AstroPass.Award("dust", "Survived the dust storm", 1);
             Hazard = false;
         }
 
+        int meteorHits;
         public IEnumerator MeteorShower()
         {
             Hazard = true;
@@ -564,6 +701,7 @@ namespace MissionMars
             }
             yield return new WaitForSeconds(3);
             hud.Say("The shower is over. NASA's orbiters really do spot brand-new craters on Mars every year!", 4);
+            AstroPass.Award("meteor", meteorHits == 0 ? "Perfect meteor dodge" : "Meteor dodger", meteorHits == 0 ? 3 : meteorHits == 1 ? 2 : 1);
             Hazard = false;
         }
 
@@ -598,7 +736,7 @@ namespace MissionMars
             {
                 float dist = Vector3.Distance(player.transform.position, hit);
                 if (dist < 18) player.Shake(0.4f * (1 - dist / 18), 0.4f);
-                if (dist < 5.5f) { suit.Health = Mathf.Max(5, suit.Health - 14); hud.Damage(0.7f); hud.Warn("HIT BY METEOR DEBRIS!", 2); }
+                if (dist < 5.5f) { meteorHits++; suit.Health = Mathf.Max(5, suit.Health - 14); hud.Damage(0.7f); hud.Warn("HIT BY METEOR DEBRIS!", 2); }
             }
         }
 
@@ -630,12 +768,14 @@ namespace MissionMars
 
 <color=#9FB6D6>Real fact: in May 2024 NASA's Curiosity rover measured one big solar storm on Mars. It was like 30 chest X-rays at once.</color>";
             yield return screens.ShowInfo("FLARE REPORT", "flare", HC.Amber, body, "Read more in the Junior Astronaut Handbook, page 11 (Mars Dangers)");
+            AstroPass.Award("flare2", sheltered ? "Smart flare shelter" : "Flare survived", sheltered ? 2 : 1);
             Hazard = false;
         }
 
         // ================================================================== collapse (never game over)
         IEnumerator Collapse(string why)
         {
+            if (MarsWorld.TheRover && MarsWorld.TheRover.Driving) MarsWorld.TheRover.Exit();
             busy = true; player.Frozen = true;
             Sfx.Play("heartbeat", 1f);
             yield return Lids(1, 0, 1.2f);
@@ -661,7 +801,8 @@ namespace MissionMars
         // ================================================================== launch
         IEnumerator Launch()
         {
-            partsHunt = false; hud.ForcedPrompt = null;
+            partsHunt = false; hud.ForcedPrompt = null; iceOn = false;
+            if (MarsWorld.TheRover && MarsWorld.TheRover.Driving) MarsWorld.TheRover.Exit();
             hud.ClearWaypoints();
             hud.Objective("WAIT FOR THE LAUNCH WINDOW", "Your rocket is ready! Watch the clock on the bunker.");
             yield return hud.SayWait("The rocket is complete! Now we wait for Earth to come around. Let's speed up time…");
@@ -702,7 +843,9 @@ namespace MissionMars
             yield return SpaceSet.I.Ending();
             Cinema.I.Letterbox(false, 0.6f);
             int days = Sol;
-            screens.ShowEnding($"You survived <color={HC.Hex(HC.Cyan)}>{days} sols</color> on Mars and flew home.\n" +
+            AstroPass.AwardSilent("launch", 3);
+            string rank = AstroPass.I ? $"ASTRONAUT PASS: <color={HC.Hex(HC.Amber)}>{AstroPass.I.RankName}</color> with {AstroPass.I.Stars} stars\n" : "";
+            screens.ShowEnding(rank + $"You survived <color={HC.Hex(HC.Cyan)}>{days} sols</color> on Mars and flew home.\n" +
                 $"Radiation dose: <color={HC.Hex(HC.Amber)}>{suit.DoseMSv:0} mSv</color> of the 600 mSv NASA limit  ·  Launch windows missed: {WindowsMissed}\n" +
                 $"Puzzles solved first try: <color={HC.Hex(HC.Green)}>{screens.FirstTry} / {screens.Total}</color>\n" +
                 $"<size=20>Real solar flares you faced came from NASA DONKI. Real Mars missions plan around these same launch windows.</size>");

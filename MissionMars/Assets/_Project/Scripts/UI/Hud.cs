@@ -65,7 +65,7 @@ namespace MissionMars
             var h = g.AddComponent<Hud>(); h.Canvas = cv; h.Root = (RectTransform)g.transform; h.Build(); Game.Hud = h; return h;
         }
 
-        static Image Glass(Transform p, string n, Vector2 anchor, Vector2 pos, Vector2 size, Color? c = null)
+        public static Image Glass(Transform p, string n, Vector2 anchor, Vector2 pos, Vector2 size, Color? c = null)
         {
             var i = UIX.Img(p, n, c ?? HC.Glass, UISprites.Round); i.rectTransform.At(anchor, pos, size);
             var o = UIX.Img(i.transform, "Line", HC.Line, UISprites.RoundOutline); o.rectTransform.Fill();

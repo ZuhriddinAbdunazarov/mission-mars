@@ -24,6 +24,7 @@ namespace MissionMars
         public static GameObject Model(string n)
         {
             if (n.StartsWith("K_")) return Resources.Load<GameObject>("Kenney/" + n.Substring(2)); // Kenney Space Kit (CC0)
+            if (n.StartsWith("P_")) return Resources.Load<GameObject>("Paid/" + n.Substring(2)); // bought props (not in git: may be missing)
             var g = Resources.Load<GameObject>("Sketchfab/" + n); return g ? g : (n.StartsWith("SF_") ? null : Load<GameObject>("NASA/" + n));
         }
 

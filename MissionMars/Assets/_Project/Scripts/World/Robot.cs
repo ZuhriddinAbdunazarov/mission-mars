@@ -8,7 +8,10 @@ namespace MissionMars
         public Transform Body, Eye; Light eyeLight;
         public Vector3? Lead;                // when set, the drone flies there and waits
         public bool Follow = true;
-        Material eyeMat; float talk;
+        Material eyeMat, ringMat, tipMat; Transform tip; float talk;
+        public bool Party; // Astronaut Pass reward: rainbow antenna light
+        /// <summary>Astronaut Pass reward: a shiny gold ring.</summary>
+        public void GoldRing() { ringMat.SetColor("_BaseColor", new Color(1f, 0.78f, 0.2f)); ringMat.SetFloat("_Metallic", 0.9f); ringMat.SetFloat("_Smoothness", 0.8f); FX.BurstSparks(Body.position, new Color(1f, 0.8f, 0.3f), 50); }
         Vector3 vel;
 
         public static Robot Create(Vector3 pos)
@@ -26,14 +29,16 @@ namespace MissionMars
             ProcMesh.Prim(PrimitiveType.Sphere, "Shell", Body, Vector3.zero, new Vector3(0.62f, 0.56f, 0.62f), shell, null, false);
             ProcMesh.Prim(PrimitiveType.Sphere, "Visor", Body, new Vector3(0, 0.03f, 0.17f), new Vector3(0.46f, 0.32f, 0.34f), dark, null, false);
             Eye = ProcMesh.Prim(PrimitiveType.Sphere, "Eye", Body, new Vector3(0, 0.04f, 0.33f), new Vector3(0.2f, 0.09f, 0.04f), eyeMat, null, false).transform;
-            ProcMesh.Prim(PrimitiveType.Cylinder, "Ring", Body, new Vector3(0, -0.05f, 0), new Vector3(0.7f, 0.025f, 0.7f), R.Orange, null, false);
+            ringMat = R.Lit(new Color(0.95f, 0.45f, 0.12f), 0.4f);
+            ProcMesh.Prim(PrimitiveType.Cylinder, "Ring", Body, new Vector3(0, -0.05f, 0), new Vector3(0.7f, 0.025f, 0.7f), ringMat, null, false);
             for (int s = -1; s <= 1; s += 2)
             {
                 var pod = ProcMesh.Prim(PrimitiveType.Capsule, "Pod", Body, new Vector3(s * 0.38f, -0.06f, 0), new Vector3(0.14f, 0.12f, 0.14f), shell, new Vector3(90, 0, 0), false);
                 ProcMesh.Prim(PrimitiveType.Sphere, "Jet", Body, new Vector3(s * 0.38f, -0.16f, 0), new Vector3(0.09f, 0.04f, 0.09f), eyeMat, null, false);
             }
             ProcMesh.Prim(PrimitiveType.Cylinder, "Antenna", Body, new Vector3(0.1f, 0.34f, -0.05f), new Vector3(0.015f, 0.12f, 0.015f), dark, new Vector3(0, 0, -12), false);
-            ProcMesh.Prim(PrimitiveType.Sphere, "Tip", Body, new Vector3(0.13f, 0.47f, -0.05f), Vector3.one * 0.05f, R.Emissive(Color.black, new Color(3f, 0.9f, 0.2f)), null, false);
+            tipMat = R.Emissive(Color.black, new Color(3f, 0.9f, 0.2f));
+            tip = ProcMesh.Prim(PrimitiveType.Sphere, "Tip", Body, new Vector3(0.13f, 0.47f, -0.05f), Vector3.one * 0.05f, tipMat, null, false).transform;
             eyeLight = new GameObject("EyeLight").AddComponent<Light>(); eyeLight.transform.SetParent(Body, false); eyeLight.transform.localPosition = new Vector3(0, 0, 0.6f);
             eyeLight.type = LightType.Point; eyeLight.range = 3.5f; eyeLight.intensity = 1.6f; eyeLight.color = new Color(0.4f, 0.9f, 1f); eyeLight.shadows = LightShadows.None;
         }
@@ -71,6 +76,7 @@ namespace MissionMars
             float pulse = talk > 0 ? 0.6f + Mathf.Abs(Mathf.Sin(t * 14)) * 0.8f : 1f;
             Eye.localScale = new Vector3(0.2f, 0.09f * (talk > 0 ? 0.6f + Mathf.Abs(Mathf.Sin(t * 14)) * 0.6f : (Mathf.Repeat(t, 4f) < 0.12f ? 0.15f : 1f)), 0.04f);
             eyeLight.intensity = 1.6f * pulse;
+            if (Party && tip) { var c = Color.HSVToRGB(Mathf.Repeat(t * 0.5f, 1), 0.9f, 1) * 4f; tipMat.SetColor("_EmissionColor", c); tip.localScale = Vector3.one * (0.09f + Mathf.Abs(Mathf.Sin(t * 6)) * 0.04f); }
         }
     }
 }
