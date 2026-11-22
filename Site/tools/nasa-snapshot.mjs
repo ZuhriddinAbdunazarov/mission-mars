@@ -76,7 +76,7 @@ try {
   const a = await get(`https://api.nasa.gov/planetary/apod?thumbs=true&api_key=${KEY}`, { timeout: 45000 });
   const img = a.media_type === 'image' ? a.url : a.thumbnail_url;
   snap.apod = { title: a.title, date: a.date, explanation: a.explanation, url: a.url, media_type: a.media_type, copyright: (a.copyright || '').trim() };
-  if (img) { fs.writeFileSync(path.join(TEX, 'NASA_apod.jpg'), await get(img, { json: false })); snap.apod.image = 'NASA_apod'; }
+  // the picture itself is not saved: APOD images are often by private photographers (copyright)
   snap.sources.apod = { from: 'api.nasa.gov APOD', at: snap.retrievedAt };
   log('APOD', true, a.title);
 } catch (e) { log('APOD', false, e.message); }

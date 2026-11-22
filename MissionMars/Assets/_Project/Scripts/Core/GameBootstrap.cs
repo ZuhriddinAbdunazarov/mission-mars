@@ -112,6 +112,15 @@ namespace MissionMars
                 Game.Player.LookAt(b.position + Vector3.up * 6);
                 yield return Shot(dir, "base_wall", 0.5f);
             }
+            { // the rover: from its front and from the side
+                var rv = MarsWorld.TheRover.transform;
+                foreach (var (o, n) in new[] { (new Vector3(0, 0, 9), "rover_front"), (new Vector3(8, 0, 2), "rover_side") })
+                {
+                    var p = rv.TransformPoint(o); p.y = MarsTerrain.H(p.x, p.z) + 0.2f;
+                    for (int f = 0; f < 30; f++) { Game.Player.Teleport(p, 0); Game.Player.LookAt(rv.position + Vector3.up * 1.2f); yield return null; }
+                    yield return Shot(dir, n, 0.3f);
+                }
+            }
             Application.Quit();
         }
 

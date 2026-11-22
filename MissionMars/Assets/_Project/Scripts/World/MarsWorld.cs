@@ -1037,11 +1037,12 @@ namespace MissionMars
     /// <summary>Shows its children only when the camera is near (so labels do not clutter the sky).</summary>
     public class NearOnly : MonoBehaviour
     {
-        public float Far = 110f; bool shown = true;
+        public float Far = 110f, Near = 9f; bool shown = true;
         void LateUpdate()
         {
             var c = Game.Cam; if (!c) return;
-            bool show = Vector3.Distance(c.transform.position, transform.position) < Far;
+            float d = Vector3.Distance(c.transform.position, transform.position);
+            bool show = d < Far && d > Near; // hidden when far away, and when you are right next to it
             if (show != shown) { shown = show; foreach (Transform ch in transform) ch.gameObject.SetActive(show); }
         }
     }

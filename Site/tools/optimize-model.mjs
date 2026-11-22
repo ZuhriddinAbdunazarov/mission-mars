@@ -11,7 +11,7 @@ import JPEG from 'jpeg-js';
 
 Jimp.decoders['image/jpeg'] = (d) => JPEG.decode(d, { maxMemoryUsageInMB: 4096, maxResolutionInMP: 200 });
 
-const [, , input, output, maxStr, ratioStr] = process.argv;
+const [, , input, output, maxStr, ratioStr, errStr] = process.argv; // errStr: allowed shape error (default 0.002, bigger = fewer triangles)
 const max = Number(maxStr);
 const ratio = ratioStr ? Number(ratioStr) : 1;
 const io = new NodeIO();
@@ -32,7 +32,7 @@ for (const tex of doc.getRoot().listTextures()) {
 
 if (ratio < 1) {
   await MeshoptSimplifier.ready;
-  await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.002 }));
+  await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: errStr ? Number(errStr) : 0.002 }));
 }
 
 await io.write(output, doc);

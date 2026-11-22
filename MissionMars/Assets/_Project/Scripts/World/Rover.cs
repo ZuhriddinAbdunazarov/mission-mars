@@ -23,8 +23,29 @@ namespace MissionMars
             return r;
         }
 
+        /// <summary>The team's bought rover model (Assets/Paid, not in git). It is long along its X axis with the cabin at -X: turn it so the cabin faces +Z.</summary>
+        bool BuildModel()
+        {
+            var prefab = R.Model("P_Rover"); if (!prefab) return false;
+            var m = Instantiate(prefab, transform, false); m.name = "Model";
+            m.transform.localRotation = Quaternion.Euler(0, -90, 0); // cabin to the front (+Z)
+            var b = Util.Bounds(m);
+            m.transform.localScale = Vector3.one * (4.8f / Mathf.Max(0.01f, Mathf.Max(b.size.x, b.size.z)));
+            b = Util.Bounds(m);
+            m.transform.localPosition += new Vector3(-b.center.x, -b.min.y, -b.center.z);
+            foreach (var r in m.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            b = Util.Bounds(m);
+            var bc = gameObject.AddComponent<BoxCollider>(); bc.center = b.center; bc.size = b.size;
+            Use = Interactable.Add(gameObject, "Drive", "MARS ROVER", Enter, 0, false); Use.Range = 5.5f;
+            headlight = new GameObject("Headlight").AddComponent<Light>(); headlight.transform.SetParent(transform, false);
+            headlight.transform.localPosition = new Vector3(0, b.size.y * 0.6f, b.max.z + 0.2f); headlight.transform.localRotation = Quaternion.Euler(12, 0, 0);
+            headlight.type = LightType.Spot; headlight.spotAngle = 70; headlight.range = 30; headlight.intensity = 0; headlight.shadows = LightShadows.None;
+            return true;
+        }
+
         void Build()
         {
+            if (BuildModel()) return;
             var t = transform;
             var white = R.Lit(new Color(0.95f, 0.95f, 0.97f), 0.55f, 0.05f);
             var rubber = R.Lit(new Color(0.12f, 0.12f, 0.13f), 0.15f, 0f);

@@ -205,10 +205,14 @@ namespace MissionMars.EditorTools
 
     public class TexImport : AssetPostprocessor
     {
-        public override uint GetVersion() => 3; // bump to reimport textures when these rules change
+        public override uint GetVersion() => 4; // bump to reimport textures when these rules change
+
+        static readonly System.Text.RegularExpressions.Regex ModelTex = new System.Text.RegularExpressions.Regex(@"_\d+_(color|normal|mr|occlusion|emissive)\.(jpg|png)$");
 
         void OnPreprocessTexture()
         {
+            var m = ModelTex.Match(assetPath);
+            if (m.Success && assetPath.Contains("/Resources/")) { ModelTexture(m.Groups[1].Value); return; }
             if (assetPath.StartsWith("Assets/Paid/")) { PaidTexture(); return; }
             if (!assetPath.Contains("_Project/Resources/Tex")) return;
             var ti = (TextureImporter)assetImporter;
@@ -227,6 +231,26 @@ namespace MissionMars.EditorTools
                 maxTextureSize = big ? 2048 : 1024,
                 format = normal || assetPath.EndsWith(".png") ? TextureImporterFormat.DXT5Crunched : TextureImporterFormat.DXT1Crunched,
                 crunchedCompression = true, compressionQuality = 50,
+            });
+        }
+
+        /// <summary>Pictures of 3D models split out of their .glb (Site/tools/externalize.mjs): Unity can compress them,
+        /// which it cannot do for pictures kept inside a .glb. Colour = sRGB; normal / metal-rough / occlusion = linear data.</summary>
+        void ModelTexture(string role)
+        {
+            var ti = (TextureImporter)assetImporter;
+            ti.textureType = TextureImporterType.Default;
+            ti.sRGBTexture = role == "color" || role == "emissive";
+            ti.mipmapEnabled = true; ti.anisoLevel = 4;
+            bool hero = assetPath.Contains("MarsBase");          // the big base is seen up close: keep it sharp
+            ti.maxTextureSize = hero ? 2048 : 1024;
+            ti.textureCompression = TextureImporterCompression.Compressed;
+            bool alpha = ti.DoesSourceTextureHaveAlpha();
+            ti.SetPlatformTextureSettings(new TextureImporterPlatformSettings
+            {
+                name = "WebGL", overridden = true, maxTextureSize = hero ? 2048 : role == "color" ? 1024 : 512,
+                format = alpha ? TextureImporterFormat.DXT5Crunched : TextureImporterFormat.DXT1Crunched,
+                crunchedCompression = true, compressionQuality = 60,
             });
         }
 
