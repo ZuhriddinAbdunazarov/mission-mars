@@ -1,0 +1,120 @@
+{
+ "retrievedAt": "2026-11-22T07:46:28.478Z",
+ "sources": {
+  "cme": {
+   "from": "api.nasa.gov DONKI CME",
+   "at": "2026-11-22T07:46:28.478Z"
+  },
+  "insight": {
+   "from": "api.nasa.gov InSight",
+   "at": "2026-11-22T07:46:28.478Z"
+  },
+  "photos": {
+   "from": "images-api.nasa.gov",
+   "at": "2026-11-22T07:46:28.478Z"
+  },
+  "horizons": {
+   "from": "ssd.jpl.nasa.gov Horizons",
+   "at": "2026-11-22T07:46:28.478Z"
+  }
+ },
+ "cmeCount": 99,
+ "cmeLatest": "2026-11-21T20:24Z",
+ "sols": [
+  {
+   "sol": 675,
+   "date": "2020-10-19",
+   "season": "fall",
+   "tempMinC": -96.872,
+   "tempAvgC": -62.314,
+   "tempMaxC": -15.908,
+   "pressurePa": 750.563,
+   "windMs": 7.233,
+   "windDir": "WNW"
+  },
+  {
+   "sol": 676,
+   "date": "2020-10-20",
+   "season": "fall",
+   "tempMinC": -96.912,
+   "tempAvgC": -62.812,
+   "tempMaxC": -16.499,
+   "pressurePa": 749.09,
+   "windMs": 8.526,
+   "windDir": "WNW"
+  },
+  {
+   "sol": 677,
+   "date": "2020-10-21",
+   "season": "fall",
+   "tempMinC": -97.249,
+   "tempAvgC": -63.056,
+   "tempMaxC": -16.853,
+   "pressurePa": 748.698,
+   "windMs": 7.887,
+   "windDir": "WNW"
+  },
+  {
+   "sol": 678,
+   "date": "2020-10-22",
+   "season": "fall",
+   "tempMinC": -97.728,
+   "tempAvgC": -62.562,
+   "tempMaxC": -9.055,
+   "pressurePa": 743.741,
+   "windMs": 5.246,
+   "windDir": "WNW"
+  },
+  {
+   "sol": 679,
+   "date": "2020-10-23",
+   "season": "fall",
+   "tempMinC": -96.644,
+   "tempAvgC": -62.551,
+   "tempMaxC": -11.561,
+   "pressurePa": 744.529,
+   "windMs": 5.565,
+   "windDir": "WNW"
+  },
+  {
+   "sol": 680,
+   "date": "2020-10-24",
+   "season": "fall",
+   "tempMinC": -96.811,
+   "tempAvgC": -61.789,
+   "tempMaxC": -15.298,
+   "pressurePa": 743.99,
+   "windMs": 6.517,
+   "windDir": "WNW"
+  },
+  {
+   "sol": 681,
+   "date": "2020-10-25",
+   "season": "fall",
+   "tempMinC": -95.447,
+   "tempAvgC": -62.434,
+   "tempMaxC": -4.444,
+   "pressurePa": 743.55,
+   "windMs": 5.632,
+   "windDir": "WNW"
+  }
+ ],
+ "photos": [
+  {
+   "title": "Perseverance Rover on Mars (Gradient Illustration)",
+   "nasaId": "PIA24346",
+   "image": "NASA_photo0"
+  },
+  {
+   "title": "Perseverance on Mars",
+   "nasaId": "PIA23764",
+   "image": "NASA_photo1"
+  },
+  {
+   "title": "Perseverance Rover on Mars (Illustration)",
+   "nasaId": "PIA24343",
+   "image": "NASA_photo2"
+  }
+ ],
+ "earthMarsKm": 187450041
+}

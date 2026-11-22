@@ -52,7 +52,11 @@ namespace MissionMars
             var t = FromTable(DateTime.UtcNow);
             if (!double.IsNaN(t)) { DistanceKm = t; DistanceDate = DateTime.UtcNow.ToString("yyyy-MM-dd"); }
             StartCoroutine(FetchDistance());
-            StartCoroutine(FetchPhotos());
+            // photos: the NASA pictures saved inside the game (no download while playing); only fetch if none were saved
+            var saved = NasaApi.LoadSaved();
+            if (saved.photos != null && saved.photos.Length > 0)
+                for (int k = 0; k < Photos.Length && k < saved.photos.Length; k++) { Photos[k] = R.Tex(saved.photos[k].image); PhotoTitles[k] = saved.photos[k].title; }
+            else StartCoroutine(FetchPhotos());
         }
 
         // ------------------------------------------------------------------ Earth–Mars distance

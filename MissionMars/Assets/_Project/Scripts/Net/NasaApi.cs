@@ -15,7 +15,11 @@ namespace MissionMars
     /// If our site can't be reached the game asks NASA directly (DEMO_KEY / NASA CCMC), then uses cached or archived real data.</summary>
     public class NasaApi : MonoBehaviour
     {
-        [Serializable] public class Apod { public string title, date, explanation, url, hdurl, media_type, mediaType, thumbnailUrl, copyright; }
+        [Serializable] public class Apod { public string title, date, explanation, url, hdurl, media_type, mediaType, thumbnailUrl, copyright, image; }
+        [Serializable] public class Photo { public string title, nasaId, image; }
+        /// <summary>NASA numbers saved at build time by Site/tools/nasa-snapshot.mjs (one API call each).</summary>
+        [Serializable] public class Snapshot { public string retrievedAt; public Flare[] flares; public int cmeCount = -1; public string cmeLatest; public Sol[] sols; public Apod apod; public Photo[] photos; public double earthMarsKm; }
+        public static Snapshot Saved;
         [Serializable] public class Flare { public string flrID, beginTime, peakTime, classType, sourceLocation; }
         [Serializable] class FlareList { public Flare[] items; }
         [Serializable] public class Cme { public string activityID, startTime, note; }
@@ -41,11 +45,29 @@ namespace MissionMars
         static string Api(string route) => NasaLive.SiteBase + "/explorer/api/" + route;
         static string Cache(string n) => Path.Combine(Application.persistentDataPath, n);
 
+        /// <summary>The saved NASA numbers inside the game (loaded once, instantly, no network).</summary>
+        public static Snapshot LoadSaved()
+        {
+            if (Saved != null) return Saved;
+            try { var ta = Resources.Load<TextAsset>("Data/nasa_snapshot"); if (ta) Saved = JsonUtility.FromJson<Snapshot>(ta.text); } catch (Exception e) { Debug.LogWarning("NASA snapshot: " + e.Message); }
+            return Saved ??= new Snapshot();
+        }
+        public string SavedDate => Saved != null && !string.IsNullOrEmpty(Saved.retrievedAt) && Saved.retrievedAt.Length >= 10 ? Saved.retrievedAt.Substring(0, 10) : "";
+
         public void Begin()
         {
             I = this;
-            Weather = WeatherArchive;
+            // 1) start instantly with the real numbers saved at build time
+            var s = LoadSaved();
+            Weather = s.sols != null && s.sols.Length > 0 ? s.sols : WeatherArchive;
+            if (s.flares != null && s.flares.Length > 0) SetFlares(s.flares);
+            CmeCount30d = s.cmeCount;
+            if (!string.IsNullOrEmpty(s.cmeLatest)) LatestCme = new Cme { startTime = s.cmeLatest };
+            if (s.apod != null && !string.IsNullOrEmpty(s.apod.title)) { ApodData = s.apod; if (!string.IsNullOrEmpty(s.apod.image)) ApodImage = R.Tex(s.apod.image); }
+            // 2) newer numbers from the last time this player was online
             LoadCache();
+            // 3) ask once, in the background, for fresh numbers; on any error the saved ones stay
+
             StartCoroutine(FetchFlares());
             StartCoroutine(FetchWeather());
             StartCoroutine(FetchCme());
@@ -162,13 +184,18 @@ namespace MissionMars
             {
                 var l = JsonUtility.FromJson<FlareList>(wrapped);
                 if (l?.items == null || l.items.Length == 0) return false;
-                FlareCount30d = l.items.Length; AllFlares = l.items;
-                LatestFlare = l.items[l.items.Length - 1];
-                // prefer the strongest recent X class flare for drama
-                foreach (var f in l.items) if (f.classType != null && f.classType.StartsWith("X")) LatestFlare = f;
+                SetFlares(l.items);
                 return true;
             }
             catch (Exception e) { Debug.LogWarning("Flares parse: " + e.Message); return false; }
+        }
+
+        void SetFlares(Flare[] items)
+        {
+            FlareCount30d = items.Length; AllFlares = items;
+            LatestFlare = items[items.Length - 1];
+            // prefer the strongest recent X class flare for drama
+            foreach (var f in items) if (f.classType != null && f.classType.StartsWith("X")) LatestFlare = f;
         }
 
         /// <summary>Outside temperature from the real InSight readings: night minimum to day maximum.</summary>

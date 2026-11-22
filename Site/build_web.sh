@@ -13,6 +13,9 @@ TOOLS="$ROOT/Site/tools"
 
 [ -d "$TOOLS/node_modules" ] || (cd "$TOOLS" && npm install --silent)
 
+# call NASA ONCE and save the real numbers + pictures inside the game (key from ../research/.env, never committed)
+node "$TOOLS/nasa-snapshot.mjs" || echo "NASA snapshot failed: keeping the numbers saved last time"
+
 # model : max texture px : mesh ratio (1 = keep all triangles)
 MODELS=(
   "NASA/Mars_2020_Perseverance_Rover:512:0.3"

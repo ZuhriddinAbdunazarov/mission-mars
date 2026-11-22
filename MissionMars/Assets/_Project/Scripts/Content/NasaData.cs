@@ -19,14 +19,14 @@ namespace MissionMars
         {
             var list = new List<FlareEvent>();
             var api = NasaApi.I;
-            if (api != null && api.FlaresLive && api.AllFlares != null)
+            if (api != null && api.AllFlares != null && api.AllFlares.Length > 0) // live, or saved at build time
             {
                 foreach (var f in api.AllFlares)
                 {
                     if (string.IsNullOrEmpty(f.classType)) continue;
                     if (!(f.classType.StartsWith("X") || f.classType.StartsWith("M"))) continue;
                     string d = f.peakTime != null && f.peakTime.Length >= 10 ? f.peakTime.Substring(0, 10) : "";
-                    list.Add(new FlareEvent { Class = f.classType, Date = d, Live = true });
+                    list.Add(new FlareEvent { Class = f.classType, Date = d, Live = api.FlaresLive });
                 }
             }
             if (list.Count < 3) list.AddRange(Archive);
@@ -36,7 +36,7 @@ namespace MissionMars
         public static string SunStatus(out bool live)
         {
             var api = NasaApi.I; live = api != null && api.FlaresLive;
-            if (!live) return "Sun data: archived";
+            if (api == null || api.AllFlares == null || api.AllFlares.Length == 0) return "Sun data: archived";
             int big = 0; foreach (var f in api.AllFlares) if (f.classType != null && (f.classType.StartsWith("X") || f.classType.StartsWith("M"))) big++;
             return big >= 8 ? $"Real Sun: VERY ACTIVE ({big} big flares this month)" : big >= 2 ? $"Real Sun: active ({big} big flares this month)" : "Real Sun: calm this month";
         }
