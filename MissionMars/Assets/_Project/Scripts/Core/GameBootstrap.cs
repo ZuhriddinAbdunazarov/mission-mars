@@ -32,6 +32,7 @@ namespace MissionMars
 #endif
             var am = new GameObject("Audio").AddComponent<AudioManager>();
             new GameObject("NasaApi").AddComponent<NasaApi>().Begin();
+            new GameObject("NasaLive").AddComponent<NasaLive>().Begin(); // JPL Horizons distance, Mars24 clock, NASA photos (research site REST API)
             var sky = new GameObject("Sky").AddComponent<SkyController>(); sky.Init(); Game.Sky = sky;
             while (!task.IsCompleted) yield return null;
             am.Init(Synth.ToClips(task.Result));

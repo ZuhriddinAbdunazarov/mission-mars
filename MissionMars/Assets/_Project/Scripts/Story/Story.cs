@@ -236,7 +236,8 @@ namespace MissionMars
                 if (Vector3.Dot(player.Cam.transform.forward, earthDir) > 0.99f) lookedEarth = true;
                 yield return null;
             }
-            if (lookedEarth) { yield return new WaitForSeconds(1.5f); yield return hud.SayWait("That's home. It's so far away… We need a plan to get back."); }
+            if (lookedEarth) yield return new WaitForSeconds(1.5f);
+            { var nl = NasaLive.I; if (nl) yield return hud.SayWait($"NASA's JPL says Earth is {nl.DistanceText} away from us TODAY. Even light needs {nl.LightMinutes:0} minutes to get there!", 5); }
         }
 
         IEnumerator Lids(float a, float b, float d)
@@ -398,7 +399,7 @@ namespace MissionMars
         IEnumerator Salvage()
         {
             WireDoors();
-            hud.Objective("SALVAGE THE MACHINES", "Go back to the rocket. Bring the <b>AIR MAKER</b> and the <b>WATER MAKER</b> to the bunker. Carry one at a time!");
+            hud.Objective("SALVAGE THE MACHINES", "Go back to the rocket. Bring the <b>AIR MAKER</b> and the <b>WATER MAKER</b> to the shelter. You can carry both: each one goes in its own slot. Press <b>1-6</b> to switch.");
             yield return hud.SayWait("Our rocket brought 2 machines: MOXIE makes AIR to breathe. The other turns ICE into WATER.");
             yield return hud.SayWait("They're at the crash site. They are HEAVY, so take the ROVER parked outside the shelter!", 4);
             hud.Say("Walk to the door and press E to go outside. Then press E next to the rover to drive.", 6);
@@ -476,14 +477,14 @@ namespace MissionMars
 
         void TryPickMachine(string id, string name, string icon, Color c, Interactable crate, Waypoint wp)
         {
-            if (suit.CarryingHeavy) { hud.Say("You can only carry one heavy machine at a time. Take this one to the bunker first!"); return; }
+            if (suit.Items.Count >= Survival.Slots) { hud.Say("Your bag is full! Bring your things to the shelter first."); return; }
             suit.Add(new Item(id, name, icon, c, true));
             crate.gameObject.SetActive(false);
             hud.RemoveWaypoint(wp);
             hud.Toast("PICKED UP: " + name.ToUpper(), "Heavy! You walk slower. Bring it to the bunker.", icon, c);
             hud.Say(id == "MOXIE" ? "Got MOXIE! Now carry it to the bunker — follow the green marker." : "Got the Ice machine! Carry it to the bunker.", 4);
             if (id == "MOXIE") StartCoroutine(screens.ShowInfo("MOXIE OXYGEN MAKER", "air", HC.Cyan,
-                @"<b>1.</b>  A pump sucks in Mars air. It is mostly carbon dioxide (CO2).
+                @"<b>1.</b>  A pump sucks in Mars air. It is 95% carbon dioxide (CO2), says the NASA Mars fact sheet.
 <b>2.</b>  MOXIE heats the air until it is very hot (800 °C).
 <b>3.</b>  A special plate splits CO2 and keeps the <color=#7FE3FF>OXYGEN (O2)</color>.
 <b>4.</b>  The oxygen fills your bunker so you can breathe.
@@ -524,9 +525,10 @@ namespace MissionMars
             MarsWorld.TimerHolo.SetActive(true);
             ClockRunning = true; DaysLeft = 779;
             hud.Toast("EARTH LAUNCH WINDOW", "Earth and Mars line up every ~26 months. Next window: in 2 years.", "clock", HC.Cyan);
-            yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the bunker!");
+            yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the shelter!");
+            if (NasaLive.NextClosest(out var closeDate, out var closeKm)) yield return hud.SayWait($"Real NASA JPL data: the next time Earth and Mars come close is {closeDate:MMMM yyyy}, only {closeKm / 1e6:0} million km apart. Space agencies plan Mars trips around those dates!", 5);
             yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
-            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the shelter for air and water.\n<color=#8FD8FF>BONUS: drive to the 3 blue ICE blocks.</color>", "parts");
+            hud.Objective("BUILD A NEW ROCKET", "Find 3 rocket parts (follow the coloured lights). Solve a puzzle for each one. Bring them to the LAUNCH PAD.\nCome back to the shelter for air and water.\n<color=#8FD8FF>BONUS: drive to the 3 blue ICE blocks. Call Earth from the big dish next to the shelter.</color>", "parts");
             foreach (var p in MarsWorld.Parts)
             {
                 var pp = p;

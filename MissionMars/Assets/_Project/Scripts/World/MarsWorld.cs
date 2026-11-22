@@ -278,7 +278,7 @@ namespace MissionMars
                 var pan = ProcMesh.Prim(PrimitiveType.Cube, "Solar", Root.transform, p + Vector3.up * 1.5f, new Vector3(2.8f, 0.06f, 1.7f), R.Emissive(new Color(0.04f, 0.07f, 0.18f), new Color(0.02f, 0.05f, 0.18f), 0.92f));
                 pan.transform.rotation = Bunker.rotation * Quaternion.Euler(30, 0, 0);
             }
-            Util.PlaceModel("Tall_Dish__dish_", Bunker.TransformPoint(new Vector3(11, 0, 3)), 4.5f, 140, Bunker, false, true);
+            EarthLink(Util.PlaceModel("Tall_Dish__dish_", Bunker.TransformPoint(new Vector3(11, 0, 3)), 4.5f, 140, Bunker, false, true)); // call Earth: real JPL delay
 
             // the 2-year countdown hologram above the bunker
             TimerHolo = new GameObject("TimerHolo"); TimerHolo.transform.SetParent(Bunker, false); TimerHolo.transform.localPosition = new Vector3(0, 11.5f, 0);
@@ -534,16 +534,18 @@ namespace MissionMars
         static void EarthLink(GameObject tower)
         {
             bool busy = false;
+            // replies use the NASA Mars fact sheet numbers (same values as the MARS & MOON research site)
             string[] replies =
             {
-                "Great job, Junior Astronaut! Fun fact: a day on Mars lasts 24 hours and 39 minutes.",
-                "Message received! Mars has the biggest volcano in the solar system: Olympus Mons.",
-                "Hello from Earth! On Mars you weigh only about a third of what you weigh at home.",
-                "We hear you! Mars is red because its dust has rust (iron oxide) in it.",
-                "Hi from Mission Control! Mars has two small moons: Phobos and Deimos.",
+                $"Great job, Junior Astronaut! A day on Mars (a sol) lasts {MarsFacts.SolLength}.",
+                $"Message received! Mars air is {MarsFacts.CO2}% carbon dioxide, so we can't breathe it.",
+                "Hello from Earth! On Mars you weigh only 38% of what you weigh at home.",
+                $"We hear you! Mars is cold: about {MarsFacts.MeanTempC} °C on average.",
+                $"Hi from Mission Control! Phobos goes around Mars in only {MarsFacts.PhobosHours} hours.",
+                $"Greetings! One Mars year lasts {MarsFacts.YearDays:0} Earth days.",
             };
-            var link = Interactable.Add(tower, "Send a message to", "Earth (dish tower)", null);
-            link.Range = 6f;
+            var link = Interactable.Add(tower, "Send a message to", "Earth (dish)", null);
+            link.Range = 7f;
             link.OnUse = () =>
             {
                 if (busy) { if (Game.Hud) Game.Hud.Toast("STILL WAITING…", "Your message is still flying through space!", "clock", HC.Amber); return; }
@@ -552,15 +554,19 @@ namespace MissionMars
             };
             IEnumerator Co()
             {
-                int minutes = UnityEngine.Random.Range(4, 21);
-                float mkm = minutes * 60f * 299792f / 1e6f; // light-minutes -> million km
+                // the REAL delay today: Earth–Mars distance from NASA/JPL Horizons, divided by the speed of light
+                var nl = NasaLive.I;
+                double km = nl ? nl.DistanceKm : 225e6;
+                float minutes = (float)(km / MarsFacts.LightKmPerSec / 60.0);
+                string src = nl ? nl.SourceText : "NASA/JPL";
                 if (Game.Hud)
                 {
-                    Game.Hud.Toast("MESSAGE SENT TO EARTH!", $"Earth is {mkm:0} million km away. Even at the speed of light it takes {minutes} minutes!", "clock", HC.Cyan);
-                    Game.Hud.Say($"Our message needs {minutes} minutes to reach Earth, and the answer needs {minutes} minutes back. Let's wait!");
+                    Game.Hud.Toast("MESSAGE SENT TO EARTH!", $"Today Earth is {km / 1e6:0.0} million km away ({src}). Even light needs {minutes:0.0} minutes!", "clock", HC.Cyan);
+                    Game.Hud.Say($"Our message needs {minutes:0} minutes to reach Earth, and the answer needs {minutes:0} minutes to come back. In the game 1 second = 1 minute. Let's wait!");
                 }
                 yield return new WaitForSeconds(minutes * 2f); // there and back: 1 game second = 1 real minute
                 if (Game.Hud) Game.Hud.Toast("REPLY FROM EARTH", replies[UnityEngine.Random.Range(0, replies.Length)], "clock", HC.Green);
+                AstroPass.Award("earthcall", "Called Earth", 1);
                 busy = false;
             }
         }

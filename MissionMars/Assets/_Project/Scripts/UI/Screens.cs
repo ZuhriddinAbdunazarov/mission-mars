@@ -175,28 +175,39 @@ namespace MissionMars
 
             // ---------------- DATA ----------------
             data = Layer("Data", true);
-            var dc = Card(data.transform, new Vector2(1500, 900), HC.Cyan);
+            var dc = Card(data.transform, new Vector2(1500, 990), HC.Cyan);
             var dh = UIX.Text(dc.transform, "REAL NASA DATA IN THIS GAME", 40, HC.Text, R.Title); dh.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(60, -40), new Vector2(-120, 56));
             var ds = UIX.Text(dc.transform, "", 20, HC.Amber, R.Mono); ds.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(60, -100), new Vector2(-120, 28)); dataStatus = ds;
             string[,] rowsD =
             {
                 { "flare", "NASA DONKI — Space Weather Database", "The solar storm that sends you to the bunker is a REAL flare measured by NASA. Online: live flares from the last 30 days. Offline: real archived flares (e.g. X9.0, 3 Oct 2024). Bigger flare = stronger storm.", "Links your shelter decision to actual space weather." },
                 { "shield", "Curiosity Rover — RAD instrument", "Your radiation meter uses Curiosity's measurement: about 0.67 mSv per sol on the surface. The thick bunker walls block most of it.", "Shows why Mars needs shielding: no magnetic field, thin air." },
-                { "air", "Perseverance — MOXIE experiment", "Your oxygen maker is based on MOXIE, which turned Mars CO2 into oxygen (122 g in total, up to 12 g per hour).", "Making air from Mars air is real NASA technology." },
+                { "air", "Perseverance — MOXIE experiment", $"Mars air is {MarsFacts.CO2}% carbon dioxide (NASA fact sheet). MOXIE turned that CO2 into oxygen: 122 g in total, up to 12 g per hour. Your oxygen maker works the same way.", "Making air from Mars air is real NASA technology." },
                 { "water", "Mars Reconnaissance Orbiter — SHARAD radar", "NASA radar found big sheets of ice under the ground. Your Ice-to-Water machine melts it.", "Water is the key resource for living on Mars." },
-                { "clock", "Mars–Earth launch windows", "Earth and Mars line up for the shortest trip only every ~26 months. That is the 2-year timer above your base.", "Why astronauts can't just fly home whenever they want." },
-                { "robot", "NASA 3D Resources", "Perseverance, Ingenuity, the habitat parts and the crashed rocket are official NASA models.", "Real hardware that kids can recognise." },
+                { "clock", "NASA/JPL Horizons — where the planets are", $"Earth and Mars come close only every {MarsFacts.SynodicDays / 30.44f:0} months ({MarsFacts.SynodicDays:0} days). The 2-year timer above your shelter and the Earth-message delay use JPL's real planet positions.", "Why astronauts can't just fly home whenever they want." },
+                { "robot", "NASA 3D Resources + NASA fact sheet", $"Official NASA models (Perseverance, Ingenuity, rockets). Mars facts: gravity is only 38% of Earth's, a sol lasts {MarsFacts.SolLength}, average {MarsFacts.MeanTempC} °C.", "Real hardware and real numbers kids can trust." },
             };
+            // LIVE panel: today's real Earth–Mars distance (JPL Horizons via our research site's REST API), Mars clock (Mars24), NASA photos
+            var live = UIX.Img(dc.transform, "Live", new Color(0.3f, 0.9f, 1f, 0.07f), UISprites.Round); live.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -138), new Vector2(-120, 150));
+            var lh = UIX.Text(live.transform, "MARS TODAY", 20, HC.Cyan, R.Bold); lh.characterSpacing = 8; lh.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -12), new Vector2(700, 26));
+            liveText = UIX.Text(live.transform, "", 20, HC.Text, R.Body); liveText.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -38), new Vector2(840, 108));
+            for (int k = 0; k < livePhotos.Length; k++)
+            {
+                livePhotos[k] = new GameObject("Photo" + k).AddComponent<RawImage>(); livePhotos[k].transform.SetParent(live.transform, false);
+                livePhotos[k].rectTransform.Set(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16 - (2 - k) * 168, 0), new Vector2(160, 126));
+                livePhotos[k].color = new Color(1, 1, 1, 0.08f);
+            }
             for (int i = 0; i < rowsD.GetLength(0); i++)
             {
-                var row = UIX.Img(dc.transform, "Row", new Color(1, 1, 1, 0.035f), UISprites.Round); row.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -150 - i * 108), new Vector2(-120, 98));
+                var row = UIX.Img(dc.transform, "Row", new Color(1, 1, 1, 0.035f), UISprites.Round); row.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -300 - i * 94), new Vector2(-120, 88));
                 var ic = UIX.Img(row.transform, "Icon", HC.Cyan, Icons.Get(rowsD[i, 0])); ic.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(22, 0), new Vector2(44, 44));
-                var n = UIX.Text(row.transform, rowsD[i, 1], 24, HC.Text, R.Bold); n.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -10), new Vector2(-110, 30));
-                var b = UIX.Text(row.transform, rowsD[i, 2] + $"  <color={HC.Hex(HC.Amber)}>Why: {rowsD[i, 3]}</color>", 18, HC.Dim, R.Body); b.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -40), new Vector2(-110, 56));
+                var n = UIX.Text(row.transform, rowsD[i, 1], 23, HC.Text, R.Bold); n.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -8), new Vector2(-110, 28));
+                var b = UIX.Text(row.transform, rowsD[i, 2] + $"  <color={HC.Hex(HC.Amber)}>Why: {rowsD[i, 3]}</color>", 17, HC.Dim, R.Body); b.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(90, -36), new Vector2(-110, 50));
             }
-            Btn(dc.transform, "HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(-300, 46), 280, 56, HC.Green, new Vector2(0.5f, 0));
-            Btn(dc.transform, "CLOSE", () => CloseData(), new Vector2(0, 46), 280, 56, HC.Cyan, new Vector2(0.5f, 0));
-            Btn(dc.transform, "GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(300, 46), 280, 56, HC.Green, new Vector2(0.5f, 0));
+            Btn(dc.transform, "HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(-560, 40), 260, 56, HC.Green, new Vector2(0.5f, 0));
+            Btn(dc.transform, "MARS & MOON EXPLORER", () => Application.OpenURL(NasaLive.ExplorerUrl), new Vector2(-170, 40), 420, 56, HC.Amber, new Vector2(0.5f, 0));
+            Btn(dc.transform, "GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(220, 40), 260, 56, HC.Green, new Vector2(0.5f, 0));
+            Btn(dc.transform, "CLOSE", () => CloseData(), new Vector2(530, 40), 260, 56, HC.Cyan, new Vector2(0.5f, 0));
             GithubQr(dc.transform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-60, -16), 104);
 
             // ---------------- ENDING ----------------
@@ -211,7 +222,21 @@ namespace MissionMars
             Btn(ending.transform, "SEE US ON GITHUB", () => Application.OpenURL(GithubUrl), new Vector2(200, -256), 360, 60, HC.Green);
             GithubQr(ending.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(560, -200), 150);
         }
-        TextMeshProUGUI dataStatus;
+        TextMeshProUGUI dataStatus, liveText; readonly RawImage[] livePhotos = new RawImage[3]; bool liveHooked;
+
+        /// <summary>Fills the MARS TODAY panel with the real numbers we have right now.</summary>
+        void RefreshLive()
+        {
+            var nl = NasaLive.I; if (!nl || !liveText) return;
+            Mars24.Now(out double ls, out double mtc, out double msd);
+            string next = NasaLive.NextClosest(out var when, out var km) ? $"Next close approach: <b>{when:d MMM yyyy}</b>, {km / 1e6:0} million km." : "";
+            string dot = nl.DistanceLive ? $"<color={HC.Hex(HC.Green)}>● LIVE</color>" : $"<color={HC.Hex(HC.Amber)}>● JPL TABLE</color>";
+            liveText.text = $"{dot}  Mars is <b>{nl.DistanceText}</b> from Earth. A radio message takes <b>{nl.DelayText}</b> one way.\n" +
+                $"On Mars right now: <b>{Mars24.Clock(mtc)}</b> (Mars time), <b>northern {Mars24.Season(ls)}</b>, Mars sol date {msd:0}. {next}\n" +
+                $"<size=16><color={HC.Hex(HC.Dim)}>Sources: NASA/JPL Horizons ({nl.SourceText}), NASA GISS Mars24, NASA Image Library.</color></size>";
+            for (int k = 0; k < livePhotos.Length; k++)
+                if (nl.Photos[k]) { livePhotos[k].texture = nl.Photos[k]; livePhotos[k].color = Color.white; }
+        }
         const string BookUrl = "https://github.com/ZuhriddinAbdunazarov/mission-mars/blob/main/Book/Junior_Astronaut_Handbook.pdf";
         const string GithubUrl = "https://github.com/ZuhriddinAbdunazarov/mission-mars";
 
@@ -280,6 +305,8 @@ namespace MissionMars
             dataStatus.text = (live ? "● LIVE  " : "● ARCHIVED  ") + sun + "   ·   Real flares used: " + list;
             dataStatus.color = live ? HC.Green : HC.Amber;
             if (!Game.InMenu && !fromPause && !PauseOpen) UIState.Push();
+            RefreshLive();
+            if (NasaLive.I && !liveHooked) { liveHooked = true; NasaLive.I.Updated += RefreshLive; }
             Show(data, true);
         }
         void CloseData()
