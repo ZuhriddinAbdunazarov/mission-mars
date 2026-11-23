@@ -1,29 +1,29 @@
 {
- "retrievedAt": "2026-11-22T14:01:47.409Z",
+ "retrievedAt": "2026-11-23T05:36:12.989Z",
  "sources": {
   "cme": {
    "from": "api.nasa.gov DONKI CME",
-   "at": "2026-11-22T14:01:47.409Z"
+   "at": "2026-11-23T05:36:12.989Z"
   },
   "insight": {
    "from": "api.nasa.gov InSight",
-   "at": "2026-11-22T14:01:47.409Z"
+   "at": "2026-11-23T05:36:12.989Z"
   },
   "photos": {
    "from": "images-api.nasa.gov",
-   "at": "2026-11-22T14:01:47.409Z"
+   "at": "2026-11-23T05:36:12.989Z"
   },
   "horizons": {
    "from": "ssd.jpl.nasa.gov Horizons",
-   "at": "2026-11-22T14:01:47.409Z"
+   "at": "2026-11-23T05:36:12.989Z"
   },
   "apod": {
    "from": "api.nasa.gov APOD",
    "at": "2026-11-22T14:01:47.409Z"
   }
  },
- "cmeCount": 99,
- "cmeLatest": "2026-11-21T20:24Z",
+ "cmeCount": 98,
+ "cmeLatest": "2026-11-22T07:48Z",
  "sols": [
   {
    "sol": 675,
@@ -120,7 +120,7 @@
    "image": "NASA_photo2"
   }
  ],
- "earthMarsKm": 187112156,
+ "earthMarsKm": 186273124,
  "apod": {
   "title": "NASA Science",
   "date": "2026-11-22",
