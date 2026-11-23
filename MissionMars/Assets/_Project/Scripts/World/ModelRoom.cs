@@ -18,11 +18,12 @@ namespace MissionMars
         public Vector3 Local(float fx, float fz) => new Vector3(-(minx + fx * (maxx - minx)) * S, 0, (minz + fz * (maxz - minz)) * S); // glTF → Unity mirrors X
         public float Width => (maxx - minx) * S; public float Depth => (maxz - minz) * S;
 
-        public static ModelRoom Build(string model, Vector3 origin, float scale, Vector2 spawnFrac, Color ceiling, Color light)
+        float solidAbove = 0.35f;
+        public static ModelRoom Build(string model, Vector3 origin, float scale, Vector2 spawnFrac, Color ceiling, Color light, float solidAboveM = 0.35f)
         {
             var prefab = R.Model("P_" + model); var ta = Resources.Load<TextAsset>("Paid/" + model + "_heights");
             if (!prefab || !ta) return null;
-            var r = new ModelRoom { S = scale };
+            var r = new ModelRoom { S = scale, solidAbove = solidAboveM };
             r.Make(prefab, ta.text, origin, spawnFrac, ceiling, light);
             return r;
         }
@@ -34,9 +35,10 @@ namespace MissionMars
             var m = UnityEngine.Object.Instantiate(prefab, t, false); m.name = "Model";
             m.transform.localScale = Vector3.one * S; m.transform.localPosition = new Vector3(0, -floorY * S, 0);
             foreach (var rr in m.GetComponentsInChildren<Renderer>()) rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            Matte(m);
 
-            // solid walls + furniture from the real shape; free floor stays walkable
-            float walk = floorY + 0.018f, top = 0;
+            // solid walls + furniture from the real shape (only things taller than solidAbove metres block you)
+            float walk = floorY + solidAbove / S, top = 0;
             var v = new List<Vector3>(); var tri = new List<int>();
             float cw = Width / NX, cd = Depth / NZ;
             for (int k = 0; k < NZ; k++)
@@ -51,9 +53,9 @@ namespace MissionMars
             var floor = new GameObject("Floor"); floor.transform.SetParent(t, false); floor.transform.localPosition = new Vector3(0, -0.1f, 0);
             floor.AddComponent<BoxCollider>().size = new Vector3(Width + 2, 0.2f, Depth + 2);
 
-            // ceiling + lights
-            float H = Mathf.Max(3.2f, (top - floorY) * S);
-            ProcMesh.Prim(PrimitiveType.Cube, "Ceiling", t, new Vector3(0, H, 0), new Vector3(Width, 0.1f, Depth), R.Emissive(ceiling * 0.8f, ceiling), null, false);
+            // a real room around the model: 4 walls and a ceiling, so you never see the sky or the void
+            float H = Mathf.Max(2.9f, (top - floorY) * S + 0.2f);
+            Enclose(t, Width + 0.4f, Depth + 0.4f, H, ceiling);
             for (int i = -1; i <= 1; i += 2)
                 for (int k = -1; k <= 1; k += 2)
                 {
@@ -74,7 +76,7 @@ namespace MissionMars
             var sp = Cell(si, sk); float back = spawnFrac.y > 0.5f ? 1 : -1; // the door is on the nearer end wall
             Spawn = t.TransformPoint(sp + Vector3.up * 0.05f); SpawnYaw = back > 0 ? 180 : 0;
             var door = new GameObject("DoorPanel").transform; door.SetParent(t, false);
-            door.localPosition = sp + new Vector3(0, 1.2f, back * 1.3f); door.localRotation = Quaternion.Euler(0, back > 0 ? 180 : 0, 0);
+            door.localPosition = sp + new Vector3(0, 1.2f, back * Mathf.Clamp(Depth / 2 - Mathf.Abs(sp.z) - 0.2f, 0.6f, 1.2f)); door.localRotation = Quaternion.Euler(0, back > 0 ? 180 : 0, 0);
             ProcMesh.Prim(PrimitiveType.Cube, "Doorway", door, new Vector3(0, 0, -0.1f), new Vector3(1.4f, 2.4f, 0.02f), R.Emissive(new Color(0.9f, 0.55f, 0.35f), new Color(1.6f, 0.85f, 0.5f)), null, false);
             var slab = new GameObject("Slab").transform; slab.SetParent(door, false);
             ProcMesh.Prim(PrimitiveType.Cube, "Panel", slab, Vector3.zero, new Vector3(1.5f, 2.45f, 0.1f), R.Panel);
@@ -84,6 +86,37 @@ namespace MissionMars
             ExitPanel = slab; ExitDoor = Interactable.Add(slab.gameObject, "Go outside", "Mars base", null);
             var exitSign = MarsWorld.World3DText(door, new Vector3(0, 1.55f, 0.08f), "EXIT", 2f, new Color(0.4f, 1f, 0.6f)); exitSign.transform.localRotation = Quaternion.Euler(0, 180, 0);
             Room.SetActive(false);
+        }
+
+        /// <summary>Tripo materials come out very glossy and metallic (a "plastic" look): make them matte like real paint and metal.</summary>
+        public static void Matte(GameObject g)
+        {
+            foreach (var r in g.GetComponentsInChildren<Renderer>())
+                foreach (var mat in r.materials)
+                {
+                    if (mat.HasProperty("metallicFactor")) mat.SetFloat("metallicFactor", Mathf.Min(mat.GetFloat("metallicFactor"), 0.15f));
+                    if (mat.HasProperty("roughnessFactor")) mat.SetFloat("roughnessFactor", Mathf.Max(mat.GetFloat("roughnessFactor"), 0.85f));
+                    if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", Mathf.Min(mat.GetFloat("_Metallic"), 0.15f));
+                    if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", Mathf.Min(mat.GetFloat("_Smoothness"), 0.3f));
+                }
+        }
+
+        static Material wallMat, stripeMat;
+        /// <summary>White panelled walls with an orange stripe and a ceiling with light panels, around a w x d room.</summary>
+        static void Enclose(Transform t, float w, float d, float h, Color ceiling)
+        {
+            wallMat = wallMat ? wallMat : R.LitTex("metal_plate_diff", "metal_plate_nor", new Color(0.86f, 0.87f, 0.9f), 2f, 0.25f, 0.1f);
+            stripeMat = stripeMat ? stripeMat : R.Lit(new Color(0.95f, 0.45f, 0.12f), 0.3f);
+            foreach (var (pos, size) in new[] {
+                (new Vector3(0, h / 2, d / 2 + 0.1f), new Vector3(w + 0.4f, h, 0.2f)), (new Vector3(0, h / 2, -d / 2 - 0.1f), new Vector3(w + 0.4f, h, 0.2f)),
+                (new Vector3(w / 2 + 0.1f, h / 2, 0), new Vector3(0.2f, h, d + 0.4f)), (new Vector3(-w / 2 - 0.1f, h / 2, 0), new Vector3(0.2f, h, d + 0.4f)) })
+            {
+                ProcMesh.Prim(PrimitiveType.Cube, "Wall", t, pos, size, wallMat);
+                var st = ProcMesh.Prim(PrimitiveType.Cube, "Stripe", t, pos + new Vector3(0, -h / 2 + 1.1f, 0), new Vector3(size.x * 1.001f, 0.12f, size.z * 1.05f), stripeMat, null, false);
+            }
+            ProcMesh.Prim(PrimitiveType.Cube, "Ceiling", t, new Vector3(0, h + 0.1f, 0), new Vector3(w + 0.4f, 0.2f, d + 0.4f), wallMat);
+            for (int i = -1; i <= 1; i += 2)
+                ProcMesh.Prim(PrimitiveType.Cube, "LightPanel", t, new Vector3(i * w * 0.22f, h - 0.02f, 0), new Vector3(0.5f, 0.04f, d * 0.7f), R.Emissive(ceiling * 0.8f, ceiling * 1.6f), null, false);
         }
 
         /// <summary>A press-E zone over part of the room (fractions of the model), e.g. the beds. It sits inside the

@@ -30,7 +30,8 @@ namespace MissionMars
         // ---- the realistic room made from the team's Tripo model (Assets/Paid/PlantationIn) ----
         bool modelMode; Interactable ledSwitch; readonly List<Light> growLights = new List<Light>(); readonly List<Material> growMats = new List<Material>();
         readonly List<Vector3> bedTops = new List<Vector3>();
-        const float MS = 30f, FloorY = 0.045f; // model scale; model floor height (model units)
+        const float MS = 12f, FloorY = 0.045f; // real size: potato plants about knee high
+        public Collider BedsCollider; // you can walk between and through the plants (the story ignores it for the player) // model scale; model floor height (model units)
 
         bool MakeFromModel()
         {
@@ -41,6 +42,7 @@ namespace MissionMars
             var m = Instantiate(prefab, t, false); m.name = "Model";
             m.transform.localScale = Vector3.one * MS; m.transform.localPosition = new Vector3(0, -FloorY * MS, 0);
             foreach (var r in m.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            ModelRoom.Matte(m);
 
             // height map -> what is floor (walk), bed (solid, press E to harvest) and wall/tank (solid)
             var lines = new List<string>(); foreach (var l in ta.text.Split('\n')) { var tl = l.Trim(); if (tl.Length > 0 && tl[0] != '#') lines.Add(tl); }
@@ -74,7 +76,7 @@ namespace MissionMars
                 var mesh = new Mesh { name = n, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; mesh.SetVertices(v); mesh.SetTriangles(tri, 0); mesh.RecalculateBounds();
                 var g = new GameObject(n); g.transform.SetParent(t, false); g.AddComponent<MeshCollider>().sharedMesh = mesh; return g;
             }
-            var bedsGo = Solid("Beds", bedV, bedT); Solid("Walls", wallV, wallT);
+            var bedsGo = Solid("Beds", bedV, bedT); Solid("Walls", wallV, wallT); BedsCollider = bedsGo.GetComponent<Collider>();
             var floor = new GameObject("Floor"); floor.transform.SetParent(t, false); floor.transform.localPosition = new Vector3(0, -0.1f, 0);
             floor.AddComponent<BoxCollider>().size = new Vector3((maxx - minx) * MS + 2, 0.2f, (maxz - minz) * MS + 2);
             var bedUse = Interactable.Add(bedsGo, "Harvest", "potatoes", Use, 0, false); bedUse.Range = 4f; bedUse.enabled = false; beds.Add(bedUse);
@@ -90,7 +92,7 @@ namespace MissionMars
                 }
             var sp = Cell(si, sk); Spawn = t.TransformPoint(sp + new Vector3(0, 0.05f, 0)); SpawnYaw = 0;
             // exit door just behind the spawn spot, on the -z wall
-            var door = new GameObject("DoorPanel").transform; door.SetParent(t, false); door.localPosition = new Vector3(sp.x, 1.2f, sp.z - cd * 1.2f);
+            var door = new GameObject("DoorPanel").transform; door.SetParent(t, false); door.localPosition = new Vector3(sp.x, 1.2f, sp.z - 1.0f);
             ProcMesh.Prim(PrimitiveType.Cube, "Doorway", t, door.localPosition - new Vector3(0, 0, 0.1f), new Vector3(1.4f, 2.4f, 0.02f), R.Emissive(new Color(0.9f, 0.55f, 0.35f), new Color(1.6f, 0.85f, 0.5f)), null, false);
             ProcMesh.Prim(PrimitiveType.Cube, "Slab", door, Vector3.zero, new Vector3(1.5f, 2.45f, 0.1f), R.Panel);
             ProcMesh.Prim(PrimitiveType.Cube, "Stripe", door, new Vector3(0, 0.9f, 0.06f), new Vector3(1.5f, 0.16f, 0.02f), R.Orange, null, false);
@@ -121,7 +123,13 @@ namespace MissionMars
             }
             // glass roof with white frames: sunlight comes in from above
             float W = (maxx - minx) * MS, D = (maxz - minz) * MS, H = (0.26f - FloorY) * MS;
-            ProcMesh.Prim(PrimitiveType.Cube, "GlassRoof", t, new Vector3(0, H, 0), new Vector3(W, 0.1f, D), R.Emissive(new Color(0.85f, 0.62f, 0.45f), new Color(1.0f, 0.75f, 0.52f), 0.9f), null, false);
+            H = Mathf.Max(H, 3.0f);
+            // glass walls all around (you see bright Mars sky through them, never the void)
+            var glassWall = R.Emissive(new Color(0.85f, 0.62f, 0.45f), new Color(0.95f, 0.72f, 0.5f), 0.9f);
+            foreach (var (pos, size) in new[] { (new Vector3(0, H / 2, D / 2 + 0.3f), new Vector3(W + 0.8f, H, 0.1f)), (new Vector3(0, H / 2, -D / 2 - 0.3f), new Vector3(W + 0.8f, H, 0.1f)),
+                (new Vector3(W / 2 + 0.3f, H / 2, 0), new Vector3(0.1f, H, D + 0.8f)), (new Vector3(-W / 2 - 0.3f, H / 2, 0), new Vector3(0.1f, H, D + 0.8f)) })
+                ProcMesh.Prim(PrimitiveType.Cube, "GlassWall", t, pos, size, glassWall);
+            ProcMesh.Prim(PrimitiveType.Cube, "GlassRoof", t, new Vector3(0, H, 0), new Vector3(W + 0.8f, 0.1f, D + 0.8f), R.Emissive(new Color(0.85f, 0.62f, 0.45f), new Color(1.0f, 0.75f, 0.52f), 0.9f), null, false);
             var frame = R.Lit(new Color(0.92f, 0.93f, 0.95f), 0.5f, 0.1f);
             for (float x = -W / 2; x <= W / 2 + 0.01f; x += W / 4) ProcMesh.Prim(PrimitiveType.Cube, "RoofBeam", t, new Vector3(x, H - 0.1f, 0), new Vector3(0.2f, 0.2f, D), frame, null, false);
             for (float z = -D / 2; z <= D / 2 + 0.01f; z += D / 6) ProcMesh.Prim(PrimitiveType.Cube, "RoofBeam", t, new Vector3(0, H - 0.1f, z), new Vector3(W, 0.2f, 0.2f), frame, null, false);
@@ -135,8 +143,8 @@ namespace MissionMars
             for (int b = -1; b <= 1; b++)
             {
                 var gm = R.Emissive(new Color(0.15f, 0.12f, 0.15f), Color.black); growMats.Add(gm);
-                ProcMesh.Prim(PrimitiveType.Cube, "GrowLight", t, new Vector3(b * W * 0.28f, H - 1.6f, 0), new Vector3(0.4f, 0.1f, D * 0.8f), gm, null, false);
-                var gl = new GameObject("GrowGlow").AddComponent<Light>(); gl.transform.SetParent(t, false); gl.transform.localPosition = new Vector3(b * W * 0.28f, H - 2f, 0);
+                ProcMesh.Prim(PrimitiveType.Cube, "GrowLight", t, new Vector3(b * W * 0.28f, H - 0.45f, 0), new Vector3(0.4f, 0.1f, D * 0.8f), gm, null, false);
+                var gl = new GameObject("GrowGlow").AddComponent<Light>(); gl.transform.SetParent(t, false); gl.transform.localPosition = new Vector3(b * W * 0.28f, H - 0.9f, 0);
                 gl.type = LightType.Point; gl.range = 10; gl.intensity = 0; gl.color = new Color(1f, 0.45f, 1f); gl.shadows = LightShadows.None; growLights.Add(gl);
             }
             Room.SetActive(false);

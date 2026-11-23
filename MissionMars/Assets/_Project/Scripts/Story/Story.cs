@@ -473,6 +473,8 @@ namespace MissionMars
             bot.Teleport(gh.Spawn + new Vector3(1.2f, 1.8f, 1.5f));
             suit.Inside = true; inside = true; inGreenhouse = true;
             player.GetComponent<CharacterController>().radius = 0.28f; // slimmer between the plant beds
+            if (gh.BedsCollider) Physics.IgnoreCollision(player.GetComponent<CharacterController>(), gh.BedsCollider, true); // walk between the plants
+            bot.gameObject.SetActive(false); // NOVA waits outside
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
             yield return Cinema.I.FromBlack(0.4f);
             player.Frozen = false; busy = false;
@@ -490,7 +492,7 @@ namespace MissionMars
             player.Teleport(MarsWorld.GreenhouseOutside, MarsWorld.GreenhouseOutsideYaw);
             bot.Teleport(MarsWorld.GreenhouseOutside + new Vector3(1.5f, 2, 1.5f));
             suit.Inside = false; inside = false; inGreenhouse = false;
-            player.GetComponent<CharacterController>().radius = 0.38f;
+            player.GetComponent<CharacterController>().radius = 0.38f; bot.gameObject.SetActive(true);
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
             if (!string.IsNullOrEmpty(savedObjTitle)) hud.Objective(savedObjTitle, savedObjBody, savedObjId);
             yield return Cinema.I.FromBlack(0.4f);
@@ -512,7 +514,7 @@ namespace MissionMars
             player.Teleport(room.Spawn, room.SpawnYaw);
             bot.Teleport(room.Spawn + Vector3.up * 1.8f);
             suit.Inside = true; inside = true; inGreenhouse = true; curRoom = room; roomOutside = outside; roomOutsideYaw = MarsWorld.GreenhouseOutsideYaw;
-            player.GetComponent<CharacterController>().radius = 0.3f;
+            player.GetComponent<CharacterController>().radius = 0.3f; bot.gameObject.SetActive(false); // NOVA waits outside
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
             yield return Cinema.I.FromBlack(0.4f);
             player.Frozen = false; busy = false;
@@ -529,7 +531,7 @@ namespace MissionMars
             Game.Sky.Mode = SkyMode.Surface; Game.Sky.InteriorBright = MarsWorld.PowerOn ? 1f : 0.35f; Game.Sky.Apply();
             player.Teleport(roomOutside, roomOutsideYaw);
             bot.Teleport(roomOutside + new Vector3(1.5f, 2, 1.5f));
-            suit.Inside = false; inside = false; inGreenhouse = false; curRoom = null;
+            suit.Inside = false; inside = false; inGreenhouse = false; curRoom = null; bot.gameObject.SetActive(true);
             player.GetComponent<CharacterController>().radius = 0.38f;
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
             if (!string.IsNullOrEmpty(savedObjTitle)) hud.Objective(savedObjTitle, savedObjBody, savedObjId);
@@ -721,7 +723,7 @@ namespace MissionMars
             if (NasaLive.NextClosest(out var closeDate, out var closeKm)) yield return hud.SayWait($"Real NASA JPL data: the next time Earth and Mars come close is {closeDate:MMMM yyyy}, only {closeKm / 1e6:0} million km apart. Space agencies plan Mars trips around those dates!", 5);
             if (MarsWorld.MarsBase)
             {
-                yield return hud.SayWait("Look, there is a MARS BASE nearby! Grow potatoes in the glass domes, call Earth from the dish tower and check the real NASA weather station.", 5);
+                yield return hud.SayWait("Look, there is a MARS BASE nearby! Grow potatoes in the PLANTATION, sleep in the HABITAT, and call Earth from the WEATHER LAB radio.", 5);
                 wpBase = hud.AddWaypoint("MARS BASE", () => MarsWorld.MarsBase.position + Vector3.up * 22f, HC.Amber);
             }
             yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
