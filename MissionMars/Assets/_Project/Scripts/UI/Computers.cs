@@ -69,6 +69,8 @@ namespace MissionMars
             warpTxt = warpBtn.GetComponentInChildren<TextMeshProUGUI>();
             var reset = UIX.Button(card, "TODAY", () => { warp = false; dayShift = 0; }, 200, 60, 24, HC.Green); ((RectTransform)reset.transform).At(new Vector2(1, 0), new Vector2(-940, 55), new Vector2(200, 60)); Nav(reset.gameObject);
 
+            BuildPower();
+
             // ---- weather view: InSight chart + quiz ----
             GameObject Wx(GameObject g) { wxOnly.Add(g); return g; }
             var chartBg = UIX.Img(view, "Chart", new Color(1, 1, 1, 0.04f), UISprites.Round); chartBg.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(1, 1), new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(-10, -20)); Wx(chartBg.gameObject);
@@ -97,14 +99,94 @@ namespace MissionMars
 
         public void OpenOrbit(Action closed = null)
         {
-            foreach (var g in navOnly) g.SetActive(true); foreach (var g in wxOnly) g.SetActive(false);
+            foreach (var g in navOnly) g.SetActive(true); foreach (var g in wxOnly) g.SetActive(false); foreach (var g in pwOnly) g.SetActive(false);
             title.text = "NAVIGATION: EARTH & MARS"; dayShift = 0; warp = false;
             Show(closed); UpdateOrbit();
         }
 
+        // ------------------------------------------------------------------ night power planner
+        /// <summary>Fired when the player's night power plan works (the story then plays the night).</summary>
+        public static event Action PowerPlanOk;
+        readonly List<GameObject> pwOnly = new List<GameObject>();
+        // name, kWh for a 12-hour night, essential?, why
+        static readonly (string name, float kwh, bool must, string why)[] Devices =
+        {
+            ("HEATER", 18, true, "Mars nights are -95 °C"),
+            ("OXYGEN MAKER", 12, true, "we need air to breathe"),
+            ("WATER MACHINE", 6, false, "the tank has water for tonight"),
+            ("BASE LIGHTS", 3, false, "to see at night"),
+            ("RADIO TO EARTH", 3, false, "talk to Mission Control"),
+            ("LED GROW LIGHTS", 12, false, "plants can rest at night"),
+            ("ROVER CHARGING", 24, false, "the rover can charge in the sun tomorrow"),
+        };
+        const float Battery = 40;
+        readonly bool[] onOff = new bool[Devices.Length];
+        readonly List<(Image bg, TextMeshProUGUI txt)> switches = new List<(Image, TextMeshProUGUI)>();
+        Image energyFill; TextMeshProUGUI energyTxt, powerResult; bool powerSolved;
+
+        void BuildPower()
+        {
+            GameObject Pw(GameObject g) { pwOnly.Add(g); return g; }
+            for (int i = 0; i < Devices.Length; i++)
+            {
+                int k = i;
+                var row = UIX.Img(view, "Switch", new Color(1, 1, 1, 0.06f), UISprites.Round, true); Put(row.rectTransform, new Vector2(0, 1), new Vector2(400, -40 - i * 66), new Vector2(780, 58)); Pw(row.gameObject);
+                var b = row.gameObject.AddComponent<Button>(); b.onClick.AddListener(() => Toggle(k));
+                var t = UIX.Text(row.transform, "", 24, HC.Text, R.KidBody); t.rectTransform.Fill(); t.margin = new Vector4(20, 0, 20, 0); t.alignment = TextAlignmentOptions.MidlineLeft;
+                switches.Add((row, t));
+            }
+            var track = UIX.Img(view, "Battery", new Color(1, 1, 1, 0.08f), UISprites.Round); Put(track.rectTransform, new Vector2(0, 0), new Vector2(400, 86), new Vector2(780, 44)); Pw(track.gameObject);
+            energyFill = UIX.Img(track.transform, "Fill", HC.Green, UISprites.Round); energyFill.rectTransform.anchorMin = Vector2.zero; energyFill.rectTransform.anchorMax = new Vector2(0, 1); energyFill.rectTransform.pivot = new Vector2(0, 0.5f); energyFill.rectTransform.offsetMin = energyFill.rectTransform.offsetMax = Vector2.zero;
+            energyTxt = UIX.Text(track.transform, "", 22, Color.white, R.Bold, TextAlignmentOptions.Center); energyTxt.rectTransform.Fill();
+            var go = UIX.Button(view, "START THE NIGHT", RunNight, 360, 60, 24, HC.Amber); Put((RectTransform)go.transform, new Vector2(0, 0), new Vector2(400, 20), new Vector2(360, 56)); Pw(go.gameObject);
+            powerResult = UIX.Text(card, "", 26, HC.Text, R.KidBody); powerResult.rectTransform.Set(new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-50, 140), new Vector2(700, 200)); Pw(powerResult.gameObject);
+        }
+
+        void Toggle(int i) { onOff[i] = !onOff[i]; Sfx.Play("click", 0.6f, onOff[i] ? 1.2f : 0.8f); RefreshPower(); }
+
+        float Used() { float u = 0; for (int i = 0; i < Devices.Length; i++) if (onOff[i]) u += Devices[i].kwh; return u; }
+
+        void RefreshPower()
+        {
+            for (int i = 0; i < Devices.Length; i++)
+            {
+                var d = Devices[i]; bool on = onOff[i];
+                switches[i].bg.color = on ? new Color(0.25f, 0.7f, 0.4f, 0.35f) : new Color(1, 1, 1, 0.06f);
+                switches[i].txt.text = $"<b>{(on ? "ON " : "OFF")}</b>   {d.name}  <color=#FFB347>{d.kwh:0} kWh</color>   <size=19><color=#9FB6D6>{d.why}</color></size>";
+            }
+            float u = Used();
+            energyFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(u / Battery), 1);
+            energyFill.color = u > Battery ? HC.Red : u > Battery * 0.85f ? HC.Amber : HC.Green;
+            energyTxt.text = $"BATTERY: {u:0} of {Battery:0} kWh used tonight";
+        }
+
+        void RunNight()
+        {
+            float u = Used();
+            if (!onOff[0]) { Sfx.Play("error", 0.6f); powerResult.text = "<color=#FF6A60><b>Brrr!</b></color> Without the HEATER the base freezes at -95 °C. Turn the heater ON."; return; }
+            if (!onOff[1]) { Sfx.Play("error", 0.6f); powerResult.text = "<color=#FF6A60><b>No air!</b></color> The OXYGEN MAKER must stay ON all night."; return; }
+            if (u > Battery) { Sfx.Play("error", 0.6f); powerResult.text = $"<color=#FF6A60><b>Battery empty at 3 AM!</b></color> You need {u:0} kWh but the battery has only {Battery:0}. Turn something OFF."; return; }
+            powerSolved = true; Sfx.Play("success", 0.8f);
+            powerResult.text = $"<color=#7FE07F><b>GREAT PLAN!</b></color> {u:0} kWh used, {Battery - u:0} kWh left for the morning.\n<size=21>Real fact: NASA is building a small nuclear power plant for the Moon and Mars that works day AND night, even in dust storms.</size>";
+            AstroPass.Award("power_plan", "Planned the night power", 3);
+            PowerPlanOk?.Invoke();
+        }
+
+        public void OpenPower(Action closed = null)
+        {
+            foreach (var g in navOnly) g.SetActive(false); foreach (var g in wxOnly) g.SetActive(false); foreach (var g in pwOnly) g.SetActive(true);
+            title.text = "NIGHT POWER PLANNER";
+            info.text = "<color=#7FE3FF>NIGHT IS COMING</color>\nSolar panels make NO power at night. The base must live on its <b>battery</b> for about 12 hours.\n\n" +
+                "<color=#7FE3FF>YOUR JOB</color>\nClick the machines to switch them ON or OFF. Keep the bar <color=#7FE07F>green</color>: you cannot use more than the battery holds!\n\n" +
+                "<color=#9FB6D6><size=21>Mars gets only about half of Earth's sunlight, so every kilowatt-hour counts.</size></color>";
+            if (!powerSolved) powerResult.text = "";
+            RefreshPower();
+            Show(closed);
+        }
+
         public void OpenWeather(Action closed = null)
         {
-            foreach (var g in navOnly) g.SetActive(false); foreach (var g in wxOnly) g.SetActive(true);
+            foreach (var g in navOnly) g.SetActive(false); foreach (var g in wxOnly) g.SetActive(true); foreach (var g in pwOnly) g.SetActive(false);
             title.text = "MARS WEATHER STATION";
             BuildWeather();
             Show(closed);
@@ -114,7 +196,7 @@ namespace MissionMars
         {
             if (!open) return;
             if (Time.unscaledTime - openedAt > 0.4f && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape))) { Close(); return; }
-            if (navOnly[0].activeSelf)
+            if (navOnly.Count > 0 && navOnly[0].activeSelf)
             {
                 if (warp) dayShift += Time.unscaledDeltaTime * 45; // 45 days every second
                 if (warpTxt) warpTxt.text = warp ? "PAUSE" : "FAST FORWARD";

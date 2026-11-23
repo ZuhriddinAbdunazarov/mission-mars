@@ -828,13 +828,13 @@ namespace MissionMars
         }
 
         /// <summary>Solar field: explains why power is precious on Mars.</summary>
+        public static Transform SolarPanel;
         static void SolarInfo(GameObject panel)
         {
             if (!panel) return;
-            var i = Interactable.Add(panel, "Check", "Solar panels", () =>
-            {
-                if (Game.Hud) Game.Hud.Toast("SOLAR POWER", "Mars gets only about HALF the sunlight Earth gets. Dust on the panels makes even less power, so astronauts keep them clean!", "power", HC.Amber);
-            });
+            SolarPanel = panel.transform;
+            // the solar panels open the NIGHT POWER PLANNER (power budget mission)
+            var i = Interactable.Add(panel, "Plan the night power at", "SOLAR PANELS", () => { if (Computers.I) Computers.I.OpenPower(); });
             i.Range = 5f;
         }
 

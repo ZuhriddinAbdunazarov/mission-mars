@@ -61,6 +61,9 @@ namespace MissionMars
             if (partsHunt) huntTime += Time.deltaTime;
             if (partsHunt && inside && !inGreenhouse && !busy && !Hazard && !leakDone && huntTime > 40 && MarsWorld.PowerOn && suit && suit.MoxieOn)
             { leakDone = true; StartCoroutine(AirLeak()); }
+            // the power-budget mission: at sunset, plan what the battery powers tonight
+            if (partsHunt && !inside && !busy && !Hazard && !powerNightDone && huntTime > 75 && MarsWorld.SolarPanel)
+            { powerNightDone = true; StartCoroutine(PowerNight()); }
         }
 
 
@@ -86,6 +89,35 @@ namespace MissionMars
             }
             yield return hud.SayWait("Now it's your turn: walk up to a building and press E!", 2.5f);
             player.Frozen = false; busy = false;
+        }
+
+        // ================================================================== mission: plan the night power (power budget)
+        bool powerNightDone;
+        IEnumerator PowerNight()
+        {
+            Hazard = true;
+            float t0 = Game.Sky.TimeOfDay;
+            yield return Game.Sky.Timelapse(0.7f, 3f); // the Sun goes down
+            hud.Warn("SUNSET: SOLAR PANELS STOPPING", 4, false);
+            yield return hud.SayWait("Night is coming! Solar panels make no power in the dark. Tonight the base lives on its BATTERY.", 4);
+            hud.Objective("PLAN THE NIGHT POWER", "Go to the <b>SOLAR PANELS</b> and press E. Choose what the battery powers tonight. Don't run out!");
+            var wp = hud.AddWaypoint("SOLAR PANELS", () => MarsWorld.SolarPanel.position + Vector3.up * 2f, HC.Amber);
+            bool ok = false; System.Action done = () => ok = true;
+            Computers.PowerPlanOk += done;
+            while (!ok) yield return null;
+            Computers.PowerPlanOk -= done;
+            hud.RemoveWaypoint(wp);
+            while (UIState.Modal) yield return null; // wait until the planner is closed
+            // the night passes...
+            busy = true; player.Frozen = true;
+            Cinema.I.Caption("The night passes… the battery keeps the base alive.", 3);
+            yield return Game.Sky.Timelapse(1.25f, 4f);
+            Game.Sky.TimeOfDay = t0 > 0.3f && t0 < 0.7f ? t0 : 0.4f;
+            Sfx.Play("success", 0.6f);
+            hud.Toast("GOOD MORNING!", "Your power plan worked. The sun is up: the solar panels charge the battery again.", "sun", HC.Amber);
+            player.Frozen = false; busy = false;
+            hud.Objective("BUILD A NEW ROCKET", $"{partsInstalled} of {MarsWorld.Parts.Length} sections built. Follow the coloured beams to the next detail!", "parts");
+            Hazard = false;
         }
         // ================================================================== mission: fix the oxygen leak
         float huntTime; bool leakDone; Waypoint wpBase;

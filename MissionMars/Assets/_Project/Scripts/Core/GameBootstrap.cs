@@ -133,6 +133,7 @@ namespace MissionMars
                 else { Computers.I.OpenWeather(); yield return Shot(dir, "screen_weather", 1f); Computers.I.Close(); }
                 room.Room.SetActive(false); MarsWorld.SetSurface(true); Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
             }
+            Computers.I.OpenPower(); yield return Shot(dir, "screen_power", 1f); Computers.I.Close();
             { // the habitat and weather lab from outside
                 var hp = MarsWorld.HabitatOutside; var bb = MarsWorld.MarsBase;
                 if (bb) { var p0 = bb.TransformPoint(new Vector3(-6, 0, 26)); p0.y = MarsTerrain.H(p0.x, p0.z) + 0.2f; for (int f = 0; f < 30; f++) { Game.Player.Teleport(p0, 0); Game.Player.LookAt(bb.TransformPoint(new Vector3(-8, 6, 0))); yield return null; } yield return Shot(dir, "outside_habitat_lab", 0.4f); }
