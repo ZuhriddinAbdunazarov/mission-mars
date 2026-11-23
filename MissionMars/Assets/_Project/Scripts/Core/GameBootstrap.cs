@@ -50,6 +50,7 @@ namespace MissionMars
             SpaceSet.Create();
             Hud.Create();
             var screens = Screens.Create();
+            Computers.Create();
             var story = gameObject.AddComponent<Story>();
             story.Init(cine, screens);
             yield return null;
@@ -121,6 +122,20 @@ namespace MissionMars
                 for (int f = 0; f < 20; f++) { Game.Player.Teleport(gh.Spawn, 20, 12); yield return null; }
                 yield return Shot(dir, "greenhouse_grown", 0.5f);
                 gh.Room.SetActive(false); MarsWorld.SetSurface(true); Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
+            }
+            foreach (var (room, n) in new[] { (MarsWorld.HabitatRoom, "habitat_in"), (MarsWorld.WeatherRoom, "weather_in") })
+            { // inside the habitat and the weather lab
+                if (room == null) continue;
+                MarsWorld.SetSurface(false); room.Room.SetActive(true); Game.Sky.Mode = SkyMode.Interior; Game.Sky.InteriorBright = 1.4f; Game.Sky.Apply();
+                for (int f = 0; f < 20; f++) { Game.Player.Teleport(room.Spawn, room.SpawnYaw, 8); yield return null; }
+                yield return Shot(dir, n, 0.5f);
+                if (n == "habitat_in") { Computers.I.OpenOrbit(); yield return Shot(dir, "screen_orbit", 1.5f); Computers.I.Close(); }
+                else { Computers.I.OpenWeather(); yield return Shot(dir, "screen_weather", 1f); Computers.I.Close(); }
+                room.Room.SetActive(false); MarsWorld.SetSurface(true); Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
+            }
+            { // the habitat and weather lab from outside
+                var hp = MarsWorld.HabitatOutside; var bb = MarsWorld.MarsBase;
+                if (bb) { var p0 = bb.TransformPoint(new Vector3(-6, 0, 26)); p0.y = MarsTerrain.H(p0.x, p0.z) + 0.2f; for (int f = 0; f < 30; f++) { Game.Player.Teleport(p0, 0); Game.Player.LookAt(bb.TransformPoint(new Vector3(-8, 6, 0))); yield return null; } yield return Shot(dir, "outside_habitat_lab", 0.4f); }
             }
             { // the rover: from its front and from the side
                 var rv = MarsWorld.TheRover.transform;

@@ -75,6 +75,7 @@ namespace MissionMars
             BuildRover();
             BuildInterior();
             Greenhouse.Build();
+            BuildRooms();
             SkyBodies();
             FX.DustBanks(new Vector3(0, MarsTerrain.Base + 2, 0)).transform.SetParent(Root.transform, true);
         }
@@ -598,8 +599,25 @@ namespace MissionMars
                 return g;
             }
 
-            // 1. HABITAT hub (living quarters)
-            var hub = Kit("Q_Base_Large", 0, 0, 0, 1.5f);
+            Interactable FrontDoor(GameObject b, string model, float sc, string label, out Vector3 outside)
+            {
+                var fl = ModelRoom.FrontDoorLocal(model);
+                var z = new GameObject(model + "Door"); z.transform.SetParent(b.transform, false);
+                z.transform.localPosition = fl; z.transform.localScale = Vector3.one / sc;
+                { var zb = z.AddComponent<BoxCollider>(); zb.size = new Vector3(2.6f, 3f, 1.4f); zb.isTrigger = true; } // press E, but never blocks you
+                outside = b.transform.TransformPoint(fl + new Vector3(0, 0, 3f / sc)); outside.y = MarsTerrain.H(outside.x, outside.z) + 0.1f;
+                var it = Interactable.Add(z, "Go into", label, null); it.Range = 5f; return it;
+            }
+
+            // 1. HABITAT (living quarters): the team's realistic model if present, walls from its real shape
+            GameObject hub;
+            if (R.Model("P_HabitatOut"))
+            {
+                hub = Kit("P_HabitatOut", 0, 0, 0, 16f, false);
+                ModelRoom.OutsideWalls(hub, "HabitatOut", 16f);
+                HabitatDoor = FrontDoor(hub, "HabitatOut", 16f, "HABITAT (bed, kitchen, computer)", out HabitatOutside);
+            }
+            else hub = Kit("Q_Base_Large", 0, 0, 0, 1.5f);
             // 2. PLANTATION: big geodesic glass dome with a real door (press E to walk in)
             GameObject dome;
             if (R.Model("P_PlantationOut"))
@@ -607,11 +625,10 @@ namespace MissionMars
                 // the team's realistic Tripo dome (Assets/Paid): 1 unit wide, door on its +z side
                 const float DS = 18f;
                 dome = Kit("P_PlantationOut", 20, -3, 0, DS, false);
-                var dc = dome.AddComponent<SphereCollider>(); dc.center = Vector3.zero; dc.radius = 0.47f; // the dome itself (model units)
-                Kit("Q_Connector", 10.2f, -1.5f, 0, 1.5f, false);
+                ModelRoom.OutsideWalls(dome, "PlantationOut", DS); // solid exactly where the dome is
                 var doorZone = new GameObject("PlantationDoor"); doorZone.transform.SetParent(dome.transform, false);
                 doorZone.transform.localPosition = new Vector3(0, 0.07f, 0.5f); doorZone.transform.localScale = Vector3.one / DS;
-                var dbc = doorZone.AddComponent<BoxCollider>(); dbc.size = new Vector3(2.2f, 2.8f, 1.0f);
+                var dbc = doorZone.AddComponent<BoxCollider>(); dbc.size = new Vector3(2.2f, 2.8f, 1.0f); dbc.isTrigger = true;
                 GreenhouseDoorPanel = null;
                 GreenhouseDoor = Interactable.Add(doorZone, "Go into", "PLANTATION (grow food)", null); GreenhouseDoor.Range = 5f;
                 GreenhouseOutside = root.TransformPoint(new Vector3(20, 0, -3 + 0.5f * DS + 2.5f));
@@ -636,9 +653,19 @@ namespace MissionMars
             GreenhouseOutside.y = MarsTerrain.H(GreenhouseOutside.x, GreenhouseOutside.z) + 0.1f;
             GreenhouseOutsideYaw = root.eulerAngles.y;
             // 3. LAB with the WEATHER STATION radar on its roof
-            var lab = Kit("Q_House_Cylinder", -18, -2, 0, 1.4f);
-            Kit("Q_Roof_Radar", -18, -2, 0, 1.4f, false);
-            Kit("Q_Connector", -10.6f, -1.5f, 0, 1.5f, false);
+            GameObject lab;
+            if (R.Model("P_WeatherOut"))
+            {
+                lab = Kit("P_WeatherOut", -18, -2, 0, 14f, false);
+                ModelRoom.OutsideWalls(lab, "WeatherOut", 14f);
+                WeatherDoor = FrontDoor(lab, "WeatherOut", 14f, "WEATHER LAB (weather computer)", out WeatherOutside);
+            }
+            else
+            {
+                lab = Kit("Q_House_Cylinder", -18, -2, 0, 1.4f);
+                Kit("Q_Roof_Radar", -18, -2, 0, 1.4f, false);
+                Kit("Q_Connector", -10.6f, -1.5f, 0, 1.5f, false);
+            }
             // 4. DISH that talks to Earth, on a metal tower
             Kit("Q_MetalSupport", -6, -15, 0, 2.2f);
             var dish = Kit("K_satelliteDish_large", -6, -15, 200, 8f, true, 4.2f);
@@ -659,8 +686,8 @@ namespace MissionMars
             Kit("Q_Rock_Large_1", 28, -22, 120, 1.6f);
 
             // what each building does (press E)
-            if (hub) Habitat(hub);
-            if (lab) WeatherStation(lab);
+            if (hub && !HabitatDoor) Habitat(hub);
+            if (lab && !WeatherDoor) WeatherStation(lab);
             if (dish) EarthLink(dish);
             if (panel) SolarInfo(panel);
 
@@ -672,13 +699,55 @@ namespace MissionMars
                 Label(Root.transform, w, name, what, c);
                 BaseStops.Add((w, line));
             }
-            Stop(new Vector3(0, 11, 0), "HABITAT", "home: eat, sleep, fresh air", "This is the HABITAT, the home of the base. Astronauts eat, sleep and breathe fresh air here. Press E to rest!", HC.Cyan);
+            Stop(new Vector3(0, HabitatDoor ? 17.5f : 11, 0), "HABITAT", "home: eat, sleep, fresh air", "This is the HABITAT, the home of the base. Inside: beds, a kitchen and the navigation computer that tracks Earth and Mars.", HC.Cyan);
             Stop(new Vector3(20, 13.5f, -3), "PLANTATION", "go inside to grow potatoes", "The glass dome is the PLANTATION. Sunlight comes through the glass. Go inside to plant, water and harvest potatoes!", HC.Green);
-            Stop(new Vector3(-18, 11, -2), "WEATHER STATION", "real NASA weather", "This lab has the WEATHER STATION on its roof. It shows real Mars weather measured by NASA's InSight lander.", HC.Amber);
+            Stop(new Vector3(-18, WeatherDoor ? 17 : 11, -2), "WEATHER LAB", "real NASA weather", "This is the WEATHER LAB. Inside, scientists study real Mars weather measured by NASA's InSight lander and make forecasts.", HC.Amber);
             Stop(new Vector3(-6, 13, -15), "DISH TOWER", "talks to Earth", "The DISH sends messages to Earth. They need about 10 minutes to get there, even at the speed of light!", HC.Cyan);
             Stop(new Vector3(11, 6, -17), "SOLAR PANELS", "power from the Sun", "SOLAR PANELS make our power. Mars gets only about half the sunlight Earth gets, so we need a lot of them.", HC.Amber);
-            var title = World3DText(root, new Vector3(0, 17, 0), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
+            var title = World3DText(root, new Vector3(0, 24, 0), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
             title.gameObject.AddComponent<Billboard>();
+        }
+
+        public static Interactable HabitatDoor, WeatherDoor; public static Vector3 HabitatOutside, WeatherOutside;
+        public static ModelRoom HabitatRoom, WeatherRoom;
+        public static Interactable Bunk, Kitchen, Locker, NavComputer, WeatherComputer, Racks;
+
+        /// <summary>The walk-in HABITAT and WEATHER LAB rooms, made from the team's Tripo interiors (Assets/Paid).
+        /// Press-E zones sit on the model's furniture (positions measured from the model's height map).</summary>
+        static void BuildRooms()
+        {
+            HabitatRoom = ModelRoom.Build("HabitatIn", new Vector3(0, -260, 0), 18f, new Vector2(0.45f, 0.92f), new Color(0.92f, 0.93f, 0.96f), new Color(1f, 0.95f, 0.88f));
+            if (HabitatRoom != null)
+            {
+                Bunk = HabitatRoom.Zone("Beds", 0.195f, 0.5f, 0.23f, 0.85f, 1.3f, "Sleep in", "your bunk bed (1 sol passes)", null);
+                Kitchen = HabitatRoom.Zone("Kitchen", 0.735f, 0.205f, 0.25f, 0.29f, 1.6f, "Eat & drink at", "the kitchen", null);
+                Locker = HabitatRoom.Zone("Lockers", 0.76f, 0.88f, 0.2f, 0.12f, 2.5f, "Check", "spacesuit locker", null);
+                NavComputer = Terminal(HabitatRoom, 0.47f, 0.33f, "NAVIGATION COMPUTER (Earth & Mars)");
+            }
+            WeatherRoom = ModelRoom.Build("WeatherIn", new Vector3(0, -340, 0), 14f, new Vector2(0.45f, 0.86f), new Color(0.9f, 0.94f, 1f), new Color(0.92f, 0.97f, 1f));
+            if (WeatherRoom != null)
+            {
+                WeatherComputer = WeatherRoom.Zone("WeatherDesk", 0.17f, 0.26f, 0.18f, 0.27f, 1.5f, "Use", "WEATHER COMPUTER (real NASA data)", null);
+                Racks = WeatherRoom.Zone("Racks", 0.76f, 0.69f, 0.19f, 0.42f, 2.2f, "Read", "the instrument racks", null);
+            }
+        }
+
+        /// <summary>A computer terminal on free floor: a desk with a glowing screen you press E on.</summary>
+        static Interactable Terminal(ModelRoom room, float fx, float fz, string label)
+        {
+            var spot = room.FreeSpot(fx, fz);
+            var g = new GameObject("Terminal"); g.transform.SetParent(room.T, false); g.transform.localPosition = spot;
+            var desk = R.Model("K_desk_computer");
+            if (desk) { var d = Object.Instantiate(desk, g.transform, false); d.transform.localScale = Vector3.one * 1.6f; }
+            else ProcMesh.Prim(PrimitiveType.Cube, "Desk", g.transform, new Vector3(0, 0.4f, 0), new Vector3(1.4f, 0.8f, 0.7f), R.Panel);
+            var holo = ProcMesh.Prim(PrimitiveType.Cylinder, "Holo", g.transform, new Vector3(0, 1.45f, 0), new Vector3(0.9f, 0.01f, 0.9f), R.Holo(new Color(0.3f, 0.9f, 1f), 1.6f, 0.2f), null, false);
+            holo.AddComponent<Spin>().Speed = 40;
+            var earth = ProcMesh.Prim(PrimitiveType.Sphere, "HoloEarth", g.transform, new Vector3(-0.2f, 1.7f, 0), Vector3.one * 0.22f, R.Emissive(new Color(0.1f, 0.3f, 0.6f), new Color(0.3f, 0.7f, 1.6f)), null, false);
+            var mars = ProcMesh.Prim(PrimitiveType.Sphere, "HoloMars", g.transform, new Vector3(0.3f, 1.65f, 0), Vector3.one * 0.15f, R.Emissive(new Color(0.6f, 0.25f, 0.1f), new Color(1.6f, 0.6f, 0.3f)), null, false);
+            var l = new GameObject("Glow").AddComponent<Light>(); l.transform.SetParent(g.transform, false); l.transform.localPosition = new Vector3(0, 1.8f, 0);
+            l.type = LightType.Point; l.range = 4; l.intensity = 1.6f; l.color = new Color(0.4f, 0.85f, 1f); l.shadows = LightShadows.None;
+            var bc = g.AddComponent<BoxCollider>(); bc.center = new Vector3(0, 0.9f, 0); bc.size = new Vector3(1.6f, 1.8f, 1.0f);
+            var it = Interactable.Add(g, "Use", label, null, 0, false); it.Range = 4f; return it;
         }
 
         public static Interactable GreenhouseDoor; public static Transform GreenhouseDoorPanel; public static Vector3 GreenhouseOutside; public static float GreenhouseOutsideYaw;

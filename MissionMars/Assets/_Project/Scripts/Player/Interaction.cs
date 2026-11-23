@@ -57,7 +57,7 @@ namespace MissionMars
             if (!Current) { hold = 0; return; }
             if (Current.HoldTime <= 0)
             {
-                if (Input.GetKeyDown(KeyCode.E)) { var c = Current; Sfx.Play("click"); c.Use(); }
+                if (Input.GetKeyDown(KeyCode.E) && Time.frameCount > Computers.ClosedFrame + 1) { var c = Current; Sfx.Play("click"); c.Use(); }
             }
             else
             {

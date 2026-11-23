@@ -465,12 +465,94 @@ namespace MissionMars
             player.Frozen = false; busy = false;
         }
 
+        // ================================================================== HABITAT + WEATHER LAB (walk-in rooms)
+        ModelRoom curRoom; Vector3 roomOutside; float roomOutsideYaw;
+        IEnumerator EnterRoom(ModelRoom room, Vector3 outside, string hello)
+        {
+            if (room == null) yield break;
+            busy = true; player.Frozen = true;
+            savedObjTitle = hud.LastTitle; savedObjBody = hud.LastBody; savedObjId = hud.ObjectiveId;
+            Sfx.Play("whoosh", 0.4f, 1.3f);
+            yield return Cinema.I.ToBlack(0.35f);
+            MarsWorld.SetSurface(false); room.Room.SetActive(true);
+            Game.Sky.Mode = SkyMode.Interior; Game.Sky.InteriorBright = 1.4f; Game.Sky.Apply();
+            room.ExitPanel.GetComponent<SlideDoor>().Snap(false);
+            player.Teleport(room.Spawn, room.SpawnYaw);
+            bot.Teleport(room.Spawn + Vector3.up * 1.8f);
+            suit.Inside = true; inside = true; inGreenhouse = true; curRoom = room; roomOutside = outside; roomOutsideYaw = MarsWorld.GreenhouseOutsideYaw;
+            player.GetComponent<CharacterController>().radius = 0.3f;
+            if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
+            yield return Cinema.I.FromBlack(0.4f);
+            player.Frozen = false; busy = false;
+            if (!string.IsNullOrEmpty(hello)) hud.Say(hello, 5);
+        }
+
+        IEnumerator ExitRoom()
+        {
+            var room = curRoom; if (room == null) yield break;
+            busy = true; player.Frozen = true;
+            yield return room.ExitPanel.GetComponent<SlideDoor>().Move(true);
+            yield return Cinema.I.ToBlack(0.35f);
+            room.Room.SetActive(false); MarsWorld.SetSurface(true);
+            Game.Sky.Mode = SkyMode.Surface; Game.Sky.InteriorBright = MarsWorld.PowerOn ? 1f : 0.35f; Game.Sky.Apply();
+            player.Teleport(roomOutside, roomOutsideYaw);
+            bot.Teleport(roomOutside + new Vector3(1.5f, 2, 1.5f));
+            suit.Inside = false; inside = false; inGreenhouse = false; curRoom = null;
+            player.GetComponent<CharacterController>().radius = 0.38f;
+            if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
+            if (!string.IsNullOrEmpty(savedObjTitle)) hud.Objective(savedObjTitle, savedObjBody, savedObjId);
+            yield return Cinema.I.FromBlack(0.4f);
+            player.Frozen = false; busy = false;
+        }
+
+        /// <summary>Lie down in the bunk: eyes close, one sol passes, you wake up rested.</summary>
+        IEnumerator Sleep()
+        {
+            busy = true; player.Frozen = true;
+            float h0 = player.HeadHeight; Sfx.Play("breath", 0.6f);
+            Tween.Run(1f, k => player.HeadHeight = Mathf.Lerp(h0, 0.6f, k));
+            yield return Lids(1, 0, 1.2f);
+            Cinema.I.SetBlack(1); Cinema.I.Caption("Zzz… one sol (24 hours 39 minutes) passes.", 2.2f);
+            Sol++; if (ClockRunning && DaysLeft > 1) DaysLeft--;
+            suit.Restore(100, 100, 100); suit.O2 = 100; suit.Health = 100;
+            yield return new WaitForSeconds(2.2f);
+            Cinema.I.SetBlack(0); Cinema.I.Eyes(0);
+            yield return Lids(0, 1, 1.2f);
+            Tween.Run(0.8f, k => player.HeadHeight = Mathf.Lerp(0.6f, h0, k));
+            hud.Toast("GOOD MORNING, SOL " + Sol, "Rested: health and life support are full. A Mars day is called a SOL.", "clock", HC.Cyan);
+            AstroPass.Award("sleep", "Slept on Mars", 1);
+            player.Frozen = false; busy = false;
+        }
+
+        void WireRooms()
+        {
+            if (MarsWorld.HabitatDoor) MarsWorld.HabitatDoor.OnUse = () => { if (!busy) StartCoroutine(EnterRoom(MarsWorld.HabitatRoom, MarsWorld.HabitatOutside, "This is the HABITAT, our home. Sleep in the bunk beds, eat in the kitchen and check Earth and Mars on the navigation computer!")); };
+            if (MarsWorld.WeatherDoor) MarsWorld.WeatherDoor.OnUse = () => { if (!busy) StartCoroutine(EnterRoom(MarsWorld.WeatherRoom, MarsWorld.WeatherOutside, "The WEATHER LAB! Sit at the weather computer: it shows REAL Mars weather from NASA. Can you make a forecast?")); };
+            foreach (var r in new[] { MarsWorld.HabitatRoom, MarsWorld.WeatherRoom }) if (r != null) r.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitRoom()); };
+            if (MarsWorld.Bunk) MarsWorld.Bunk.OnUse = () => { if (!busy) StartCoroutine(Sleep()); };
+            if (MarsWorld.Kitchen) MarsWorld.Kitchen.OnUse = () =>
+            {
+                suit.Drink(35); Sfx.Play("pickup", 0.7f);
+                hud.Toast("FOOD + WATER", "Life support +35. Real fact: the Space Station recycles 98% of its water, even sweat!", "food", HC.Green);
+                AstroPass.Award("kitchen", "Ate in the habitat", 1);
+            };
+            if (MarsWorld.Locker) MarsWorld.Locker.OnUse = () =>
+            {
+                suit.Drink(25); Sfx.Play("powerup", 0.5f);
+                hud.Toast("SPACESUIT CHECKED", "Oxygen tank and battery refilled. A real NASA spacesuit is like a tiny spaceship!", "air", HC.Cyan);
+            };
+            if (MarsWorld.NavComputer) MarsWorld.NavComputer.OnUse = () => { Computers.I.OpenOrbit(); AstroPass.Award("navigator", "Used the navigation computer", 2); };
+            if (MarsWorld.WeatherComputer) MarsWorld.WeatherComputer.OnUse = () => Computers.I.OpenWeather();
+            if (MarsWorld.Racks) MarsWorld.Racks.OnUse = () => hud.Toast("INSTRUMENT RACKS", "Real fact: NASA's InSight lander felt 1,319 marsquakes. Mars still shakes inside!", "science", HC.Amber);
+        }
+
         void WireDoors()
         {
             MarsWorld.BunkerDoor.OnUse = () => { if (!busy) StartCoroutine(EnterBunker()); };
             MarsWorld.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitBunker()); };
             if (MarsWorld.GreenhouseDoor) MarsWorld.GreenhouseDoor.OnUse = () => { if (!busy) StartCoroutine(EnterGreenhouse()); };
             if (Greenhouse.I) Greenhouse.I.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitGreenhouse()); };
+            WireRooms();
         }
 
         // ================================================================== salvage
