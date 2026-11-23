@@ -205,7 +205,7 @@ namespace MissionMars.EditorTools
 
     public class TexImport : AssetPostprocessor
     {
-        public override uint GetVersion() => 4; // bump to reimport textures when these rules change
+        public override uint GetVersion() => 5; // bump to reimport textures when these rules change
 
         static readonly System.Text.RegularExpressions.Regex ModelTex = new System.Text.RegularExpressions.Regex(@"_\d+_(color|normal|mr|occlusion|emissive)\.(jpg|png)$");
 
@@ -241,8 +241,14 @@ namespace MissionMars.EditorTools
             var ti = (TextureImporter)assetImporter;
             ti.textureType = TextureImporterType.Default;
             ti.sRGBTexture = role == "color" || role == "emissive";
+            if (assetPath.Contains("/Quaternius/")) // a tiny 32x32 colour palette: compression or mipmaps would smear the colours
+            {
+                ti.mipmapEnabled = false; ti.filterMode = FilterMode.Point; ti.textureCompression = TextureImporterCompression.Uncompressed;
+                ti.ClearPlatformTextureSettings("WebGL");
+                return;
+            }
             ti.mipmapEnabled = true; ti.anisoLevel = 4;
-            bool hero = assetPath.Contains("MarsBase");          // the big base is seen up close: keep it sharp
+            bool hero = System.Text.RegularExpressions.Regex.IsMatch(assetPath, "MarsBase|Plantation|Habitat|Weather|Comms|Bunker"); // buildings seen up close: keep them sharp
             ti.maxTextureSize = hero ? 2048 : 1024;
             ti.textureCompression = TextureImporterCompression.Compressed;
             bool alpha = ti.DoesSourceTextureHaveAlpha();

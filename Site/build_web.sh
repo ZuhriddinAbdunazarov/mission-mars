@@ -37,7 +37,7 @@ MODELS=(
 restore() {
   for m in "${MODELS[@]}"; do
     f="${m%%:*}"; d="$(dirname "$RES/$f")"; n="$(basename "$f")"
-    rm -f "$d/$n.gltf" "$d/$n.gltf.meta" "$d/$n.bin" "$d/$n.bin.meta" "$d/$n"_[0-9]*_*.jpg "$d/$n"_[0-9]*_*.png "$d/$n"_[0-9]*_*.meta
+    rm -f "${d:?}/${n:?}.gltf" "${d:?}/${n:?}.gltf.meta" "${d:?}/${n:?}.bin" "${d:?}/${n:?}.bin.meta" "${d:?}/${n:?}"_[0-9]*_*.jpg "${d:?}/${n:?}"_[0-9]*_*.png "${d:?}/${n:?}"_[0-9]*_*.meta
     [ -f "$BAK/live/$f.glb" ] && mv "$BAK/live/$f.glb" "$RES/$f.glb"
     [ -f "$BAK/live/$f.glb.meta" ] && mv "$BAK/live/$f.glb.meta" "$RES/$f.glb.meta"
   done

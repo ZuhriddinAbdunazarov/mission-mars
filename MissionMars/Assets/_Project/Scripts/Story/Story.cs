@@ -59,7 +59,7 @@ namespace MissionMars
             }
             // the oxygen-leak alarm happens once, the first time you come back into the shelter during the rocket hunt
             if (partsHunt) huntTime += Time.deltaTime;
-            if (partsHunt && inside && !busy && !Hazard && !leakDone && huntTime > 40 && MarsWorld.PowerOn && suit && suit.MoxieOn)
+            if (partsHunt && inside && !inGreenhouse && !busy && !Hazard && !leakDone && huntTime > 40 && MarsWorld.PowerOn && suit && suit.MoxieOn)
             { leakDone = true; StartCoroutine(AirLeak()); }
         }
 
@@ -423,10 +423,54 @@ namespace MissionMars
             if (d && d.gameObject.activeInHierarchy) yield return d.Move(false);
         }
 
+        // ================================================================== the PLANTATION (walk-in greenhouse)
+        bool inGreenhouse; string savedObjTitle, savedObjBody, savedObjId;
+        IEnumerator EnterGreenhouse()
+        {
+            var gh = Greenhouse.I; if (!gh) yield break;
+            busy = true; player.Frozen = true;
+            savedObjTitle = hud.LastTitle; savedObjBody = hud.LastBody; savedObjId = hud.ObjectiveId;
+            var outer = MarsWorld.GreenhouseDoorPanel ? MarsWorld.GreenhouseDoorPanel.GetComponent<SlideDoor>() : null;
+            if (outer) yield return outer.Move(true); // the door slides open...
+            yield return Cinema.I.ToBlack(0.35f);
+            if (outer) outer.Snap(false);              // ...and shuts behind you
+            MarsWorld.SetSurface(false); gh.Room.SetActive(true);
+            Game.Sky.Mode = SkyMode.Interior; Game.Sky.InteriorBright = 1.3f; Game.Sky.Apply();
+            gh.ExitPanel.GetComponent<SlideDoor>().Snap(false);
+            player.Teleport(gh.Spawn, gh.SpawnYaw);
+            bot.Teleport(gh.Spawn + new Vector3(1.2f, 1.8f, 1.5f));
+            suit.Inside = true; inside = true; inGreenhouse = true;
+            player.GetComponent<CharacterController>().radius = 0.28f; // slimmer between the plant beds
+            if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
+            yield return Cinema.I.FromBlack(0.4f);
+            player.Frozen = false; busy = false;
+            StartCoroutine(gh.OnEnter(hud));
+        }
+
+        IEnumerator ExitGreenhouse()
+        {
+            var gh = Greenhouse.I; if (!gh) yield break;
+            busy = true; player.Frozen = true;
+            yield return gh.ExitPanel.GetComponent<SlideDoor>().Move(true);
+            yield return Cinema.I.ToBlack(0.35f);
+            gh.Room.SetActive(false); MarsWorld.SetSurface(true);
+            Game.Sky.Mode = SkyMode.Surface; Game.Sky.InteriorBright = MarsWorld.PowerOn ? 1f : 0.35f; Game.Sky.Apply();
+            player.Teleport(MarsWorld.GreenhouseOutside, MarsWorld.GreenhouseOutsideYaw);
+            bot.Teleport(MarsWorld.GreenhouseOutside + new Vector3(1.5f, 2, 1.5f));
+            suit.Inside = false; inside = false; inGreenhouse = false;
+            player.GetComponent<CharacterController>().radius = 0.38f;
+            if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
+            if (!string.IsNullOrEmpty(savedObjTitle)) hud.Objective(savedObjTitle, savedObjBody, savedObjId);
+            yield return Cinema.I.FromBlack(0.4f);
+            player.Frozen = false; busy = false;
+        }
+
         void WireDoors()
         {
             MarsWorld.BunkerDoor.OnUse = () => { if (!busy) StartCoroutine(EnterBunker()); };
             MarsWorld.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitBunker()); };
+            if (MarsWorld.GreenhouseDoor) MarsWorld.GreenhouseDoor.OnUse = () => { if (!busy) StartCoroutine(EnterGreenhouse()); };
+            if (Greenhouse.I) Greenhouse.I.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitGreenhouse()); };
         }
 
         // ================================================================== salvage

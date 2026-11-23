@@ -23,7 +23,7 @@ namespace MissionMars
     {
         public static readonly Vector2 WakeXZ = new Vector2(0, 0);
         public static readonly Vector2 CrashXZ = new Vector2(10, 26);
-        public static readonly Vector2 BunkerXZ = new Vector2(-36, -24);
+        public static readonly Vector2 BunkerXZ = new Vector2(-22, -48); // the shelter is next to the MARS BASE
         public static readonly Vector2 PadXZ = new Vector2(40, -34);
         public static readonly Vector3 InteriorOrigin = new Vector3(0, -90, 0);
         public static readonly Vector2[] IceXZ = { new Vector2(-82, -8), new Vector2(-74, -66), new Vector2(-48, -96) };
@@ -74,6 +74,7 @@ namespace MissionMars
             Rocks();
             BuildRover();
             BuildInterior();
+            Greenhouse.Build();
             SkyBodies();
             FX.DustBanks(new Vector3(0, MarsTerrain.Base + 2, 0)).transform.SetParent(Root.transform, true);
         }
@@ -245,15 +246,6 @@ namespace MissionMars
             ProcMesh.Prim(PrimitiveType.Cylinder, "VentCap", Bunker, new Vector3(-2.5f, 4.85f, -2.5f), new Vector3(0.8f, 0.08f, 0.8f), R.Orange, null, false);
             ProcMesh.Prim(PrimitiveType.Cylinder, "Periscope", Bunker, new Vector3(2.2f, 4.4f, -3.5f), new Vector3(0.25f, 0.9f, 0.25f), R.HullDark);
             ProcMesh.Prim(PrimitiveType.Sphere, "PeriscopeEye", Bunker, new Vector3(2.2f, 5.35f, -3.5f), Vector3.one * 0.35f, R.CyanGlow, null, false);
-            // sandbags ring
-            var bag = R.Lit(new Color(0.62f, 0.42f, 0.3f), 0.1f);
-            for (int i = 0; i < 26; i++)
-            {
-                float a = Mathf.Lerp(-150, 150, i / 25f) * Mathf.Deg2Rad;
-                var p = new Vector3(Mathf.Sin(a) * 8.6f, 0.25f, Mathf.Cos(a) * 8.6f);
-                if (Mathf.Abs(a) < 0.25f) continue; // entrance gap
-                ProcMesh.Prim(PrimitiveType.Capsule, "Sandbag", Bunker, p, new Vector3(0.5f, 0.55f, 0.4f), bag, new Vector3(0, a * Mathf.Rad2Deg, 90), true);
-            }
             // airlock
             var lockT = new GameObject("Airlock").transform; lockT.SetParent(Bunker, false); lockT.localPosition = new Vector3(0, 0, 7.2f);
             ProcMesh.Prim(PrimitiveType.Cube, "Frame", lockT, new Vector3(0, 1.45f, -0.4f), new Vector3(2.8f, 2.9f, 2.4f), R.Panel);
@@ -578,60 +570,118 @@ namespace MissionMars
         }
 
         // ------------------------------------------------------------------ MARS BASE
-        /// <summary>The MARS BASE: the team's bought cartoon model (one Tripo mesh, 1 x 0.49 x 1 units, origin at the bottom centre).
-        /// It is set into the ground so you can walk onto its platform; invisible colliders stop you walking through the buildings;
-        /// invisible "click zones" turn its buildings into lessons with real NASA data. Not in git (paid licence): without it, nothing is built.</summary>
+        /// <summary>The MARS BASE, built from clean artist-made pieces (Quaternius Ultimate Space Kit + Kenney Space Kit, both CC0):
+        /// a habitat hub, a walk-in PLANTATION dome (press E at its door to go inside), a lab with the weather station,
+        /// the dish that calls Earth and a solar field. Every building has a big floating name and teaches something.</summary>
         static void BuildMarsBase()
         {
-            var prefab = R.Model("P_MarsBase"); if (!prefab) return;
-            float S = BaseSize;
+            if (!R.Model("Q_Base_Large")) return;
             var root = new GameObject("MarsBase").transform; root.SetParent(Root.transform); MarsBase = root;
-            // ground height: average under the footprint, so the platform sits on the ground and only edges dip in
-            float h = 0; int n = 0;
-            for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) { h += MarsTerrain.H(BaseXZ.x + i * S * 0.35f, BaseXZ.y + k * S * 0.35f); n++; }
-            h /= n;
-            const float platformTop = 0.05f; // model units: the flat red platform
-            root.position = new Vector3(BaseXZ.x, h + 0.25f - platformTop * S, BaseXZ.y);
+            root.position = G(BaseXZ);
             var toBunker = new Vector3(BunkerXZ.x - BaseXZ.x, 0, BunkerXZ.y - BaseXZ.y);
-            root.rotation = Quaternion.LookRotation(-toBunker) * Quaternion.Euler(0, 180, 0); // model front (+z) faces the shelter
-            var model = Object.Instantiate(prefab, root, false); model.name = "Model";
-            model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.identity; model.transform.localScale = Vector3.one * S;
-            foreach (var r in model.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            root.rotation = Quaternion.LookRotation(toBunker); // the front (+z) faces the shelter
 
-            // where things are inside the model (model units, measured from its height map)
-            Vector3 M(float x, float y, float z) => new Vector3(-x * S, y * S, z * S); // glTF -> Unity mirrors X
-            GameObject Solid(string name, Vector3 c) { var g = new GameObject(name); g.transform.SetParent(root, false); g.transform.localPosition = c; return g; }
-            { var b = Solid("Platform", M(0, 0.025f, 0)).AddComponent<BoxCollider>(); b.size = M(0.92f, 0.05f, 0.92f); }
-            // SOLID like it looks: walls built from the model's real height map (every building, rock and the rover)
-            BaseWalls(root, S);
-            // press-E zones: invisible triggers a bit INSIDE each building (you stand at the wall and look at it)
-            var dome = Solid("PlantationZone", M(0.02f, 0.12f, -0.02f)); { var c = dome.AddComponent<SphereCollider>(); c.radius = 0.15f * S; c.isTrigger = true; }
-            var dish = Solid("DishZone", M(0f, 0.2f, -0.375f)); { var c = dish.AddComponent<CapsuleCollider>(); c.radius = 0.045f * S; c.height = 0.4f * S; c.isTrigger = true; }
-            var ant = Solid("WeatherZone", M(0.31f, 0.15f, 0.15f)); { var c = ant.AddComponent<CapsuleCollider>(); c.radius = 0.04f * S; c.height = 0.3f * S; c.isTrigger = true; }
-            var hab = Solid("HabitatZone", M(0.15f, 0.08f, 0.375f)); { var c = hab.AddComponent<SphereCollider>(); c.radius = 0.08f * S; c.isTrigger = true; }
-            var farm = Solid("GreenhouseZone", M(-0.31f, 0.1f, -0.1f)); { var c = farm.AddComponent<BoxCollider>(); c.size = M(0.14f, 0.16f, 0.3f); c.isTrigger = true; }
-            BaseFarm(farm, "Greenhouse (vegetables)");
-            BaseFarm(dome, "Plantation dome");
-            EarthLink(dish);
-            WeatherStation(ant);
-            Habitat(hab);
+            // one kit piece, standing on the ground at (x, z) in base space; returns the piece
+            GameObject Kit(string model, float x, float z, float yaw, float scale, bool solid = true, float lift = 0)
+            {
+                var prefab = R.Model(model); if (!prefab) return null;
+                var w = root.TransformPoint(new Vector3(x, 0, z)); w.y = MarsTerrain.H(w.x, w.z) - 0.15f + lift;
+                var g = Object.Instantiate(prefab, root, true); g.name = model;
+                g.transform.position = w; g.transform.rotation = root.rotation * Quaternion.Euler(0, yaw, 0); g.transform.localScale = Vector3.one * scale;
+                foreach (var r in g.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                if (solid)
+                {
+                    var b = Util.Bounds(g); var bc = g.AddComponent<BoxCollider>();
+                    bc.center = g.transform.InverseTransformPoint(b.center);
+                    bc.size = new Vector3(b.size.x, b.size.y, b.size.z) / scale * 0.94f;
+                }
+                return g;
+            }
 
-            // big floating names, so kids always know what each building is
+            // 1. HABITAT hub (living quarters)
+            var hub = Kit("Q_Base_Large", 0, 0, 0, 1.5f);
+            // 2. PLANTATION: big geodesic glass dome with a real door (press E to walk in)
+            GameObject dome;
+            if (R.Model("P_PlantationOut"))
+            {
+                // the team's realistic Tripo dome (Assets/Paid): 1 unit wide, door on its +z side
+                const float DS = 18f;
+                dome = Kit("P_PlantationOut", 20, -3, 0, DS, false);
+                var dc = dome.AddComponent<SphereCollider>(); dc.center = Vector3.zero; dc.radius = 0.47f; // the dome itself (model units)
+                Kit("Q_Connector", 10.2f, -1.5f, 0, 1.5f, false);
+                var doorZone = new GameObject("PlantationDoor"); doorZone.transform.SetParent(dome.transform, false);
+                doorZone.transform.localPosition = new Vector3(0, 0.07f, 0.5f); doorZone.transform.localScale = Vector3.one / DS;
+                var dbc = doorZone.AddComponent<BoxCollider>(); dbc.size = new Vector3(2.2f, 2.8f, 1.0f);
+                GreenhouseDoorPanel = null;
+                GreenhouseDoor = Interactable.Add(doorZone, "Go into", "PLANTATION (grow food)", null); GreenhouseDoor.Range = 5f;
+                GreenhouseOutside = root.TransformPoint(new Vector3(20, 0, -3 + 0.5f * DS + 2.5f));
+            }
+            else
+            {
+                dome = Kit("Q_GeodesicDome", 20, -3, 0, 1.9f);
+                Kit("Q_Connector", 10.8f, -1.5f, 0, 1.5f, false);
+                // the dome's entrance: a small white airlock room with a sliding door (like the shelter's)
+                var vest = new GameObject("PlantationAirlock").transform; vest.SetParent(root, false);
+                { var w = root.TransformPoint(new Vector3(20, 0, 6.6f)); w.y = MarsTerrain.H(w.x, w.z) - 0.1f; vest.position = w; vest.rotation = root.rotation; }
+                ProcMesh.Prim(PrimitiveType.Cube, "Body", vest, new Vector3(0, 1.7f, -0.6f), new Vector3(3.8f, 3.4f, 3.4f), R.Panel);
+                ProcMesh.Prim(PrimitiveType.Cube, "Roof", vest, new Vector3(0, 3.48f, -0.6f), new Vector3(4.0f, 0.16f, 3.6f), R.Orange, null, false);
+                ProcMesh.Prim(PrimitiveType.Cube, "Stripe", vest, new Vector3(0, 0.35f, 1.12f), new Vector3(3.8f, 0.2f, 0.04f), R.Orange, null, false);
+                ProcMesh.Prim(PrimitiveType.Cube, "Doorway", vest, new Vector3(0, 1.25f, 1.11f), new Vector3(1.4f, 2.3f, 0.02f), R.Emissive(new Color(0.3f, 0.5f, 0.3f), new Color(0.6f, 1.6f, 0.6f)), null, false);
+                ProcMesh.Prim(PrimitiveType.Cube, "Lamp", vest, new Vector3(0, 2.75f, 1.15f), new Vector3(1.3f, 0.1f, 0.06f), R.Emissive(Color.black, new Color(0.4f, 2.6f, 0.8f)), null, false);
+                var plSign = World3DText(vest, new Vector3(0, 3.05f, 1.16f), "PLANTATION", 2.6f, new Color(0.55f, 1f, 0.55f)); plSign.transform.localRotation = Quaternion.Euler(0, 180, 0);
+                GreenhouseDoorPanel = DoorPanel(vest, new Vector3(0, 1.25f, 1.2f), new Vector3(1.5f, 2.4f, 0.12f));
+                GreenhouseDoor = Interactable.Add(GreenhouseDoorPanel.gameObject, "Go into", "PLANTATION (grow food)", null); GreenhouseDoor.Range = 5f;
+                GreenhouseOutside = root.TransformPoint(new Vector3(20, 0, 10.5f)); GreenhouseOutside.y = MarsTerrain.H(GreenhouseOutside.x, GreenhouseOutside.z) + 0.1f;
+            }
+            GreenhouseOutside.y = MarsTerrain.H(GreenhouseOutside.x, GreenhouseOutside.z) + 0.1f;
+            GreenhouseOutsideYaw = root.eulerAngles.y;
+            // 3. LAB with the WEATHER STATION radar on its roof
+            var lab = Kit("Q_House_Cylinder", -18, -2, 0, 1.4f);
+            Kit("Q_Roof_Radar", -18, -2, 0, 1.4f, false);
+            Kit("Q_Connector", -10.6f, -1.5f, 0, 1.5f, false);
+            // 4. DISH that talks to Earth, on a metal tower
+            Kit("Q_MetalSupport", -6, -15, 0, 2.2f);
+            var dish = Kit("K_satelliteDish_large", -6, -15, 200, 8f, true, 4.2f);
+            // 5. SOLAR FIELD (power for the base)
+            GameObject panel = null;
+            for (int row = 0; row < 2; row++)
+                for (int i = 0; i < 4; i++)
+                {
+                    var p = Kit("Q_SolarPanel_Ground", 6 + i * 3.3f, -15 - row * 4.2f, 0, 2.2f);
+                    if (!panel) panel = p;
+                }
+            Kit("K_machine_generatorLarge", 20, -16, 90, 3.2f);
+            Kit("K_barrels", -24, 6, 30, 3f);
+            Kit("K_machine_barrelLarge", 8, 7, 0, 2.6f);
+            // a few big rocks around the edge, so the base sits in a real landscape
+            Kit("Q_Rock_Large_1", -30, -14, 40, 2.2f);
+            Kit("Q_Rock_Large_2", 33, 4, 200, 2.0f);
+            Kit("Q_Rock_Large_1", 28, -22, 120, 1.6f);
+
+            // what each building does (press E)
+            if (hub) Habitat(hub);
+            if (lab) WeatherStation(lab);
+            if (dish) EarthLink(dish);
+            if (panel) SolarInfo(panel);
+
+            // big floating names + NOVA's guided tour stops
             BaseStops.Clear();
             void Stop(Vector3 local, string name, string what, string line, Color c)
             {
-                var w = root.TransformPoint(local);
+                var w = root.TransformPoint(local); w.y = MarsTerrain.H(w.x, w.z) + local.y;
                 Label(Root.transform, w, name, what, c);
                 BaseStops.Add((w, line));
             }
-            Stop(M(0.02f, 0.38f, -0.02f), "PLANTATION", "grows food + oxygen", "This big glass dome is the PLANTATION. Plants make FOOD and OXYGEN. Press E here to plant potatoes!", HC.Green);
-            Stop(M(-0.31f, 0.24f, -0.1f), "GREENHOUSE", "more vegetables", "This long tunnel is a GREENHOUSE. More vegetables grow inside. Press E to plant here too.", HC.Green);
-            Stop(M(0f, 0.55f, -0.375f), "DISH TOWER", "talks to Earth", "The DISH TOWER sends messages to Earth. They need about 10 minutes to get there, even at the speed of light!", HC.Cyan);
-            Stop(M(0.31f, 0.47f, 0.15f), "WEATHER STATION", "real NASA weather", "The thin tower is the WEATHER STATION. It shows real Mars weather measured by NASA's InSight lander.", HC.Amber);
-            Stop(M(0.15f, 0.27f, 0.375f), "HABITAT", "rest + fresh air", "This small dome is the HABITAT. Astronauts eat, sleep and breathe fresh air here.", HC.Cyan);
-            var title = World3DText(root, M(0.02f, 0.66f, -0.02f), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
+            Stop(new Vector3(0, 11, 0), "HABITAT", "home: eat, sleep, fresh air", "This is the HABITAT, the home of the base. Astronauts eat, sleep and breathe fresh air here. Press E to rest!", HC.Cyan);
+            Stop(new Vector3(20, 13.5f, -3), "PLANTATION", "go inside to grow potatoes", "The glass dome is the PLANTATION. Sunlight comes through the glass. Go inside to plant, water and harvest potatoes!", HC.Green);
+            Stop(new Vector3(-18, 11, -2), "WEATHER STATION", "real NASA weather", "This lab has the WEATHER STATION on its roof. It shows real Mars weather measured by NASA's InSight lander.", HC.Amber);
+            Stop(new Vector3(-6, 13, -15), "DISH TOWER", "talks to Earth", "The DISH sends messages to Earth. They need about 10 minutes to get there, even at the speed of light!", HC.Cyan);
+            Stop(new Vector3(11, 6, -17), "SOLAR PANELS", "power from the Sun", "SOLAR PANELS make our power. Mars gets only about half the sunlight Earth gets, so we need a lot of them.", HC.Amber);
+            var title = World3DText(root, new Vector3(0, 17, 0), "MARS BASE", 16, new Color(1f, 0.8f, 0.35f));
             title.gameObject.AddComponent<Billboard>();
         }
+
+        public static Interactable GreenhouseDoor; public static Transform GreenhouseDoorPanel; public static Vector3 GreenhouseOutside; public static float GreenhouseOutsideYaw;
 
         /// <summary>Big floating names over the main places, so kids always know where they are.</summary>
         static void PlaceLabels()
@@ -644,38 +694,6 @@ namespace MissionMars
 
         /// <summary>Points NOVA shows on the base tour: where to look + what NOVA says.</summary>
         public static readonly List<(Vector3 pos, string line)> BaseStops = new List<(Vector3, string)>();
-
-        /// <summary>Solid walls from the model's height map (Assets/Paid/Resources/Paid/MarsBase_heights.txt): one block per cell
-        /// that is higher than the platform, as one mesh collider created at runtime (so it is readable).</summary>
-        static void BaseWalls(Transform root, float S)
-        {
-            var ta = Resources.Load<TextAsset>("Paid/MarsBase_heights"); if (!ta) return;
-            var lines = new List<string>(); foreach (var l in ta.text.Split('\n')) { var t = l.Trim(); if (t.Length > 0 && t[0] != '#') lines.Add(t); }
-            int N = int.Parse(lines[0]);
-            var h = new float[N, N];
-            for (int z = 0; z < N; z++) { var p = lines[1 + z].Split(' '); for (int x = 0; x < N; x++) h[x, z] = float.Parse(p[x], System.Globalization.CultureInfo.InvariantCulture); }
-            const float walk = 0.075f; // lower than this = the walkable platform (the box collider)
-            float cell = S / N;
-            var v = new List<Vector3>(); var tri = new List<int>();
-            void Quad(Vector3 a, Vector3 b, Vector3 c2, Vector3 d) { int i = v.Count; v.Add(a); v.Add(b); v.Add(c2); v.Add(d); tri.AddRange(new[] { i, i + 1, i + 2, i, i + 2, i + 3, i, i + 2, i + 1, i, i + 3, i + 2 }); } // both sides
-            float Hc(int x, int z) => x < 0 || z < 0 || x >= N || z >= N || h[x, z] < walk ? 0 : h[x, z];
-            for (int z = 0; z < N; z++)
-                for (int x = 0; x < N; x++)
-                {
-                    float y = Hc(x, z); if (y <= 0) continue;
-                    float x0 = -S / 2 + x * cell, x1 = x0 + cell, z0 = -S / 2 + z * cell, z1 = z0 + cell, Y = y * S;
-                    Quad(new Vector3(x0, Y, z0), new Vector3(x1, Y, z0), new Vector3(x1, Y, z1), new Vector3(x0, Y, z1));
-                    void Wall(float ny, Vector3 a, Vector3 b) { if (ny >= y) return; float Y0 = ny * S; Quad(new Vector3(a.x, Y0, a.z), new Vector3(b.x, Y0, b.z), new Vector3(b.x, Y, b.z), new Vector3(a.x, Y, a.z)); }
-                    Wall(Hc(x - 1, z), new Vector3(x0, 0, z0), new Vector3(x0, 0, z1));
-                    Wall(Hc(x + 1, z), new Vector3(x1, 0, z0), new Vector3(x1, 0, z1));
-                    Wall(Hc(x, z - 1), new Vector3(x0, 0, z0), new Vector3(x1, 0, z0));
-                    Wall(Hc(x, z + 1), new Vector3(x0, 0, z1), new Vector3(x1, 0, z1));
-                }
-            var mesh = new Mesh { name = "MarsBaseWalls", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
-            mesh.SetVertices(v); mesh.SetTriangles(tri, 0); mesh.RecalculateBounds();
-            var g = new GameObject("Walls"); g.transform.SetParent(root, false); g.transform.localScale = new Vector3(-1, 1, 1); // glTF -> Unity mirrors X
-            g.AddComponent<MeshCollider>().sharedMesh = mesh;
-        }
 
         /// <summary>A big floating name (and a short "what it is") above a place. Always faces you; only shows when you are near.</summary>
         public static void Label(Transform parent, Vector3 world, string name, string what, Color c)
@@ -751,40 +769,6 @@ namespace MissionMars
             i.Range = 5f;
         }
 
-        /// <summary>The glass dome is a greenhouse: press E to plant potatoes (learn that plants make food AND oxygen),
-        /// later press E to eat and refill life support (once a minute).</summary>
-        static void Greenhouse(GameObject dome)
-        {
-            if (!dome) return;
-            bool planted = false; float nextMeal = 0;
-            var leaf = R.Lit(new Color(0.25f, 0.7f, 0.25f), 0.3f, 0f);
-            Interactable use = null;
-            use = Interactable.Add(dome, "Plant", "Greenhouse (potatoes)", () =>
-            {
-                var suit = Game.Suit;
-                if (!planted)
-                {
-                    planted = true;
-                    for (int i = 0; i < 14; i++) // little rows of green plants inside the dome
-                    {
-                        float x = -3f + (i % 7) * 1f, z = (i < 7 ? -1.2f : 1.2f);
-                        ProcMesh.Prim(PrimitiveType.Sphere, "Plant", dome.transform, new Vector3(x, 0.35f, z), new Vector3(0.6f, 0.5f, 0.6f), leaf, null, false);
-                    }
-                    if (Game.Hud) Game.Hud.Toast("POTATOES PLANTED!", "Plants make FOOD and OXYGEN. On Mars, astronauts must grow their own food!", "food", HC.Green);
-                    if (suit) suit.Drink(10);
-                    use.Verb = "Eat"; use.Label = "Fresh Mars potatoes";
-                    nextMeal = Time.time + 20;
-                }
-                else if (Time.time >= nextMeal)
-                {
-                    if (suit) suit.Drink(25);
-                    if (Game.Hud) Game.Hud.Toast("YUM! FRESH POTATOES", "Food gives you energy. Your life support went up!", "food", HC.Green);
-                    nextMeal = Time.time + 60;
-                }
-                else if (Game.Hud) Game.Hud.Toast("STILL GROWING…", "Plants need time. Come back in a minute!", "food", HC.Amber);
-            });
-            use.Range = 9f; // the dome is big
-        }
 
         // ------------------------------------------------------------------
         static void BuildInterior()
@@ -1037,12 +1021,13 @@ namespace MissionMars
     /// <summary>Shows its children only when the camera is near (so labels do not clutter the sky).</summary>
     public class NearOnly : MonoBehaviour
     {
-        public float Far = 110f, Near = 9f; bool shown = true;
+        public float Far = 70f, Near = 9f; bool shown = true;
         void LateUpdate()
         {
             var c = Game.Cam; if (!c) return;
             float d = Vector3.Distance(c.transform.position, transform.position);
-            bool show = d < Far && d > Near; // hidden when far away, and when you are right next to it
+            bool driving = MarsWorld.TheRover && MarsWorld.TheRover.Driving;
+            bool show = d < Far && d > Near && !driving; // hidden when far, when right next to it, and while you drive the rover
             if (show != shown) { shown = show; foreach (Transform ch in transform) ch.gameObject.SetActive(show); }
         }
     }

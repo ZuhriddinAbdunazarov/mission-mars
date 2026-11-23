@@ -201,9 +201,10 @@ namespace MissionMars
         public void Show(bool on, float d = 0.8f) { Tween.Fade(group, on ? 1 : 0, d); }
         public bool Visible => group.alpha > 0.5f;
 
+        public string LastTitle, LastBody;
         public void Objective(string title, string body, string id = null)
         {
-            ObjectiveId = id;
+            ObjectiveId = id; LastTitle = title; LastBody = body;
             StartCoroutine(ObjCo(title, body));
         }
         IEnumerator ObjCo(string title, string body)

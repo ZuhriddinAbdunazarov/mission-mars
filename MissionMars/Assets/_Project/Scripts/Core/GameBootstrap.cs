@@ -94,7 +94,7 @@ namespace MissionMars
             Directory.CreateDirectory(dir);
             while (!Game.Player || Game.Player.Frozen) yield return null;
             var b = MarsWorld.MarsBase; if (!b) { Application.Quit(); yield break; }
-            Vector3[] from = { b.TransformPoint(new Vector3(0, 0, 40)), b.TransformPoint(new Vector3(30, 0, 30)), b.TransformPoint(new Vector3(-8, 0, 16)) };
+            Vector3[] from = { b.TransformPoint(new Vector3(-30, 0, 24)), b.TransformPoint(new Vector3(36, 0, 22)), b.TransformPoint(new Vector3(10, 0, 16)) };
             for (int i = 0; i < from.Length; i++)
             {
                 var p = from[i]; p.y = MarsTerrain.H(p.x, p.z) + 0.2f; if (i == 2) p.y = b.position.y + 0.05f * MarsWorld.BaseSize + 0.3f;
@@ -111,6 +111,16 @@ namespace MissionMars
                 Debug.Log($"WALLTEST walked toward the dome centre, stopped {left:0.0} m from it (dome radius ~{0.18f * MarsWorld.BaseSize:0.0} m)");
                 Game.Player.LookAt(b.position + Vector3.up * 6);
                 yield return Shot(dir, "base_wall", 0.5f);
+            }
+            { // inside the PLANTATION
+                var gh = Greenhouse.I;
+                MarsWorld.SetSurface(false); gh.Room.SetActive(true); Game.Sky.Mode = SkyMode.Interior; Game.Sky.InteriorBright = 1.3f; Game.Sky.Apply();
+                for (int f = 0; f < 20; f++) { Game.Player.Teleport(gh.Spawn, 20); yield return null; }
+                yield return Shot(dir, "greenhouse_empty", 0.5f);
+                gh.ShowGrown();
+                for (int f = 0; f < 20; f++) { Game.Player.Teleport(gh.Spawn, 20, 12); yield return null; }
+                yield return Shot(dir, "greenhouse_grown", 0.5f);
+                gh.Room.SetActive(false); MarsWorld.SetSurface(true); Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
             }
             { // the rover: from its front and from the side
                 var rv = MarsWorld.TheRover.transform;
