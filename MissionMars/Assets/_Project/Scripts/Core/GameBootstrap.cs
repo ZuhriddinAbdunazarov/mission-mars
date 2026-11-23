@@ -138,6 +138,12 @@ namespace MissionMars
                 var hp = MarsWorld.HabitatOutside; var bb = MarsWorld.MarsBase;
                 if (bb) { var p0 = bb.TransformPoint(new Vector3(-6, 0, 26)); p0.y = MarsTerrain.H(p0.x, p0.z) + 0.2f; for (int f = 0; f < 30; f++) { Game.Player.Teleport(p0, 0); Game.Player.LookAt(bb.TransformPoint(new Vector3(-8, 6, 0))); yield return null; } yield return Shot(dir, "outside_habitat_lab", 0.4f); }
             }
+            { // the shelter entrance
+                var bo = MarsWorld.BunkerOutside; var fwd = MarsWorld.Bunker.forward; fwd.y = 0; fwd.Normalize();
+                var p0 = bo + fwd * 5f; p0.y = MarsTerrain.H(p0.x, p0.z) + 0.2f;
+                for (int f = 0; f < 30; f++) { Game.Player.Teleport(p0, 0); Game.Player.LookAt(MarsWorld.BunkerDoorPanel.position + Vector3.up * 0.8f); yield return null; }
+                yield return Shot(dir, "bunker_entrance", 0.4f);
+            }
             { // the rover: from its front and from the side
                 var rv = MarsWorld.TheRover.transform;
                 foreach (var (o, n) in new[] { (new Vector3(0, 0, 9), "rover_front"), (new Vector3(8, 0, 2), "rover_side") })

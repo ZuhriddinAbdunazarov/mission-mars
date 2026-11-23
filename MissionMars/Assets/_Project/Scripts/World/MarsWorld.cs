@@ -247,23 +247,61 @@ namespace MissionMars
             ProcMesh.Prim(PrimitiveType.Cylinder, "VentCap", Bunker, new Vector3(-2.5f, 4.85f, -2.5f), new Vector3(0.8f, 0.08f, 0.8f), R.Orange, null, false);
             ProcMesh.Prim(PrimitiveType.Cylinder, "Periscope", Bunker, new Vector3(2.2f, 4.4f, -3.5f), new Vector3(0.25f, 0.9f, 0.25f), R.HullDark);
             ProcMesh.Prim(PrimitiveType.Sphere, "PeriscopeEye", Bunker, new Vector3(2.2f, 5.35f, -3.5f), Vector3.one * 0.35f, R.CyanGlow, null, false);
-            // airlock
+            // ---- the ENTRANCE: a concrete portal cut into the soil hill with a heavy steel blast door (realistic PBR textures) ----
+            var concrete = R.LitTex("rock_boulder_dry_diff", "rock_boulder_dry_nor", new Color(0.66f, 0.63f, 0.6f), 2.5f, 0.06f, 0f);
+            var steel = R.LitTex("metal_plate_diff", "metal_plate_nor", new Color(0.5f, 0.51f, 0.53f), 1.2f, 0.5f, 0.85f);
+            var darkSteel = R.LitTex("metal_plate_diff", "metal_plate_nor", new Color(0.22f, 0.23f, 0.25f), 1.2f, 0.45f, 0.9f);
+            var hazardY = R.Lit(new Color(1f, 0.76f, 0.08f), 0.35f); var hazardK = R.Lit(new Color(0.06f, 0.06f, 0.06f), 0.3f);
             var lockT = new GameObject("Airlock").transform; lockT.SetParent(Bunker, false); lockT.localPosition = new Vector3(0, 0, 7.2f);
-            ProcMesh.Prim(PrimitiveType.Cube, "Frame", lockT, new Vector3(0, 1.45f, -0.4f), new Vector3(2.8f, 2.9f, 2.4f), R.Panel);
+            // front retaining wall + angled wing walls holding back the soil
+            ProcMesh.Prim(PrimitiveType.Cube, "PortalWall", lockT, new Vector3(0, 2.0f, -0.55f), new Vector3(6.8f, 4.4f, 1.0f), concrete);
+            ProcMesh.Prim(PrimitiveType.Cube, "PortalTop", lockT, new Vector3(0, 4.3f, -0.45f), new Vector3(7.2f, 0.35f, 1.3f), concrete, null, false);
+            for (int sd = -1; sd <= 1; sd += 2)
+            {
+                var wing = ProcMesh.Prim(PrimitiveType.Cube, "WingWall", lockT, new Vector3(sd * 3.9f, 1.3f, 0.9f), new Vector3(0.6f, 2.6f, 3.2f), concrete);
+                wing.transform.localRotation = Quaternion.Euler(0, sd * -22f, 0);
+                ProcMesh.Prim(PrimitiveType.Cube, "RampWall", lockT, new Vector3(sd * 1.35f, 0.35f, 1.6f), new Vector3(0.3f, 0.7f, 2.6f), concrete);
+            }
+            // heavy steel frame and the blast door
+            ProcMesh.Prim(PrimitiveType.Cube, "FrameTop", lockT, new Vector3(0, 2.75f, 0.02f), new Vector3(2.4f, 0.35f, 0.4f), darkSteel, null, false);
+            for (int sd = -1; sd <= 1; sd += 2) ProcMesh.Prim(PrimitiveType.Cube, "FrameSide", lockT, new Vector3(sd * 1.02f, 1.3f, 0.02f), new Vector3(0.35f, 2.6f, 0.4f), darkSteel, null, false);
+            // yellow + black hazard chevrons on the frame
+            for (int k = 0; k < 7; k++)
+            {
+                var stripe = ProcMesh.Prim(PrimitiveType.Cube, "Hazard", lockT, new Vector3(-0.9f + k * 0.3f, 2.75f, 0.23f), new Vector3(0.14f, 0.33f, 0.02f), k % 2 == 0 ? hazardY : hazardK, new Vector3(0, 0, 35), false);
+            }
+            for (int sd = -1; sd <= 1; sd += 2)
+                for (int k = 0; k < 8; k++)
+                    ProcMesh.Prim(PrimitiveType.Cube, "Hazard", lockT, new Vector3(sd * 1.02f, 0.15f + k * 0.32f, 0.23f), new Vector3(0.33f, 0.15f, 0.02f), k % 2 == 0 ? hazardY : hazardK, new Vector3(0, 0, 35), false);
             // the door is CLOSED (it keeps the air in). Press E: it slides open, you go in, it shuts behind you.
-            ProcMesh.Prim(PrimitiveType.Cube, "Doorway", lockT, new Vector3(0, 1.25f, 0.81f), new Vector3(1.4f, 2.3f, 0.02f), R.Emissive(new Color(0.75f, 0.8f, 0.85f), new Color(0.9f, 1.0f, 1.1f)), null, false);
-            BunkerDoorPanel = DoorPanel(lockT, new Vector3(0, 1.25f, 0.9f), new Vector3(1.5f, 2.4f, 0.12f));
+            ProcMesh.Prim(PrimitiveType.Cube, "Doorway", lockT, new Vector3(0, 1.25f, -0.05f), new Vector3(1.7f, 2.4f, 0.02f), R.Emissive(new Color(0.75f, 0.8f, 0.85f), new Color(0.9f, 1.0f, 1.1f)), null, false);
+            BunkerDoorPanel = DoorPanel(lockT, new Vector3(0, 1.25f, 0.12f), new Vector3(1.7f, 2.45f, 0.18f));
+            foreach (var r in BunkerDoorPanel.GetComponentsInChildren<Renderer>()) if (r.name == "Slab") r.sharedMaterial = steel; // a heavy steel blast door
+            for (int k = 0; k < 3; k++) ProcMesh.Prim(PrimitiveType.Cube, "DoorRib", BunkerDoorPanel, new Vector3(0, -0.8f + k * 0.8f, 0.11f), new Vector3(1.6f, 0.08f, 0.04f), darkSteel, null, false);
             var door = BunkerDoorPanel.gameObject;
-            ProcMesh.Prim(PrimitiveType.Cube, "DoorLight", lockT, new Vector3(0, 2.6f, 0.85f), new Vector3(1.2f, 0.08f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.4f, 1.0f)), null, false);
-            ProcMesh.Prim(PrimitiveType.Cube, "Stripe", lockT, new Vector3(0, 0.25f, 0.82f), new Vector3(2.8f, 0.2f, 0.05f), R.Orange, null, false);
-            var dl = new GameObject("DoorLamp").AddComponent<Light>(); dl.transform.SetParent(lockT, false); dl.transform.localPosition = new Vector3(0, 2.8f, 1.6f);
-            dl.type = LightType.Point; dl.range = 9; dl.intensity = 3.5f; dl.color = new Color(0.4f, 1f, 0.7f);
-            // the entrance is a concrete portal half buried in the soil hill, with steps going DOWN inside
-            ProcMesh.Prim(PrimitiveType.Cube, "SoilOverEntrance", lockT, new Vector3(0, 3.1f, -0.6f), new Vector3(3.6f, 0.8f, 2.8f), soil, null, false);
-            for (int s = 0; s < 3; s++)
-                ProcMesh.Prim(PrimitiveType.Cube, "Step", lockT, new Vector3(0, 0.05f - s * 0.12f, 0.6f - s * 0.35f), new Vector3(1.6f, 0.12f, 0.4f), R.HullDark, null, false);
-            var sign = World3DText(lockT, new Vector3(0, 4.3f, 0.6f), "UNDERGROUND SHELTER", 3.2f, new Color(1f, 0.85f, 0.4f));
-            var sign2 = World3DText(lockT, new Vector3(0, 3.75f, 0.6f), "2 m of Mars soil blocks space rays", 2.2f, new Color(0.85f, 0.95f, 1f));
+            // keypad, status light, amber beacon and wall lamps
+            ProcMesh.Prim(PrimitiveType.Cube, "Keypad", lockT, new Vector3(1.55f, 1.3f, 0.0f), new Vector3(0.3f, 0.45f, 0.1f), darkSteel, null, false);
+            ProcMesh.Prim(PrimitiveType.Cube, "KeypadScreen", lockT, new Vector3(1.55f, 1.4f, 0.06f), new Vector3(0.22f, 0.14f, 0.02f), R.Emissive(Color.black, new Color(0.3f, 2.2f, 0.9f)), null, false);
+            ProcMesh.Prim(PrimitiveType.Cube, "DoorLight", lockT, new Vector3(0, 3.05f, 0.1f), new Vector3(1.4f, 0.1f, 0.08f), R.Emissive(Color.black, new Color(0.3f, 2.4f, 1.0f)), null, false);
+            var beacon = ProcMesh.Prim(PrimitiveType.Sphere, "Beacon", lockT, new Vector3(0, 4.7f, -0.3f), new Vector3(0.35f, 0.3f, 0.35f), R.Emissive(new Color(0.5f, 0.3f, 0f), new Color(3f, 1.4f, 0.1f)), null, false);
+            var bl = new GameObject("BeaconLight").AddComponent<Light>(); bl.transform.SetParent(beacon.transform, false); bl.type = LightType.Point; bl.range = 10; bl.intensity = 2.5f; bl.color = new Color(1f, 0.6f, 0.15f); bl.gameObject.AddComponent<Blink>().Rate = 0.6f;
+            for (int sd = -1; sd <= 1; sd += 2)
+            {
+                ProcMesh.Prim(PrimitiveType.Cube, "WallLamp", lockT, new Vector3(sd * 2.3f, 2.9f, 0.0f), new Vector3(0.5f, 0.18f, 0.25f), R.Emissive(new Color(0.8f, 0.8f, 0.75f), new Color(2.4f, 2.3f, 2.0f)), null, false);
+            }
+            var dl = new GameObject("DoorLamp").AddComponent<Light>(); dl.transform.SetParent(lockT, false); dl.transform.localPosition = new Vector3(0, 3.2f, 1.6f);
+            dl.type = LightType.Point; dl.range = 10; dl.intensity = 3.2f; dl.color = new Color(1f, 0.95f, 0.85f);
+            // ramp going DOWN to the door
+            var ramp = ProcMesh.Prim(PrimitiveType.Cube, "Ramp", lockT, new Vector3(0, -0.05f, 1.7f), new Vector3(2.4f, 0.2f, 2.8f), concrete, new Vector3(-6, 0, 0), false);
+            // air vent pipes and a periscope camera poking out of the soil (free Kenney pipes when available)
+            var pipe = R.Model("K_pipe_corner");
+            for (int k = 0; k < 2; k++)
+            {
+                var vp = Bunker.TransformPoint(new Vector3(-2.5f + k * 5f, 0, -1.5f)); vp.y = MarsTerrain.H(vp.x, vp.z);
+                if (pipe) { var pc = Object.Instantiate(pipe, Bunker); pc.transform.position = Bunker.TransformPoint(new Vector3(-2.5f + k * 5f, 4.1f, -2.5f)); pc.transform.localScale = Vector3.one * 1.6f; pc.transform.localRotation = Quaternion.Euler(0, k * 180, 0); }
+            }
+            var sign = World3DText(lockT, new Vector3(0, 3.55f, 0.02f), "UNDERGROUND SHELTER", 3.0f, new Color(1f, 0.85f, 0.4f));
+            var sign2 = World3DText(lockT, new Vector3(0, 3.18f, 0.02f), "2 m of Mars soil blocks space rays", 2.0f, new Color(0.9f, 0.95f, 1f));
             sign.transform.localRotation = sign2.transform.localRotation = Quaternion.Euler(0, 180, 0); // face the player outside
             BunkerDoor = Interactable.Add(door, "Go down into", "Underground shelter", null); BunkerDoor.Range = 4.5f;
             BunkerOutside = lockT.TransformPoint(new Vector3(0, 0.1f, 3.2f)); BunkerOutside.y = MarsTerrain.H(BunkerOutside.x, BunkerOutside.z) + 0.1f;
