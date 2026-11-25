@@ -64,6 +64,27 @@
   .quiz .o span::before { content:"☐ "; color:var(--mars); }
   .upside { transform:rotate(180deg); font-size:9pt; color:var(--dim); text-align:center; }
   .draw { border:.6mm dashed #a9b6c6; border-radius:4mm; background:#fff; }
+  body { counter-reset: pg; }
+  .page { counter-increment: pg; }
+  .pageno::after { content: counter(pg); }
+  .src { font-size:8.5pt; color:var(--dim); margin:-1mm 0 2.5mm; }
+  .src::before { content:"Source: "; font-weight:800; }
+  .dark .src { color:#9fb6d6; }
+  .card .src { margin:1mm 0 0; }
+  table.data { width:100%; border-collapse:collapse; font-size:11pt; background:#fff; color:var(--ink); border-radius:3mm; overflow:hidden; }
+  table.data th { background:var(--mars); color:#fff; text-align:left; padding:1.8mm 3mm; font-size:10pt; }
+  table.data td { padding:1.6mm 3mm; border-bottom:.3mm solid #eee2d4; }
+  table.data tr.hi td { background:#fff1dc; font-weight:800; }
+  .mission { display:grid; grid-template-columns:12mm 1fr; gap:3mm; align-items:start; background:#fff; border-radius:4mm; padding:2.5mm 3.5mm; margin-bottom:2.5mm; box-shadow:0 .8mm 3mm rgba(0,0,0,.08); color:var(--ink); }
+  .mission .n { width:12mm; height:12mm; border-radius:50%; background:var(--mars); color:#fff; font-family:"Baloo"; font-size:18pt; display:flex; align-items:center; justify-content:center; }
+  .mission h3 { font-size:13.5pt; margin:0 0 .5mm; }
+  .mission p { font-size:10.5pt; margin:0; line-height:1.3; }
+  .mission .why { color:#0c7f99; font-weight:700; }
+  .key { display:inline-block; min-width:7mm; padding:.3mm 1.6mm; border:.4mm solid #33465a; border-bottom-width:1mm; border-radius:1.5mm; background:#fff; font-family:"Baloo"; font-size:11pt; text-align:center; color:var(--ink); }
+  .pass { display:grid; grid-template-columns:repeat(5,1fr); gap:3mm; }
+  .pass div { background:#fff; border-radius:4mm; padding:3mm; text-align:center; box-shadow:0 .8mm 3mm rgba(0,0,0,.08); color:var(--ink); }
+  .pass b { display:block; font-family:"Baloo"; font-size:15pt; color:var(--mars); }
+  .bar { height:5mm; border-radius:2.5mm; background:var(--mars2); display:inline-block; vertical-align:middle; }
 </style>
 </head>
 <body>
@@ -100,10 +121,10 @@
     <div>
       <img class="pic" src="img/excrim/img_03_1200x896.jpg" style="height:105mm">
       <div class="cap">A spaceship and a Mars base: solar panels for power, a dome to live in, plants for food, and ice under the ground for water.</div>
-      <div class="card" style="margin-top:4mm"><p><b class="t">Your mission in the game:</b> your spaceship crashes on Mars. You find <b>air</b>, <b>water</b> and <b>shelter</b>, collect 3 lost rocket parts, <b>build a new rocket</b>, and fly home when Earth comes back around.</p></div>
+      <div class="card" style="margin-top:4mm"><p><b class="t">Your mission in the game:</b> your spaceship crashes on Mars. In <b>8 missions</b> you hide from a space storm, turn on the power, make <b>air</b> and <b>water</b>, visit a real-looking <b>Mars base</b>, grow <b>potatoes</b>, plan the <b>night power</b>, build a <b>new rocket</b> and fly home!</p></div>
     </div>
   </div>
-  <div class="pageno">2</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 3 WHAT IS SPACE -->
@@ -123,7 +144,7 @@
       <div class="card"><p><b class="t">Radiation:</b> the Sun sends out invisible rays. Earth's air and magnetic field protect us. In space, astronauts need shields.</p></div>
     </div>
   </div>
-  <div class="pageno">3</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 4 GRAVITY & ROCKETS -->
@@ -145,7 +166,7 @@
       <div class="cap">3… 2… 1… BLAST OFF! Fire pushes down, the rocket goes up.</div>
     </div>
   </div>
-  <div class="pageno">4</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 5 PARTS OF A ROCKET -->
@@ -183,7 +204,7 @@
       <div class="game"><b>IN THE GAME</b>The new rocket on the launch pad starts as a blue hologram. Every part you find (Engine Nozzle, Fuel Valve, Flight Computer) makes one section real!</div>
     </div>
   </div>
-  <div class="pageno">5</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 6 SOLAR SYSTEM -->
@@ -203,7 +224,7 @@
     <div class="card"><p><b class="t">7 Uranus</b>: an ice giant that rolls on its side</p></div>
     <div class="card"><p><b class="t">8 Neptune</b>: dark, cold, super windy</p></div>
   </div>
-  <div class="pageno">6</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 7 HOW BIG HOW FAR -->
@@ -220,12 +241,20 @@
       <h2>The Soccer Ball Trick</h2>
       <div class="wow"><div class="h">IMAGINE THIS</div><p>Shrink Earth to a <b>soccer ball</b> (20 cm). Then the Moon is a <b>golf ball</b> about 6 metres away, across your classroom. Mars is a <b>softball</b> (11 cm), and even when it is closest it is about <b>1 kilometre</b> away down the street. Most of the time it is even farther!</p></div>
       <div class="card"><p><b class="t">Trip time:</b> a rocket needs about <b>7 months</b> to fly from Earth to Mars.</p></div>
-      <div class="card"><p><b class="t">Radio delay:</b> a message needs <b>3 to 22 minutes</b> to reach Earth, so astronauts and rovers must solve problems by themselves.</p></div>
+      <div class="card"><p><b class="t">Radio delay:</b> a message needs <b>3 to 22 minutes</b> to reach Earth, so astronauts and rovers must solve problems by themselves.</p><div class="src">NASA JPL Horizons distances ÷ the speed of light</div></div>
       <div class="card" style="border-left-color:var(--cyan)"><p><b class="t">The 2-year window:</b> Earth and Mars line up for the shortest trip only about every <b>26 months</b>. That moment is called a <b>launch window</b>.</p></div>
+      <table class="data">
+        <tr><th>When Earth and Mars are closest</th><th>Distance</th><th>Radio message takes</th></tr>
+        <tr><td>7 October 2020</td><td>62 million km</td><td>3.5 minutes</td></tr>
+        <tr><td>13 January 2025</td><td>96 million km</td><td>5.3 minutes</td></tr>
+        <tr class="hi"><td>20 February 2027 (next!)</td><td>101 million km</td><td>5.6 minutes</td></tr>
+        <tr><td>12 September 2035</td><td>57 million km</td><td>3.2 minutes</td></tr>
+      </table>
+      <div class="src" style="margin-top:1.5mm">NASA JPL Horizons (the same table is inside the game)</div>
       <div class="game"><b>IN THE GAME</b>A countdown above your base shows when the next launch window opens. Your rocket must be ready in time!</div>
     </div>
   </div>
-  <div class="pageno">7</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 8 STANDING ON MARS -->
@@ -244,6 +273,15 @@
         <tr><td>Can I breathe the air?</td><td>yes</td><td><b>NO!</b> It is 95% carbon dioxide (CO2)</td></tr>
         <tr><td>Moons?</td><td>1 Moon</td><td>2 small moons: <b>Phobos</b> and <b>Deimos</b></td></tr>
       </table>
+      <div class="src" style="margin-top:1.5mm">NASA Mars Fact Sheet</div>
+      <h3 style="margin-top:3mm">A real Mars weather report</h3>
+      <table class="data">
+        <tr><th>NASA InSight, Mars day (sol)</th><th>Coldest</th><th>Warmest</th><th>Air pressure</th></tr>
+        <tr><td>Sol 675 (19 Oct 2020)</td><td>−97 °C</td><td>−16 °C</td><td>751 Pa</td></tr>
+        <tr><td>Sol 681 (25 Oct 2020)</td><td>−95 °C</td><td>−4 °C</td><td>744 Pa</td></tr>
+      </table>
+      <p style="font-size:11pt;margin-top:2mm">Air on Earth pushes with about <b>101,000 Pa</b>. Mars air pushes with only about <b>750 Pa</b>: less than 1% of Earth's!</p>
+      <div class="src">NASA InSight lander weather station (in the game's Weather Lab)</div>
     </div>
     <div>
       <img class="pic" src="img/excrim/img_08_1376x768.jpg" style="height:96mm">
@@ -252,7 +290,7 @@
       <div class="cap">Mars, photographed by NASA's Viking orbiters.</div>
     </div>
   </div>
-  <div class="pageno">8</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 9 WONDERS & ICE -->
@@ -271,7 +309,7 @@
       <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>Water is very heavy to bring from Earth. Finding ice on Mars is like finding treasure!</div></div>
     </div>
   </div>
-  <div class="pageno">9</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 10 MACHINES -->
@@ -289,7 +327,8 @@
         <li>A special plate <b>splits CO2</b> and keeps the <b>oxygen (O2)</b>.</li>
         <li>The oxygen <b>fills the base</b>, so astronauts can breathe.</li>
       </ol>
-      <p style="font-size:11pt;color:var(--dim)">Real fact: on Mars, MOXIE made 122 grams of oxygen, enough for a small dog to breathe for about 10 hours!</p>
+      <p style="font-size:11pt">Real fact: on Mars, MOXIE ran <b>16 times</b> and made <b>122 grams</b> of oxygen, about what a small dog breathes in 10 hours. Its best run made 12 grams in one hour.</p>
+      <div class="src">NASA Perseverance MOXIE results (2021-2023)</div>
     </div>
     <div>
       <img class="pic" src="img/game_bunker.png" style="height:52mm">
@@ -301,12 +340,114 @@
         <li>Filters <b>clean the water</b> so it is safe to drink.</li>
         <li>Astronauts <b>drink</b> it, and can split it to make more oxygen.</li>
       </ol>
-      <div class="game"><b>IN THE GAME</b>Carry MOXIE and the water machine from the crash site to the bunker. Together they fill your LIFE SUPPORT bar (air + water).</div>
+      <div class="game"><b>IN THE GAME · MISSION 3</b>Drive the rover to the crash site, pick up MOXIE and the WATER MAKER, and put them on their glowing spots in the shelter. They fill your AIR &amp; WATER bar.</div>
     </div>
   </div>
-  <div class="pageno">10</div>
+  <div class="pageno"></div>
 </section>
 
+
+<!-- NEW: MEET YOUR MARS BASE -->
+<section class="page dark">
+  <div class="kicker">Chapter 9 · Your new home</div>
+  <h2>Meet Your Mars Base</h2>
+  <div class="spread" style="height:auto;grid-template-columns:1.25fr 1fr">
+    <div>
+      <img class="pic" src="img/game_base.png" style="height:auto">
+      <div class="cap">The Mars base in the game: every building has a job. Press E at a door to walk inside.</div>
+      <img class="pic" src="img/game_habitat.png" style="height:72mm;margin-top:3mm">
+      <div class="cap">Inside the Habitat: bunk beds, the kitchen and the computer that shows Earth and Mars.</div>
+      <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>Real astronauts will need these same 6 things on Mars: shelter, air, water, power, food and a way home!</div></div>
+    </div>
+    <div>
+      <div class="card" style="border-left-color:#7cc36b"><p><b class="t">🛡️ Shelter:</b> under 2 m of Mars soil. Safe from space rays. MOXIE and the water maker live here.</p></div>
+      <div class="card"><p><b class="t">🛏️ Habitat:</b> your home. Bunk beds, a kitchen, spacesuits and the computer that shows where Earth is.</p></div>
+      <div class="card" style="border-left-color:var(--cyan)"><p><b class="t">📡 Weather Lab:</b> real NASA weather from Mars and the RADIO to Earth.</p></div>
+      <div class="card" style="border-left-color:#c26bd6"><p><b class="t">🥔 Plantation:</b> a glass greenhouse with pink LED lights. Grow potatoes!</p></div>
+      <div class="card" style="border-left-color:var(--gold)"><p><b class="t">☀️ Solar panels:</b> make power in the day and fill a big battery for the night.</p></div>
+      <div class="card" style="border-left-color:var(--mars)"><p><b class="t">🚀 Launch pad:</b> build your new rocket here.</p></div>
+    </div>
+  </div>
+  <div class="pageno"></div>
+</section>
+
+<!-- NEW: POWER -->
+<section class="page">
+  <div class="spread">
+    <div>
+      <div class="kicker">Chapter 10 · Power on Mars</div>
+      <h2>Sunshine in a Box</h2>
+      <p>On Mars, everything needs electricity: the air maker, the heater, the lights. <b>Solar panels</b> turn sunlight into power. But at night there is no sun!</p>
+      <div class="card"><p><b class="t">Less sun:</b> Mars is farther from the Sun, so it gets only about <b>half</b> the sunlight Earth gets. Dust on the panels makes it even less.</p><div class="src">NASA Mars Fact Sheet</div></div>
+      <div class="card"><p><b class="t">The battery:</b> in the day the panels fill a battery. At night the base lives on that battery, so astronauts must <b>plan</b> what to switch on.</p></div>
+      <div class="card"><p><b class="t">Real story:</b> dust slowly covered the solar panels of NASA's <b>InSight</b> lander. In December 2022 it ran out of power and said goodbye.</p><div class="src">NASA InSight mission</div></div>
+      <div class="game"><b>IN THE GAME · MISSION 6</b>At sunset, walk to the SOLAR PANELS and plan the night. Air and heat come first! Then sleep in a bunk bed in the Habitat.</div>
+    </div>
+    <div>
+      <div class="wow"><div class="h">TRY IT: PLAN THE NIGHT</div><p>Your battery holds <b>40 kWh</b>. Tick what you switch on tonight. Add the numbers. Stay under 40!</p></div>
+      <table class="data">
+        <tr><th>☐</th><th>Machine</th><th>Uses tonight</th><th></th></tr>
+        <tr><td>☐</td><td>🔥 Heater (or you freeze!)</td><td>18 kWh</td><td><span class="bar" style="width:36mm"></span></td></tr>
+        <tr><td>☐</td><td>💨 Oxygen maker (MOXIE)</td><td>12 kWh</td><td><span class="bar" style="width:24mm"></span></td></tr>
+        <tr><td>☐</td><td>💧 Water cleaner</td><td>6 kWh</td><td><span class="bar" style="width:12mm"></span></td></tr>
+        <tr><td>☐</td><td>💡 Lights</td><td>3 kWh</td><td><span class="bar" style="width:6mm"></span></td></tr>
+        <tr><td>☐</td><td>📻 Radio to Earth</td><td>3 kWh</td><td><span class="bar" style="width:6mm"></span></td></tr>
+        <tr><td>☐</td><td>🌱 Plant LED lights</td><td>12 kWh</td><td><span class="bar" style="width:24mm"></span></td></tr>
+        <tr><td>☐</td><td>🚙 Charge the rover</td><td>24 kWh</td><td><span class="bar" style="width:48mm"></span></td></tr>
+        <tr class="hi"><td></td><td>My total</td><td><span class="blank" style="min-width:18mm"></span> kWh</td><td>must be 40 or less</td></tr>
+      </table>
+      <p style="font-size:11pt;margin-top:2mm">Can you keep the heater AND the oxygen maker on, and still talk to Earth?</p>
+      <p class="upside">One good answer: heater 18 + oxygen 12 + water 6 + radio 3 = 39 kWh</p>
+    </div>
+  </div>
+  <div class="pageno"></div>
+</section>
+
+<!-- NEW: FOOD -->
+<section class="page">
+  <div class="spread flip">
+    <div>
+      <div class="kicker">Chapter 11 · Space farming</div>
+      <h2>Growing Food on Mars</h2>
+      <p>A trip to Mars and back takes about <b>2 or 3 years</b>. That is too much food to carry, so astronauts must <b>grow</b> some!</p>
+      <ol class="steps">
+        <li><b>Light:</b> plants use mostly <b>red</b> and <b>blue</b> light, so space farms use pink <b>LED</b> lamps.</li>
+        <li><b>Water:</b> melted Mars ice, dripped onto each plant. Nothing is wasted.</li>
+        <li><b>Soil:</b> Mars dirt has a salt called <b>perchlorate</b> that is bad for people, so it must be washed first.</li>
+        <li><b>Bonus:</b> plants breathe in carbon dioxide and give out <b>oxygen</b>!</li>
+      </ol>
+      <div class="card"><p><b class="t">Real space salad:</b> in 2015 astronauts on the Space Station ate red lettuce grown in NASA's <b>Veggie</b> garden.</p><div class="src">NASA Veggie experiment, ISS</div></div>
+      <div class="card"><p><b class="t">Mars potatoes:</b> in 2017 scientists in Peru grew potatoes in a box that copied Mars air and cold.</p><div class="src">International Potato Center with NASA Ames</div></div>
+    </div>
+    <div>
+      <img class="pic" src="img/game_plantation.png" style="height:96mm">
+      <div class="cap">The PLANTATION in the game: switch on the LED lights, turn on the water pump, watch the potatoes grow, harvest and eat!</div>
+      <div class="game"><b>IN THE GAME · MISSION 5</b>Grow food: LIGHTS → WATER → wait → HARVEST → EAT. Eating fills your energy.</div>
+    </div>
+  </div>
+  <div class="pageno"></div>
+</section>
+
+<!-- NEW: WEATHER + RADIO -->
+<section class="page dark">
+  <div class="spread">
+    <div>
+      <img class="pic" src="img/game_weather.png" style="height:80mm">
+      <div class="cap">The Weather Lab computer shows REAL weather that NASA's InSight lander measured on Mars.</div>
+      <img class="pic" src="img/NASA_photo0.jpg" style="height:52mm;margin-top:3mm">
+      <div class="cap">A real dust devil spins past NASA's Perseverance rover (PIA26574).</div>
+    </div>
+    <div>
+      <div class="kicker">Chapter 12 · Weather and radio</div>
+      <h2>Mars Weather and Calling Home</h2>
+      <div class="card"><p><b class="t">Freezing nights:</b> InSight measured about <b>−97 °C</b> at night and about <b>−10 °C</b> in the day. That is colder than Antarctica!</p><div class="src">NASA InSight weather, sols 675-681</div></div>
+      <div class="card"><p><b class="t">Dust devils:</b> spinning towers of dust race across Mars. Rovers have filmed many of them.</p><div class="src">NASA Perseverance and Curiosity</div></div>
+      <div class="card"><p><b class="t">Calling Earth:</b> your voice travels as radio waves at the speed of light. Today Earth is about <b>184 million km</b> away, so "Hello!" takes about <b>10 minutes</b> to arrive.</p><div class="src">NASA JPL Horizons, 25 November 2026</div></div>
+      <div class="game"><b>IN THE GAME</b>Sit at the weather computer, read the real numbers and make a FORECAST. Then use the RADIO in the Weather Lab to send a message to Earth!</div>
+    </div>
+  </div>
+  <div class="pageno"></div>
+</section>
 <!-- 11 DANGERS -->
 <section class="page">
   <div class="spread">
@@ -317,23 +458,23 @@
       <div class="cap">The real 2018 dust storm that covered all of Mars (NASA).</div>
     </div>
     <div>
-      <div class="kicker">Chapter 9 · Mars dangers</div>
+      <div class="kicker">Chapter 13 · Mars dangers</div>
       <h2>Flares, Storms and Meteors</h2>
-      <div class="card"><p><b class="t">☀️ Solar flares:</b> big blasts from the Sun send out radiation. Mars has <b>no magnetic shield</b> like Earth. NASA watches the Sun every day in a database called <b>DONKI</b>. <b>Stay safe:</b> hide in a shelter with thick walls, or with soil on top.</p></div>
+      <div class="card"><p><b class="t">☀️ Solar flares:</b> big blasts from the Sun send out radiation. Mars has <b>no magnetic shield</b> like Earth. NASA watches the Sun every day in a database called <b>DONKI</b>. In just 30 days (Oct-Nov 2026) DONKI listed <b>92</b> big clouds of gas thrown out by the Sun! <b>Stay safe:</b> hide in a shelter with soil on top.</p><div class="src">NASA DONKI space weather database</div></div>
       <div class="card"><p><b class="t">🌪️ Dust storms:</b> they can cover the whole planet and block sunlight, so solar machines make less power. In 2018 one stopped NASA's Opportunity rover.</p></div>
       <div class="card"><p><b class="t">☄️ Meteors:</b> Mars has thin air, so space rocks don't burn up. NASA finds new craters every year.</p></div>
-      <div class="wow"><div class="h">EVERY CHOICE HAS A COST</div><p>Hiding keeps you safe, but you lose time. Staying outside saves time, but your radiation dose goes up. NASA's limit for a whole astronaut career is <b>600 mSv</b>. One chest X-ray is about 0.1 mSv.</p></div>
-      <div class="game"><b>IN THE GAME</b>A REAL flare from NASA DONKI warns you. Hide or keep going? A Flare Report then shows what your choice did!</div>
+      <div class="wow"><div class="h">EVERY CHOICE HAS A COST</div><p>Hiding keeps you safe, but you lose time. Staying outside saves time, but your radiation dose goes up. NASA's limit for a whole astronaut career is <b>600 mSv</b>. One chest X-ray is about 0.1 mSv.</p><div class="src">NASA astronaut radiation limit (NASA-STD-3001); Curiosity RAD</div></div>
+      <div class="game"><b>IN THE GAME · MISSIONS 1 and 7</b>A REAL flare from NASA DONKI warns you. A red <b>DANGER</b> card shows what to do. Hide or keep going? A Flare Report shows what your choice did!</div>
     </div>
   </div>
-  <div class="pageno">11</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 12 ROBOTS -->
 <section class="page dark">
   <div class="spread flip">
     <div>
-      <div class="kicker">Chapter 10 · Robot explorers</div>
+      <div class="kicker">Chapter 14 · Robot explorers</div>
       <h2>Rovers That Think for Themselves</h2>
       <p>Radio needs up to <b>22 minutes</b> to travel from Mars to Earth. If a rover sees a cliff and waits for Earth to say "STOP!", almost an hour passes!</p>
       <div class="card"><p><b class="t">Smart rovers:</b> NASA sends a list of instructions, and the rover uses its cameras to steer around danger by itself.</p></div>
@@ -346,12 +487,12 @@
       <div class="cap">A real selfie: Perseverance with the little Ingenuity helicopter (NASA/JPL-Caltech). You can find both in the game. Go say hi!</div>
     </div>
   </div>
-  <div class="pageno">12</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 13 SPACE EYES -->
 <section class="page">
-  <div class="kicker">Chapter 11 · Super space eyes</div>
+  <div class="kicker">Chapter 15 · Super space eyes</div>
   <h2>How Do We See Far Away?</h2>
   <div class="grid g2" style="gap:8mm">
     <div>
@@ -365,14 +506,14 @@
       <div class="card" style="margin-top:3mm"><p><b class="t">Infrared light</b> is light our eyes can't see: it is heat! Webb uses it to look through space dust at baby stars, and Mars orbiters use it to study the rocks of Mars.</p></div>
     </div>
   </div>
-  <div class="pageno">13</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 14 TRY AT HOME -->
 <section class="page">
   <div class="spread">
     <div>
-      <div class="kicker">Chapter 12 · Try it yourself</div>
+      <div class="kicker">Chapter 16 · Try it yourself</div>
       <h2>3 Real NASA Experiments for Home</h2>
       <div class="card"><h3>🍫 Candy-bar core sample</h3><p>Push a clear straw straight down into a layered candy bar, then pull it out. You see layers, just like the rock layers rovers drill on Mars. The bottom layer is the oldest!</p></div>
       <div class="card"><h3>🤖 Blindfolded rover race</h3><p>Player 1 (Mission Control) writes steps on paper. Player 2 (the Rover) walks with eyes closed, following ONLY the written steps. That's why rovers need careful plans!</p></div>
@@ -386,7 +527,7 @@
       <div class="cap">In 1997, NASA's Mars Pathfinder bounced onto Mars inside giant airbags and released Sojourner, the first rover on another planet.</div>
     </div>
   </div>
-  <div class="pageno">14</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 15 ACTIVITIES 1 -->
@@ -418,7 +559,7 @@
       <p class="upside">Answers: OXYGEN · SOL · BUNKER · MOXIE</p>
     </div>
   </div>
-  <div class="pageno">15</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 16 ACTIVITIES 2 -->
@@ -451,7 +592,7 @@
       <p class="upside">Answers: engines 1 · fuel tank 2 · flight computer 3</p>
     </div>
   </div>
-  <div class="pageno">16</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 17 QUIZ -->
@@ -462,7 +603,7 @@
     <div>
       <div class="quiz"><div class="q">1. What does the ENGINE NOZZLE do?</div><div class="o"><span>Pushes gas down, rocket goes up</span><span>Keeps astronauts warm</span><span>Stores food</span><span>Talks to Earth</span></div></div>
       <div class="quiz"><div class="q">2. Where do the ENGINES go on a rocket?</div><div class="o"><span>On the top</span><span>At the bottom</span><span>In the middle</span><span>On the side door</span></div></div>
-      <div class="quiz"><div class="q">3. Rockets are built…</div><div class="o"><span>From the top down</span><span>From the bottom up</span><span>Lying on the side</span><span>In any order</span></div></div>
+      <div class="quiz"><div class="q">3. At night, what keeps the Mars base running?</div><div class="o"><span>The solar panels</span><span>The battery</span><span>The Moon</span><span>The rover</span></div></div>
       <div class="quiz"><div class="q">4. What does the FUEL VALVE do?</div><div class="o"><span>Turns on the lights</span><span>Opens and closes the fuel, like a tap</span><span>Makes oxygen</span><span>Steers the rocket</span></div></div>
       <div class="quiz"><div class="q">5. Which machine makes OXYGEN from Mars air?</div><div class="o"><span>MOXIE</span><span>The fuel tank</span><span>The radio</span><span>The parachute</span></div></div>
       <div class="quiz"><div class="q">6. What is Mars air mostly made of?</div><div class="o"><span>Oxygen</span><span>Carbon dioxide</span><span>Helium</span><span>Water</span></div></div>
@@ -473,38 +614,90 @@
       <div class="quiz"><div class="q">9. How often do Earth and Mars line up for the trip home?</div><div class="o"><span>Every day</span><span>Every week</span><span>About every 2 years</span><span>Never</span></div></div>
       <div class="quiz"><div class="q">10. What do we call one day on Mars?</div><div class="o"><span>A moon</span><span>A sol</span><span>An orbit</span><span>A week</span></div></div>
       <div class="quiz"><div class="q">11. How long does a radio message take from Mars to Earth?</div><div class="o"><span>1 second</span><span>3 to 22 minutes</span><span>1 whole day</span><span>1 year</span></div></div>
-      <div class="quiz"><div class="q">12. A rocket flies like a balloon you let go. Why?</div><div class="o"><span>Air rushes out the back</span><span>Balloons are magic</span><span>The wind blows it</span><span>It is very light</span></div></div>
+      <div class="quiz"><div class="q">12. What lights do space farms use for plants?</div><div class="o"><span>Pink LED lights</span><span>Candles</span><span>Green lights</span><span>No light</span></div></div>
     </div>
   </div>
-  <p class="upside" style="margin-top:1mm">Answers: 1 pushes gas down · 2 bottom · 3 bottom up · 4 like a tap · 5 MOXIE · 6 carbon dioxide · 7 ice under the ground · 8 brain · 9 about every 2 years · 10 a sol · 11 3 to 22 minutes · 12 air rushes out the back</p>
-  <div class="pageno">17</div>
+  <p class="upside" style="margin-top:1mm">Answers: 1 pushes gas down · 2 bottom · 3 the battery · 4 like a tap · 5 MOXIE · 6 carbon dioxide · 7 ice under the ground · 8 brain · 9 about every 2 years · 10 a sol · 11 3 to 22 minutes · 12 pink LED lights</p>
+  <div class="pageno"></div>
 </section>
 
-<!-- 18 MISSION STEP BY STEP -->
+<!-- NEW: HOW TO PLAY -->
 <section class="page dark">
   <div class="spread">
     <div>
       <div class="kicker">Before you play</div>
-      <h2>Your Mission, Step by Step</h2>
-      <ol class="steps">
-        <li><b>Wake up</b> next to the crashed ship. Look around and find Earth in the sky.</li>
-        <li><b>Solar flare!</b> Run to the bunker. Its thick walls block the radiation.</li>
-        <li><b>Save yourself:</b> carry MOXIE (air) and the water machine into the bunker.</li>
-        <li><b>Find 3 rocket parts</b>: Engine Nozzle, Fuel Valve, Flight Computer. Follow the coloured light beams.</li>
-        <li><b>Solve each puzzle.</b> The answers are in this book!</li>
-        <li><b>Build the new rocket</b> on the launch pad. Watch out for dust storms and meteors!</li>
-        <li><b>Wait for the launch window</b>, press LAUNCH… and fly home! 🌍</li>
-      </ol>
+      <h2>How to Play</h2>
+      <p>You will never get lost. The game always shows you <b>what to do</b> and <b>where to go</b>:</p>
+      <div class="card"><p><b class="t">⬆️ The big green ARROW</b> at the top of the screen points to the next place, with the distance in metres. When you get there it says <b>HERE! Press E</b>.</p></div>
+      <div class="card"><p><b class="t">✅ The MISSION card</b> (top right) shows <b>MISSION 3 OF 8</b> and short steps. Done steps get a green tick.</p></div>
+      <div class="card"><p><b class="t">🟢 The light BEAM</b> shines up into the sky over the place you need to go.</p></div>
+      <div class="card"><p><b class="t">🤖 NOVA</b> tells you what to do and WHY. Stuck? Press <span class="key">H</span> and NOVA says it again.</p></div>
+      <div class="card" style="border-left-color:var(--mars)"><p><b class="t">🔴 DANGER cards</b> pop up red when a storm or an air leak happens. Do that first!</p></div>
     </div>
     <div>
-      <img class="pic" src="img/game_wake.png" style="height:56mm">
-      <div class="cap">Waking up at the crash site.</div>
-      <img class="pic" src="img/game_puzzle.png" style="height:56mm;margin-top:3mm">
-      <div class="cap">A puzzle unlocks each rocket part.</div>
-      <div class="game" style="margin-top:3mm"><b>CONTROLS</b>W A S D walk · Mouse look · SHIFT run · SPACE jump · E use · 1–4 answer · ESC pause</div>
+      <img class="pic" src="img/game_guide.png" style="height:84mm">
+      <div class="cap">The arrow, the mission card and NOVA in the game.</div>
+      <h3 style="margin-top:3mm">Controls</h3>
+      <table class="data">
+        <tr><td><span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span></td><td>walk (and drive the rover)</td></tr>
+        <tr><td>🖱️ Mouse</td><td>look around</td></tr>
+        <tr><td><span class="key">SHIFT</span></td><td>run</td></tr>
+        <tr><td><span class="key">E</span></td><td>use, open doors, pick up (hold E when you see a ring)</td></tr>
+        <tr><td><span class="key">H</span></td><td>help from NOVA</td></tr>
+        <tr><td><span class="key">1</span>–<span class="key">6</span></td><td>choose an item in your bag</td></tr>
+        <tr><td><span class="key">ESC</span></td><td>pause</td></tr>
+      </table>
     </div>
   </div>
-  <div class="pageno">18</div>
+  <div class="pageno"></div>
+</section>
+
+<!-- NEW: THE 8 MISSIONS -->
+<section class="page">
+  <div class="kicker">Your adventure</div>
+  <h2>The 8 Missions</h2>
+  <div class="grid g2" style="gap:0 6mm">
+    <div>
+      <div class="mission"><div class="n">1</div><div><h3>Hide from the storm</h3><p>A real solar flare! Run to the SHELTER and press E at the door. <span class="why">Why? 2 m of soil blocks space rays.</span></p></div></div>
+      <div class="mission"><div class="n">2</div><div><h3>Turn on the power</h3><p>Plug in the BATTERY, then HOLD E on the MAIN SWITCH. <span class="why">Why? The crash broke the power.</span></p></div></div>
+      <div class="mission"><div class="n">3</div><div><h3>Make air and water</h3><p>Drive the ROVER to the crash. Bring MOXIE and the WATER MAKER to their glowing spots. <span class="why">Why? You need air to breathe and water to drink.</span></p></div></div>
+      <div class="mission"><div class="n">4</div><div><h3>Visit the Mars base</h3><p>Follow the arrow and watch NOVA's tour. <span class="why">Why? Every building has a job.</span></p></div></div>
+    </div>
+    <div>
+      <div class="mission"><div class="n">5</div><div><h3>Grow food</h3><p>In the PLANTATION: lights on, water pump on, wait, harvest, eat! <span class="why">Why? You can't carry food for 2 years.</span></p></div></div>
+      <div class="mission"><div class="n">6</div><div><h3>Survive the night</h3><p>At sunset, plan the battery at the SOLAR PANELS, then sleep in a bunk bed. <span class="why">Why? No sun, no solar power.</span></p></div></div>
+      <div class="mission"><div class="n">7</div><div><h3>Build a new rocket</h3><p>Follow the coloured beams to 3 rocket parts. Solve each puzzle (the answers are in this book!) and bring them to the LAUNCH PAD. Watch out for dust storms and meteors!</p></div></div>
+      <div class="mission"><div class="n">8</div><div><h3>Fly home</h3><p>Wait for the LAUNCH WINDOW, then press E at the launch console. 3… 2… 1… 🌍</p></div></div>
+    </div>
+  </div>
+  <div class="grid" style="grid-template-columns:auto 1fr;gap:4mm;margin-top:3mm;align-items:start">
+    <div class="bot" style="width:15mm"></div>
+    <div class="wow" style="margin:0"><div class="h">NOVA&#39;S TOP 4 TIPS</div>
+      <p>🟢 <b>Lost?</b> Follow the big green arrow at the top of the screen.<br>
+      💨 <b>Air running low?</b> Go inside a building. Once MOXIE is working (Mission 3), your air refills there.<br>
+      ❓ <b>Stuck?</b> Press <span class="key">H</span> and I will tell you what to do.<br>
+      ⭐ <b>Want more stars?</b> Read this book first: the puzzle answers are inside!</p></div>
+  </div>
+  <div class="pageno"></div>
+</section>
+
+<!-- NEW: ASTRONAUT PASS -->
+<section class="page dark">
+  <div class="kicker">Collect stars</div>
+  <h2>Your Astronaut Pass</h2>
+  <p>Every good thing you do earns <b style="color:var(--gold)">★ stars</b>: fixing a leak fast, solving a puzzle on the first try, hiding from a flare, growing food, planning the night. More stars, higher rank!</p>
+  <div class="pass" style="margin-top:4mm">
+    <div><b>CADET</b>0 stars<br>you start here</div>
+    <div><b>EXPLORER</b>5 stars<br>NOVA gets a gold ring</div>
+    <div><b>PILOT</b>11 stars<br>rover TURBO (SHIFT)</div>
+    <div><b>ENGINEER</b>17 stars<br>NOVA gets a rainbow light</div>
+    <div><b>COMMANDER</b>23 stars<br>the best rank!</div>
+  </div>
+  <div class="grid g2" style="gap:8mm;margin-top:6mm">
+    <div class="card"><p><b class="t">Star tips:</b> answer puzzles on the first try (read this book!), fix the air leak in under 25 seconds, and dodge every meteor.</p></div>
+    <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>At the end of the game you see your rank, your stars, how many sols you survived and your radiation dose. Can you become COMMANDER?</div></div>
+  </div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 19 DRAW -->
@@ -514,7 +707,7 @@
   <p>Draw a Mars base. Include: <b>solar panels</b> ☐ · a <b>shielded shelter</b> ☐ · an <b>oxygen machine</b> ☐ · an <b>ice drill</b> ☐ · a <b>rover</b> ☐ · a <b>launch pad</b> ☐</p>
   <div class="draw" style="height:112mm;margin-top:3mm"></div>
   <p style="margin-top:4mm"><b>My #1 survival tip before I play:</b> <span class="blank" style="min-width:180mm"></span></p>
-  <div class="pageno">19</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 20 QR -->
@@ -528,12 +721,13 @@
       <div class="kicker">Training complete</div>
       <h2 style="font-size:36pt">You Are Ready, Commander!</h2>
       <p>You now know how rockets beat gravity, how to make air and water on Mars, how to stay safe from flares, storms and meteors, and why every choice in space has a cost.</p>
-      <p>Scan the code with a phone or tablet to get <b>Mission Mars</b>.</p>
-      <div class="card" style="margin-top:3mm"><p><b class="t">Note:</b> I'm sorry, we don't provide our APK file for this QR code yet. The game will be available here soon. Until then, you can play it on the computer at our NASA Space Apps demo!</p></div>
+      <p>Play <b>Mission Mars</b> on a computer, right in your web browser:</p>
+      <div class="card" style="margin-top:2mm"><p style="font-family:Orbitron;font-size:13pt;color:var(--mars)">spacefrontier01.netlify.app</p></div>
+      <p style="font-size:11pt;color:#c9d6e6">Best with a keyboard and a mouse. Ask an adult to help you open it.</p>
       <div class="nova"><div class="bot"></div><div class="say"><b>NOVA</b>See you on Mars! Remember: shelter from flares, keep your life support up, and build your rocket from the bottom up!</div></div>
     </div>
   </div>
-  <div class="pageno">20</div>
+  <div class="pageno"></div>
 </section>
 
 <!-- 21 CREDITS -->
@@ -548,19 +742,23 @@
       • <b>Perseverance MOXIE</b>: making oxygen from Mars air.<br>
       • <b>MRO SHARAD radar</b>: ice under the Mars ground.<br>
       • <b>Opportunity</b>: the 2018 global dust storm.<br>
+      • <b>NASA JPL Horizons</b>: the real Earth-Mars distance for every day from 2020 to 2035.<br>
+      • <b>NASA InSight</b>: real Mars weather (temperature, air pressure, wind).<br>
+      • <b>NASA Veggie</b> (ISS) and the <b>International Potato Center</b>: growing food in space.<br>
+      • <b>NASA Image Library</b>: Mars photos in the game's Weather Lab.<br>
       • <b>NASA/JPL Mars Activities</b>: balloon scale model, rover race, core sampling.<br>
       • <b>James Webb Space Telescope Fun Pad</b> (NP-2011-04-201-GSFC) and <b>Hubble activity sheets</b> (EP-2015-03-00x-JSC).</p>
     </div>
     <div>
       <h3>Pictures</h3>
-      <p style="font-size:11pt">• <b>NASA photos</b> (public domain): Apollo 11 Saturn V (S69-39961), Artemis I (NHQ202211160030), Mars by Viking (PIA00407), Earth from Mars by Curiosity (PIA17936), MOXIE (PIA24203), 2018 dust storm (PIA22329), Perseverance and Ingenuity selfie (PIA24542). Courtesy NASA/JPL-Caltech.<br>
+      <p style="font-size:11pt">• <b>NASA photos</b> (public domain): Apollo 11 Saturn V (S69-39961), Artemis I (NHQ202211160030), Mars by Viking (PIA00407), Earth from Mars by Curiosity (PIA17936), MOXIE (PIA24203), 2018 dust storm (PIA22329), Perseverance and Ingenuity selfie (PIA24542), dust devil (PIA26574). Courtesy NASA/JPL-Caltech.<br>
       • <b>Illustrations</b>: Team Excrim.<br>
-      • <b>Game screenshots</b>: Mission Mars (Unity). 3D models from NASA 3D Resources; "Astronaut" by Jungle Jim (Sketchfab, CC-BY).</p>
+      • <b>Game screenshots</b>: Mission Mars (Unity). 3D models from NASA 3D Resources, Quaternius and Kenney (CC0); "Astronaut" by Jungle Jim (Sketchfab, CC-BY); Mars base models by Team Excrim.</p>
       <p style="margin-top:6mm;font-size:12pt"><b>Made by Team Excrim</b> for the NASA Space Apps Challenge 2026: <i>Build a Junior Astronaut Mission Trainer</i>.</p>
       <p style="font-size:10pt;color:var(--dim)">Not an official NASA publication.</p>
     </div>
   </div>
-  <div class="pageno">21</div>
+  <div class="pageno"></div>
 </section>
 
 </body>

@@ -10,7 +10,7 @@ namespace MissionMars
         public Camera Cam;
         public Transform Head;
         public Light HelmetLamp;
-        public float WalkSpeed = 4.2f, SprintSpeed = 7.5f, JumpSpeed = 3.4f;
+        public float WalkSpeed = 2.8f, SprintSpeed = 4.8f, JumpSpeed = 2.2f; // a heavy spacesuit: slow steps, small hops
         public static float Sensitivity = 2.0f;
         public bool Frozen, Resting;
         public float SpeedMul = 1f;
@@ -99,10 +99,10 @@ namespace MissionMars
 
             if (cc.isGrounded)
             {
-                if (vy < 0) vy = -2f;
+                if (vy < 0) vy = -4f; // stay on the ground when walking down slopes
                 if (canControl && Input.GetKeyDown(KeyCode.Space)) { vy = JumpSpeed; Sfx.Play("step", 0.6f, 0.8f); }
             }
-            vy -= MarsGravity * dt;
+            vy -= MarsGravity * dt * (vy < 0 ? 1.5f : 1f); // real Mars gravity going up; the heavy suit lands a bit faster
             if(Resting){vel=Vector3.zero;vy=0;Head.localPosition=Vector3.up*HeadHeight;Head.localRotation=Quaternion.Euler(pitch+ExtraPitch,0,ExtraRoll);return;}
             var flags = cc.Move((vel + Vector3.up * vy) * dt);
             if ((flags & CollisionFlags.Above) != 0 && vy > 0) vy = 0;

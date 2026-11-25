@@ -62,7 +62,7 @@ namespace MissionMars
             var cv = g.AddComponent<Canvas>(); cv.renderMode = RenderMode.ScreenSpaceOverlay; cv.sortingOrder = 10;
             var cs = g.AddComponent<CanvasScaler>(); cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; cs.referenceResolution = new Vector2(1920, 1080); cs.matchWidthOrHeight = 0.5f;
             g.AddComponent<GraphicRaycaster>();
-            var h = g.AddComponent<Hud>(); h.Canvas = cv; h.Root = (RectTransform)g.transform; h.Build(); Game.Hud = h; return h;
+            var h = g.AddComponent<Hud>(); h.Canvas = cv; h.Root = (RectTransform)g.transform; h.Build(); Game.Hud = h; Guide.Create(h); return h;
         }
 
         public static Image Glass(Transform p, string n, Vector2 anchor, Vector2 pos, Vector2 size, Color? c = null)
@@ -168,7 +168,7 @@ namespace MissionMars
             botGroup.alpha = 0;
 
             // ---- warning banner ----
-            warnGroup = UIX.Go("Warn", Root).AddComponent<CanvasGroup>(); var wrt = (RectTransform)warnGroup.transform; wrt.At(new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(820, 56));
+            warnGroup = UIX.Go("Warn", Root).AddComponent<CanvasGroup>(); var wrt = (RectTransform)warnGroup.transform; wrt.At(new Vector2(0.5f, 1), new Vector2(0, -260), new Vector2(820, 56));
             warnBg = UIX.Img(wrt, "Bg", new Color(0.35f, 0.04f, 0.02f, 0.75f), UISprites.Round); warnBg.rectTransform.Fill();
             var wi = UIX.Img(wrt, "Icon", HC.Amber, Icons.Get("warn")); wi.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(18, 0), new Vector2(32, 32));
             warnText = UIX.Text(wrt, "", 28, HC.Text, R.Bold, TextAlignmentOptions.Center); warnText.rectTransform.Fill(); warnText.characterSpacing = 5;
@@ -205,6 +205,7 @@ namespace MissionMars
         public void Objective(string title, string body, string id = null)
         {
             ObjectiveId = id; LastTitle = title; LastBody = body;
+            if (Guide.I) { Guide.I.Note(title, System.Text.RegularExpressions.Regex.Replace(body ?? "", "<.*?>", "")); return; } // the kid checklist shows it
             StartCoroutine(ObjCo(title, body));
         }
         IEnumerator ObjCo(string title, string body)
@@ -219,15 +220,18 @@ namespace MissionMars
             objRt.anchoredPosition = new Vector2(20, -36);
             Tween.Run(0.5f, t => objRt.anchoredPosition = new Vector2(Mathf.Lerp(20, -40, Tween.EaseOut(t)), -36));
         }
-        public void ClearObjective() { Tween.Fade(objGroup, 0, 0.3f); }
+        public void ClearObjective() { Tween.Fade(objGroup, 0, 0.3f); if (Guide.I) Guide.I.Hide(); }
 
+        int sayId;
         public Coroutine Say(string text, float hold = 0)
         {
+            sayId++;
             if (botCo != null) StopCoroutine(botCo);
             botCo = StartCoroutine(SayCo(text, hold <= 0 ? 2.2f + text.Length * 0.045f : hold));
             return botCo;
         }
-        public IEnumerator SayWait(string text, float hold = 0) { yield return Say(text, hold); }
+        /// <summary>Say a line and wait until it is finished. If another line interrupts it, stop waiting (never hang the story).</summary>
+        public IEnumerator SayWait(string text, float hold = 0) { Say(text, hold); int my = sayId; while (botCo != null && my == sayId) yield return null; }
         IEnumerator SayCo(string text, float hold)
         {
             Tween.Fade(botGroup, 1, 0.25f);

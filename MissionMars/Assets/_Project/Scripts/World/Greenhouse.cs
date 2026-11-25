@@ -21,6 +21,15 @@ namespace MissionMars
         Interactable pump, crate; GameObject cratePile; Material waterMat;
         int state;          // 0 plant, 1 water, 2 growing, 3 harvest, 4 eat
         bool told;
+        /// <summary>For the kid guide: which step we are on, and where the thing to press is.</summary>
+        public int State => state;
+        public bool ModelMode => modelMode;
+        public static event System.Action Ate;
+        public Vector3 TargetPos()
+        {
+            Interactable t = state == 0 ? (modelMode ? ledSwitch : (beds.Count > 0 ? beds[0] : null)) : state == 1 ? pump : state == 3 ? (beds.Count > 0 ? beds[0] : null) : state == 4 ? crate : null;
+            return t ? t.transform.position : Spawn;
+        }
 
         public static Greenhouse Build()
         {
@@ -189,6 +198,7 @@ namespace MissionMars
 
         void Objective(Hud hud)
         {
+            if (Guide.I) return; // the story's kid checklist shows the steps
             if (modelMode)
             {
                 string S2(int n, string txt) => state > n ? $"<color=#7FE07F><s>{txt}</s></color>" : state == n ? $"<b>{txt}</b>" : $"<color=#9FB6D6>{txt}</color>";
@@ -247,7 +257,7 @@ namespace MissionMars
                     if (Game.Suit) Game.Suit.Drink(40);
                     Sfx.Play("success", 0.7f);
                     hud.Toast("YUM! FRESH MARS POTATOES", "Food gives you energy. Life support +40", "food", HC.Green);
-                    AstroPass.Award("farm", "Grew your own food", 3);
+                    AstroPass.Award("farm", "Grew your own food", 3); Ate?.Invoke();
                     Objective(hud);
                     yield return hud.SayWait("Real fact: in 2015 astronauts on the Space Station ate lettuce they grew in NASA's Veggie garden, under the same pink LED lights!", 5);
                     yield return hud.SayWait("And in 2017 scientists in Peru grew potatoes in a box that copied Mars conditions. Potatoes could really feed astronauts on Mars!", 5);
@@ -316,7 +326,7 @@ namespace MissionMars
                     if (Game.Suit) Game.Suit.Drink(40);
                     Sfx.Play("success", 0.7f);
                     hud.Toast("YUM! FRESH MARS POTATOES", "Food gives you energy. Life support +40", "food", HC.Green);
-                    AstroPass.Award("farm", "Grew your own food", 3);
+                    AstroPass.Award("farm", "Grew your own food", 3); Ate?.Invoke();
                     Objective(hud);
                     yield return hud.SayWait("Real fact: in 2015 astronauts on the Space Station ate lettuce they grew in NASA's Veggie garden, under pink LED lights!", 5);
                     yield return hud.SayWait("And in 2017 scientists in Peru grew potatoes in a box that copied Mars conditions. Potatoes could really feed astronauts!", 5);

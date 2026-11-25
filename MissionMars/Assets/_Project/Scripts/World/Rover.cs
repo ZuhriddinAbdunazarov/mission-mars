@@ -9,7 +9,7 @@ namespace MissionMars
     {
         public bool Driving { get; private set; }
         public bool Turbo;                 // Astronaut Pass reward: hold SHIFT for extra speed
-        public float MaxSpeed = 12f;
+        public float MaxSpeed = 7f; // about 25 km/h: real Mars rovers drive slowly and carefully
         public Interactable Use;
         public System.Action OnFirstDrive;
         readonly List<Transform> wheels = new List<Transform>();

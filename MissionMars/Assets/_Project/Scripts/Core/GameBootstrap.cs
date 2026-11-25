@@ -63,6 +63,8 @@ namespace MissionMars
             if (url.Contains("preview=")) { Story.QuickStart = true; StartCoroutine(Preview(url.Contains("preview=shelter"))); }
             string bshot = Arg("-baseshot");
             if (bshot != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(BaseShot(bshot)); }
+            string mtest = Arg("-missiontest");
+            if (mtest != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(MissionTest(mtest)); }
             string dshot = Arg("-datashot");
             if (dshot != null) { Application.runInBackground = true; StartCoroutine(DataShot(dshot)); }
             string tshot = Arg("-titleshot");
@@ -88,6 +90,77 @@ namespace MissionMars
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(Path.Combine(dir, name + ".png"));
             yield return null; yield return null;
+        }
+
+        /// <summary>Plays all 8 missions by itself (presses E for you) and takes a picture of the kid guide at every step.
+        /// Run: MissionMars.exe -missiontest &lt;folder&gt;. Writes log.txt with OK / TIMEOUT for every mission.</summary>
+        IEnumerator MissionTest(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            var log = new System.Text.StringBuilder();
+            void L(string s) { log.AppendLine($"{Time.unscaledTime:0.0}s  {s}"); File.WriteAllText(Path.Combine(dir, "log.txt"), log.ToString()); }
+            IEnumerator WaitKey(string key, float max = 240)
+            {
+                float t = 0; while ((!Guide.I || Guide.I.Key != key) && t < max) { t += Time.unscaledDeltaTime; yield return null; }
+                L(Guide.I && Guide.I.Key == key ? "OK   mission " + Guide.I.Num + " " + key : "FAIL timeout waiting for mission " + key);
+                t = 0; while (Guide.I && string.IsNullOrEmpty(Guide.I.Hint) && t < 60) { t += Time.unscaledDeltaTime; yield return null; }
+            }
+            IEnumerator Idle(float s) { float t = 0; while (t < s) { t += Time.unscaledDeltaTime; yield return null; } }
+            IEnumerator Free(float max = 40) { float t = 0; while ((!Game.Player || Game.Player.Frozen || UIState.Modal || UIState.Cinematic) && t < max) { t += Time.unscaledDeltaTime; yield return null; } }
+            void Use(Interactable i, string what) { if (i && i.OnUse != null) { i.OnUse(); L("press E: " + what); } else L("FAIL nothing to press: " + what); }
+            IEnumerator Pic(string n) { Time.timeScale = 1; yield return Shot(dir, n, 1.0f); L("picture " + n + "   hint: " + (Guide.I ? Guide.I.Hint : "")); }
+
+            IEnumerator KeepAlive() { while (true) { if (Game.Suit) { Game.Suit.O2 = Mathf.Max(Game.Suit.O2, 80); Game.Suit.Health = Mathf.Max(Game.Suit.Health, 80); } yield return null; } }
+            StartCoroutine(KeepAlive()); // the test runs 4x faster, so the suit would run out of air
+            Time.timeScale = 4;
+            yield return Free(300); L("player can move");
+            yield return Pic("00_look");
+            Time.timeScale = 4;
+            yield return WaitKey("storm"); yield return Pic("01_storm");
+            var front = MarsWorld.BunkerDoorPanel.position + MarsWorld.BunkerDoorPanel.forward * 4f; front.y = MarsTerrain.H(front.x, front.z) + 0.1f;
+            Game.Player.Teleport(MarsWorld.BunkerOutside, 0); Game.Player.LookAt(MarsWorld.BunkerDoorPanel.position + Vector3.up); yield return Pic("01b_door");
+            Use(MarsWorld.BunkerDoor, "shelter door");
+            Time.timeScale = 4; yield return WaitKey("power"); yield return Free(); yield return Pic("02_power");
+            Use(MarsWorld.BatteryPlug, "battery"); yield return Idle(1); yield return Pic("02b_switch");
+            Use(MarsWorld.PowerSwitch, "main switch");
+            Time.timeScale = 4; yield return WaitKey("machines"); { float t = 0; while (MarsWorld.ExitDoor.OnUse == null && t < 60) { t += Time.unscaledDeltaTime; yield return null; } } yield return Free();
+            Use(MarsWorld.ExitDoor, "exit shelter"); yield return Idle(1); yield return Free(); yield return Pic("03_rover");
+            Game.Suit.Add(new Item("MOXIE", "MOXIE Oxygen Maker", "air", HC.Cyan, true)); MarsWorld.MoxieCrate.gameObject.SetActive(false);
+            yield return Idle(0.5f); yield return Pic("03b_water");
+            Game.Suit.Add(new Item("ICE", "Ice-to-Water Machine", "water", HC.Cyan, true)); MarsWorld.WaterCrate.gameObject.SetActive(false);
+            yield return Idle(0.5f); yield return Pic("03c_back");
+            Use(MarsWorld.BunkerDoor, "shelter door"); yield return Idle(1); yield return Free();
+            { float t = 0; while (MarsWorld.MoxieSlot.OnUse == null && t < 60) { t += Time.unscaledDeltaTime; yield return null; } }
+            yield return Free(); yield return Pic("03d_slots");
+            Use(MarsWorld.MoxieSlot, "MOXIE spot"); yield return Idle(1); Use(MarsWorld.WaterSlot, "water spot");
+            Time.timeScale = 4; yield return WaitKey("base"); yield return Free(); yield return Pic("04_exit_arrow");
+            Use(MarsWorld.ExitDoor, "exit shelter"); yield return Idle(1); yield return Free(); yield return Pic("04b_base_arrow");
+            { var b = MarsWorld.MarsBase; var p = b.position + (MarsWorld.BunkerOutside - b.position).normalized * 25f; p.y = MarsTerrain.H(p.x, p.z) + 0.2f; Game.Player.Teleport(p, 0); }
+            Time.timeScale = 4; yield return WaitKey("food", 150); yield return Free(); yield return Pic("05_food_arrow");
+            Use(MarsWorld.GreenhouseDoor, "plantation door"); yield return Idle(1); yield return Free(); yield return Pic("05b_inside");
+            var gh = Greenhouse.I;
+            gh.SendMessage("Use"); L("press E: grow lights"); yield return Idle(1.5f); yield return Pic("05c_pump");
+            gh.SendMessage("Use"); L("press E: pump"); Time.timeScale = 4;
+            { float t = 0; while (gh.State != 3 && t < 60) { t += Time.unscaledDeltaTime; yield return null; } }
+            yield return Pic("05d_harvest"); gh.SendMessage("Use"); L("press E: harvest"); yield return Idle(1); yield return Pic("05e_eat");
+            gh.SendMessage("Use"); L("press E: eat");
+            Time.timeScale = 4; yield return WaitKey("night", 120); yield return Free();
+            Use(gh.ExitDoor, "exit plantation"); yield return Idle(1); yield return Free(); yield return Pic("06_night");
+            { var f = typeof(Computers).GetField("PowerPlanOk", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static); (f?.GetValue(null) as System.Action)?.Invoke(); L("night power planned"); }
+            yield return Idle(1); yield return Pic("06b_bunk_arrow");
+            Use(MarsWorld.HabitatDoor, "habitat door"); yield return Idle(1); yield return Free(); yield return Pic("06c_habitat");
+            Use(MarsWorld.Bunk, "bunk bed");
+            Time.timeScale = 4; yield return WaitKey("rocket", 120); yield return Free();
+            if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat");
+            yield return Idle(1); yield return Free(); yield return Pic("07_rocket");
+            foreach (var p in MarsWorld.Parts) { p.Found = true; p.Go.SetActive(false); Game.Suit.Add(new Item(p.Id, p.Name, p.Icon, p.Color)); }
+            yield return Idle(1); yield return Pic("07b_pad");
+            Use(MarsWorld.RocketUse, "launch pad");
+            Time.timeScale = 4; yield return WaitKey("home", 90); yield return Pic("08_home");
+            Time.timeScale = 4; yield return Idle(6); yield return Free(); yield return Pic("08b_console");
+            Use(MarsWorld.LaunchConsole, "launch console");
+            Time.timeScale = 4; yield return Idle(25); yield return Pic("09_end");
+            L("DONE"); Application.Quit();
         }
 
         IEnumerator BaseShot(string dir)
