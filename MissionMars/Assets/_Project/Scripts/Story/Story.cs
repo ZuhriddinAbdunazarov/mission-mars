@@ -16,6 +16,11 @@ namespace MissionMars
         public int DaysLeft = 780; float dayAcc; public bool ClockRunning; public float SecondsPerDay = 0.9f;
         public bool FlareActive; public int WindowsMissed; List<int> hazardQueue = new List<int>(); float hazardTimer = 999;
         public int Sol = 1;
+        /// <summary>The game starts on today's real date. Every sol (Mars day = 24 h 39 min) moves the calendar on.</summary>
+        public System.DateTime StartDate = System.DateTime.UtcNow.Date;
+        public System.DateTime Date => StartDate.AddDays((Sol - 1) * 1.0275);
+        public System.DateTime WindowDate; bool calendarOn; float solAcc;
+        public float SecondsPerSol = 15f; // before the countdown: a new sol every 15 seconds of play
         public FlareEvent CurrentFlare; readonly List<FlareEvent> pool = new List<FlareEvent>();
         bool inside, busy, partsHunt, storm2Done;
         int partsInstalled;
@@ -29,8 +34,9 @@ namespace MissionMars
         public string ClockText()
         {
             if (Game.ExploreBase) return $"SOL {Sol}  |  MARS BASE";
-            if (!ClockRunning && DaysLeft >= 780) return $"SOL {Sol}  ·  <color={HC.Hex(HC.Amber)}>CRASH SITE</color>";
-            return DaysLeft > 0 ? $"SOL {Sol}  ·  EARTH WINDOW <color={HC.Hex(HC.Cyan)}>T-{DaysLeft} DAYS</color>" : $"SOL {Sol}  ·  <color={HC.Hex(HC.Green)}>LAUNCH WINDOW OPEN</color>";
+            string day = Date.ToString("d MMM yyyy").ToUpper();
+            if (!ClockRunning) return $"SOL {Sol}  ·  {day}";
+            return DaysLeft > 0 ? $"SOL {Sol}  ·  {day}  ·  <color={HC.Hex(HC.Cyan)}>T-{DaysLeft}</color>" : $"SOL {Sol}  ·  <color={HC.Hex(HC.Green)}>WINDOW OPEN</color>";
         }
         public string SunText()
         {
@@ -47,6 +53,11 @@ namespace MissionMars
             {
                 dayAcc += Time.deltaTime * (FlareActive && inside ? 4f : 1f); // sheltering from a flare costs time
                 while (dayAcc > SecondsPerDay) { dayAcc -= SecondsPerDay; Tick(); }
+            }
+            else if (calendarOn && !ClockRunning && !Game.Paused && !UIState.Modal && !UIState.Cinematic && player && !player.Frozen)
+            {
+                solAcc += Time.deltaTime;
+                if (solAcc > SecondsPerSol) { solAcc = 0; Sol++; }
             }
             UpdateTimerHolo();
             if (Game.InMenu && SpaceSet.I && SpaceSet.I.gameObject.activeSelf && cineCam && cineCam.enabled) SpaceSet.I.MenuTick();
@@ -93,12 +104,87 @@ namespace MissionMars
         }
         float Dist(Vector3 a) => player ? Vector3.Distance(player.transform.position, a) : 999f;
 
-        // ================================================================== MISSION 4: visit the Mars base
+        // ================================================================== MISSION 4: water from Mars ice
+        int waterReady, dugIce; bool melting, drankIce;
+        int IceCount() { int n = 0; foreach (var it in suit.Items) if (it.Id == "ICEBLOCK") n++; return n; }
+        GameObject IceSite()
+        {
+            GameObject best = null; float bd = 1e9f;
+            foreach (var g in MarsWorld.IceBlocks) { float d = Vector3.Distance(g.transform.position, MarsWorld.BunkerOutside); if (d < bd) { bd = d; best = g; } }
+            return best;
+        }
+        void DigIce(GameObject site)
+        {
+            if (!suit.Add(new Item("ICEBLOCK", "Mars ice", "water", new Color(0.65f, 0.9f, 1f)))) { hud.Say("Your bag is full! Bring the ice to the water machine first."); return; }
+            dugIce++;
+            FX.BurstSparks(site.transform.position + Vector3.up, new Color(0.7f, 0.95f, 1f), 50); FX.DustBlast(site.transform.position, 0.5f);
+            Sfx.Play("pickup", 0.8f, 1.3f);
+            hud.Toast($"ICE DUG OUT: {IceCount()} IN YOUR BAG", "Ice from under the Mars dust. Melt it to get water!", "water", HC.Cyan);
+        }
+        void UseWaterMachine()
+        {
+            if (waterReady > 0)
+            {
+                waterReady--; drankIce = true; suit.Drink(100); Sfx.Play("powerup", 0.5f);
+                hud.Toast("CLEAN WATER!", "You drank water made from Mars ice. Life support is full.", "water", HC.Cyan);
+                return;
+            }
+            if (melting) { hud.Say("Still melting the ice. Wait a moment!"); return; }
+            int n = IceCount();
+            if (n == 0) { hud.Say("The water tank is EMPTY. Dig ICE at the blue ice field and bring it here."); return; }
+            suit.Remove("ICEBLOCK"); StartCoroutine(MeltIce(n));
+        }
+        IEnumerator MeltIce(int n)
+        {
+            melting = true; Sfx.Play("build", 0.6f); Sfx.Play("hum", 0.4f);
+            hud.Toast("MELTING THE ICE…", "1. Heat melts the ice.  2. Filters clean the water.", "water", HC.Cyan);
+            yield return new WaitForSeconds(5f);
+            melting = false; waterReady += n; Sfx.Play("success", 0.6f);
+            hud.Say("Ding! Clean water is ready. Press E on the water machine to DRINK!", 4);
+        }
+        IEnumerator IceWater()
+        {
+            var site = IceSite(); if (!site) yield break;
+            foreach (var g in MarsWorld.IceBlocks)
+            {
+                var gg = g; gg.SetActive(true);
+                if (!gg.GetComponent<BoxCollider>()) { var bc = gg.AddComponent<BoxCollider>(); bc.isTrigger = true; bc.center = new Vector3(0, 1f, 0); bc.size = new Vector3(3f, 2.2f, 3f); } // small touch zone (the light beam is 50 m tall)
+                var dig = Interactable.Add(gg, "HOLD E to dig", "Mars ice", null, 1.5f);
+                dig.HoldTime = 1.5f; dig.Range = 5f; dig.OnUse = () => DigIce(gg);
+            }
+            MarsWorld.Tap.Verb = "Use"; MarsWorld.Tap.Label = "WATER MACHINE (put ice in / drink)";
+            guide.Mission(4, "ice", "GET WATER FROM ICE", "Go to the blue ICE field", "HOLD E to dig 2 pieces of ice", "Bring the ice to the SHELTER",
+                "Put the ice in the WATER MACHINE", "Wait: it melts the ice", "DRINK the clean water");
+            yield return hud.SayWait("The water machine is in, but its tank is EMPTY. On Mars, water is FROZEN in the ground. Let's dig some ICE!", 5);
+            while (!drankIce)
+            {
+                int have = IceCount();
+                if (waterReady > 0)
+                    guide.Focus(5, "The water is clean! Press E on the WATER MACHINE to DRINK it.", () => MarsWorld.Tap.transform.position, "WATER MACHINE", () => MarsWorld.BunkerOutside);
+                else if (melting)
+                    guide.Focus(4, "Wait a few seconds: the machine melts the ice, then filters clean the water.");
+                else if (have >= 2 || (have > 0 && dugIce >= 2))
+                {
+                    if (!(inside && !inGreenhouse)) guide.Focus(2, "You have the ice! Bring it to the SHELTER and go inside.", () => MarsWorld.BunkerOutside, "SHELTER");
+                    else guide.Focus(3, "Press E on the WATER MACHINE to put the ice in.", () => MarsWorld.Tap.transform.position, "WATER MACHINE");
+                }
+                else if (inside || Dist(site.transform.position) > 9f)
+                    guide.Focus(0, "Follow the arrow to the blue ICE field. Take the ROVER: it is far! NASA found ice just under the Mars dust.", () => site.transform.position, "ICE FIELD");
+                else
+                    guide.Focus(1, $"HOLD E on the blue ice to dig it out. You have {have} of 2.", () => site.transform.position, "ICE");
+                yield return null;
+            }
+            guide.Complete();
+            AstroPass.Award("ice", "Made water from Mars ice", 3);
+            yield return hud.SayWait("Fresh water from Mars ice! Water is too heavy to bring from Earth, so future astronauts will do exactly this.", 5);
+        }
+
+        // ================================================================== MISSION 5: visit the Mars base
         IEnumerator VisitBase()
         {
             if (!MarsWorld.MarsBase) yield break;
             yield return hud.SayWait("Air and water work! Now let's visit the MARS BASE next door. People live and work there.", 4);
-            guide.Mission(4, "base", "VISIT THE MARS BASE", "Go to the MARS BASE", "Watch NOVA's tour");
+            guide.Mission(5, "base", "VISIT THE MARS BASE", "Go to the MARS BASE", "Watch NOVA's tour");
             guide.Focus(0, "Go outside and follow the green arrow to the MARS BASE. You can walk, or drive the rover!", () => MarsWorld.MarsBase.position, "MARS BASE");
             while (inside || busy || Hazard || UIState.Modal || Dist(MarsWorld.MarsBase.position) > MarsWorld.BaseSize * 0.9f) yield return null;
             guide.Focus(1, "Watch the tour: NOVA shows you every building.");
@@ -112,13 +198,19 @@ namespace MissionMars
         IEnumerator GrowFood()
         {
             var gh = Greenhouse.I; if (!gh || !MarsWorld.GreenhouseDoor) yield break;
-            guide.Mission(5, "food", "GROW FOOD", "Go into the PLANTATION", gh.ModelMode ? "Switch on the grow LIGHTS" : "Plant the SEEDS",
-                "Turn on the WATER PUMP", "Wait: the potatoes grow", "HARVEST the potatoes", "EAT them!");
+            guide.Mission(6, "food", "GROW AND COOK FOOD", "Go into the PLANTATION", gh.ModelMode ? "Switch on the grow LIGHTS" : "Plant the SEEDS",
+                "Turn on the WATER PUMP", "Wait: the potatoes grow", "HARVEST them (into your bag)", "COOK them in the HABITAT kitchen", "EAT your meal!");
             yield return hud.SayWait("Astronauts can't bring food for years. They must GROW it! Let's go to the glass PLANTATION.", 4);
-            bool ate = false; System.Action onAte = () => ate = true; Greenhouse.Ate += onAte;
-            while (!ate)
+            ateMeal = false;
+            while (!ateMeal)
             {
-                if (!(inGreenhouse && curRoom == null))
+                if (suit.Has("MEAL"))
+                    guide.Focus(6, "Your baked potatoes are ready! Press E at the KITCHEN to EAT them.", () => MarsWorld.Kitchen.transform.position, "KITCHEN", () => MarsWorld.HabitatOutside);
+                else if (cooking)
+                    guide.Focus(5, "The oven is baking your potatoes. Wait a few seconds!");
+                else if (suit.Has("POTATO"))
+                    guide.Focus(5, "Potatoes are in your bag! Go into the HABITAT and press E at the KITCHEN to cook them.", () => MarsWorld.Kitchen.transform.position, "KITCHEN", () => MarsWorld.HabitatOutside);
+                else if (!(inGreenhouse && curRoom == null))
                     guide.Focus(0, "Go to the glass PLANTATION and press E at its door. Plants need light, water and soil.", () => MarsWorld.GreenhouseOutside, "PLANTATION");
                 else switch (gh.State)
                 {
@@ -130,7 +222,6 @@ namespace MissionMars
                 }
                 yield return null;
             }
-            Greenhouse.Ate -= onAte;
             guide.Complete();
             while (busy || UIState.Modal || hud.Talking) yield return null;
         }
@@ -144,7 +235,7 @@ namespace MissionMars
             yield return Game.Sky.Timelapse(0.7f, 3f); // the Sun goes down
             hud.Warn("SUNSET: SOLAR PANELS STOPPING", 4, false);
             yield return hud.SayWait("Night is coming! Solar panels make no power in the dark. Tonight the base lives on its BATTERY.", 4);
-            guide.Mission(6, "night", "SURVIVE THE NIGHT", "Go to the SOLAR PANELS", "Plan the night power", "SLEEP in a bunk bed");
+            guide.Mission(7, "night", "SURVIVE THE NIGHT", "Go to the SOLAR PANELS", "Plan the night power", "SLEEP in a bunk bed");
             bool ok = false; System.Action done = () => ok = true;
             Computers.PowerPlanOk += done;
             while (!ok)
@@ -200,6 +291,13 @@ namespace MissionMars
             Hazard = false;
         }
 
+        void ChooseWindow(System.DateTime after)
+        {
+            if (NasaLive.NextClosest(after, out var w, out _)) WindowDate = w; else WindowDate = after.AddDays(780);
+            DaysLeft = Mathf.Max(1, (int)(WindowDate - Date).TotalDays);
+            SecondsPerDay = Mathf.Clamp(480f / DaysLeft, 0.4f, 6f);
+        }
+
         void Tick()
         {
             DaysLeft--; Sol++;
@@ -216,14 +314,16 @@ namespace MissionMars
 
         IEnumerator MissedWindow()
         {
-            WindowsMissed++; DaysLeft = 780;
+            WindowsMissed++;
+            var missed = WindowDate;
+            ChooseWindow(missed.AddDays(45));
             hud.Warn("LAUNCH WINDOW MISSED", 5);
-            yield return hud.SayWait("Oh no, Earth moved too far away! The next trip home is in 26 months. Let's be faster this time!", 4);
+            yield return hud.SayWait($"Oh no! The window of {missed:d MMMM yyyy} closed and Earth is moving away. NASA JPL says the next one is {WindowDate:d MMMM yyyy}: about 2 years more on Mars! Let's be faster!", 6);
         }
 
         void UpdateTimerHolo()
         {
-            string s = DaysLeft > 0 ? $"<size=55%>EARTH LAUNCH WINDOW</size>\nT-{DaysLeft} DAYS\n<size=45%>{DaysLeft / 30.4f:0.0} MONTHS</size>" : "<size=55%>LAUNCH WINDOW</size>\nOPEN";
+            string s = DaysLeft > 0 ? $"<size=55%>EARTH LAUNCH WINDOW · {WindowDate:d MMM yyyy}</size>\nT-{DaysLeft} DAYS\n<size=45%>{DaysLeft / 30.4f:0.0} MONTHS</size>" : "<size=55%>LAUNCH WINDOW</size>\nOPEN";
             if (MarsWorld.TimerText) MarsWorld.TimerText.text = s;
             if (MarsWorld.TimerInside) MarsWorld.TimerInside.text = ClockRunning || DaysLeft < 780 ? s : "<size=55%>NASA DATA TERMINAL</size>\n<size=40%>PRESS E</size>";
         }
@@ -268,11 +368,14 @@ namespace MissionMars
             // ---- WAKE UP ----
             yield return WakeUp();
             if (Game.ExploreBase) yield break;
+            calendarOn = true; // from now on the days go by
             // ---- 1 STORM → SHELTER, 2 POWER ----
             yield return FirstStorm();
             // ---- 3 AIR + WATER ----
             yield return Salvage();
-            // ---- 4 MARS BASE, 5 FOOD, 6 NIGHT ----
+            // ---- 4 ICE → WATER ----
+            yield return IceWater();
+            // ---- 5 MARS BASE, 6 FOOD, 7 NIGHT ----
             yield return VisitBase();
             yield return GrowFood();
             yield return NightAndSleep();
@@ -634,24 +737,84 @@ namespace MissionMars
             player.Frozen = false; busy = false;
         }
 
-        /// <summary>Lie down in the bunk: eyes close, one sol passes, you wake up rested.</summary>
-        IEnumerator Sleep()
+        /// <summary>Lie down ON the bed (head on the pillow, looking up), the eyes close slowly, one sol passes, you wake up and get up.</summary>
+        IEnumerator Sleep(Interactable bed)
         {
             busy = true; player.Frozen = true;
-            float h0 = player.HeadHeight; Sfx.Play("breath", 0.6f);
-            Tween.Run(1f, k => player.HeadHeight = Mathf.Lerp(h0, 0.6f, k));
-            yield return Lids(1, 0, 1.2f);
+            var from = player.transform.position; float fromYaw = player.YawDeg, h0 = player.HeadHeight;
+            // the lower bunk: lie along the long side of the bed, head at one end
+            var b = Util.Bounds(bed.gameObject);
+            bool alongX = b.size.x > b.size.z; var axis = alongX ? Vector3.right : Vector3.forward;
+            float len = alongX ? b.size.x : b.size.z;
+            var headSpot = b.center - axis * (len * 0.5f - 0.4f); headSpot.y = b.min.y + 0.32f;
+            float feetYaw = Quaternion.LookRotation(axis).eulerAngles.y;
+            player.Resting = true;
+            Sfx.Play("breath", 0.6f);
+            // climb in: move onto the mattress and lie back
+            for (float t = 0; t < 1; t += Time.deltaTime / 1.2f)
+            {
+                float k = Tween.EaseInOut(t);
+                player.HeadHeight = Mathf.Lerp(h0, 0.25f, k);
+                player.Teleport(Vector3.Lerp(from, headSpot, k), Mathf.LerpAngle(fromYaw, feetYaw, k), Mathf.Lerp(0, -80, k));
+                yield return null;
+            }
+            yield return new WaitForSeconds(0.8f);
+            // the eyes close slowly
+            yield return Lids(1, 0.35f, 1.4f); yield return Lids(0.35f, 0.6f, 0.5f); yield return Lids(0.6f, 0, 1.6f);
             Cinema.I.SetBlack(1); Cinema.I.Caption("Zzz… one sol (24 hours 39 minutes) passes.", 2.2f);
             Sol++; if (ClockRunning && DaysLeft > 1) DaysLeft--;
             if (Game.Sky.Day < 0.3f) { Game.Sky.TimeOfDay = 0.32f; Game.Sky.Apply(); } // you wake up in the morning
             suit.Restore(100, 100, 100); suit.O2 = 100; suit.Health = 100;
             yield return new WaitForSeconds(2.2f);
             Cinema.I.SetBlack(0); Cinema.I.Eyes(0);
-            yield return Lids(0, 1, 1.2f);
-            Tween.Run(0.8f, k => player.HeadHeight = Mathf.Lerp(0.6f, h0, k));
+            yield return Lids(0, 1, 1.4f);
+            yield return new WaitForSeconds(0.6f);
+            // get up next to the bed
+            for (float t = 0; t < 1; t += Time.deltaTime / 1.0f)
+            {
+                float k = Tween.EaseInOut(t);
+                player.HeadHeight = Mathf.Lerp(0.25f, h0, k);
+                player.Teleport(Vector3.Lerp(headSpot, from, k), Mathf.LerpAngle(feetYaw, fromYaw, k), Mathf.Lerp(-80, 0, k));
+                yield return null;
+            }
+            player.HeadHeight = h0; player.Teleport(from, fromYaw); player.Resting = false;
             hud.Toast("GOOD MORNING, SOL " + Sol, "Rested: health and life support are full. A Mars day is called a SOL.", "clock", HC.Cyan);
             AstroPass.Award("sleep", "Slept on Mars", 1);
             player.Frozen = false; busy = false; slept = true;
+        }
+
+        // ---- the habitat kitchen: raw potatoes → oven (5 s) → baked potatoes → eat
+        bool cooking, ateMeal;
+        void UseKitchen()
+        {
+            if (cooking) { hud.Say("The oven is still baking. Wait a moment!"); return; }
+            if (suit.Has("MEAL"))
+            {
+                suit.Remove("MEAL"); ateMeal = true;
+                suit.Drink(40); suit.Health = Mathf.Min(100, suit.Health + 25); Sfx.Play("success", 0.7f);
+                hud.Toast("YUM! BAKED MARS POTATOES", "Food gives you energy. Health and life support up!", "food", HC.Green);
+                AstroPass.Award("farm", "Grew, cooked and ate your own food", 3);
+                StartCoroutine(FoodFacts());
+                return;
+            }
+            if (suit.Has("POTATO")) { suit.Remove("POTATO"); StartCoroutine(Cook()); return; }
+            suit.Drink(20); Sfx.Play("pickup", 0.7f);
+            hud.Toast("A SNACK", "Space food from Earth. Grow potatoes in the PLANTATION for a real meal!", "food", HC.Green);
+        }
+        IEnumerator Cook()
+        {
+            cooking = true; Sfx.Play("build", 0.5f); Sfx.Play("hum", 0.4f);
+            hud.Toast("COOKING…", "The oven bakes your potatoes. 5 seconds!", "food", HC.Amber);
+            yield return new WaitForSeconds(5f);
+            cooking = false;
+            suit.Add(new Item("MEAL", "Baked potatoes", "food", new Color(1f, 0.75f, 0.35f)));
+            Sfx.Play("success", 0.6f);
+            hud.Say("Ding! Your baked potatoes are ready. Press E at the KITCHEN again to EAT them!", 4);
+        }
+        IEnumerator FoodFacts()
+        {
+            yield return hud.SayWait("Real fact: in 2015 astronauts on the Space Station ate lettuce they grew in NASA's Veggie garden, under pink LED lights!", 5);
+            yield return hud.SayWait("And in 2017 scientists in Peru grew potatoes in a box that copied Mars. Potatoes could really feed astronauts!", 5);
         }
 
         void WireRooms()
@@ -659,13 +822,8 @@ namespace MissionMars
             if (MarsWorld.HabitatDoor) MarsWorld.HabitatDoor.OnUse = () => { if (!busy) StartCoroutine(EnterRoom(MarsWorld.HabitatRoom, MarsWorld.HabitatOutside, "This is the HABITAT, our home. Sleep in the bunk beds, eat in the kitchen and check Earth and Mars on the navigation computer!")); };
             if (MarsWorld.WeatherDoor) MarsWorld.WeatherDoor.OnUse = () => { if (!busy) StartCoroutine(EnterRoom(MarsWorld.WeatherRoom, MarsWorld.WeatherOutside, "The WEATHER LAB! Sit at the weather computer: it shows REAL Mars weather from NASA. Can you make a forecast?")); };
             foreach (var r in new[] { MarsWorld.HabitatRoom, MarsWorld.WeatherRoom }) if (r != null) r.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitRoom()); };
-            if (MarsWorld.Bunk) MarsWorld.Bunk.OnUse = () => { if (!busy) StartCoroutine(Sleep()); };
-            if (MarsWorld.Kitchen) MarsWorld.Kitchen.OnUse = () =>
-            {
-                suit.Drink(35); Sfx.Play("pickup", 0.7f);
-                hud.Toast("FOOD + WATER", "Life support +35. Real fact: the Space Station recycles 98% of its water, even sweat!", "food", HC.Green);
-                AstroPass.Award("kitchen", "Ate in the habitat", 1);
-            };
+            if (MarsWorld.Bunk) { MarsWorld.Bunk.Range = 2.0f; MarsWorld.Bunk.Verb = "Lie down in"; MarsWorld.Bunk.OnUse = () => { if (!busy) StartCoroutine(Sleep(MarsWorld.Bunk)); }; }
+            if (MarsWorld.Kitchen) { MarsWorld.Kitchen.Verb = "Cook / eat at"; MarsWorld.Kitchen.Label = "the KITCHEN"; MarsWorld.Kitchen.OnUse = UseKitchen; }
             if (MarsWorld.Locker) MarsWorld.Locker.OnUse = () =>
             {
                 suit.Drink(25); Sfx.Play("powerup", 0.5f);
@@ -707,7 +865,7 @@ namespace MissionMars
             }
 
             foreach (var p in MarsWorld.Pouches) { var pp = p; pp.OnUse = () => { suit.Drink(35); Sfx.Play("pickup", 0.6f); hud.Toast("LIFE SUPPORT +35", "Emergency air & water pack from the ship.", "water", HC.Cyan); pp.gameObject.SetActive(false); }; }
-            MarsWorld.Tap.OnUse = () => { suit.Drink(100); Sfx.Play("powerup", 0.5f); hud.Toast("LIFE SUPPORT UP", "Fresh water melted from Mars ice.", "water", HC.Cyan); };
+            MarsWorld.Tap.OnUse = UseWaterMachine;
             MarsWorld.DataConsole.OnUse = () => screens.OpenData(false);
 
             bool moxieHome = false, waterHome = false;
@@ -740,7 +898,7 @@ namespace MissionMars
             MarsWorld.AlarmLight.GetComponent<Blink>().SetBase(0); MarsWorld.AlarmLight.intensity = 0;
             yield return new WaitForSeconds(2.5f);
             hud.RemoveWaypoint(wpRover);
-            StartIce();
+
         }
 
         // ================================================================== bonus mission: collect ice with the rover
@@ -822,14 +980,13 @@ namespace MissionMars
         {
             yield return hud.SayWait("Now, the big question: how do we get HOME?");
             MarsWorld.TimerHolo.SetActive(true);
-            ClockRunning = true; DaysLeft = 779;
-            hud.Toast("EARTH LAUNCH WINDOW", "Earth and Mars line up every ~26 months. Next window: in 2 years.", "clock", HC.Cyan);
-            yield return hud.SayWait("Earth and Mars come close only once every 2 years. Watch the clock on the shelter!");
-            if (NasaLive.NextClosest(out var closeDate, out var closeKm)) yield return hud.SayWait($"Real NASA JPL data: the next time Earth and Mars come close is {closeDate:MMMM yyyy}, only {closeKm / 1e6:0} million km apart. Space agencies plan Mars trips around those dates!", 5);
+            ChooseWindow(Date.AddDays(45)); ClockRunning = true;
+            hud.Toast("EARTH LAUNCH WINDOW", $"Real date from NASA JPL: {WindowDate:d MMMM yyyy}. That is {DaysLeft} days from today!", "clock", HC.Cyan);
+            yield return hud.SayWait($"Earth and Mars come close only once every 2 years. NASA JPL says the next time is {WindowDate:d MMMM yyyy}. That is our trip HOME!", 5);
+            yield return hud.SayWait($"We have {DaysLeft} days. Days go fast here, so watch the clock! If the rocket is not ready in time, we wait 2 more years.", 5);
             yield return hud.SayWait("Our old rocket is broken. Let's BUILD a new one! Find 3 rocket parts. Follow the coloured lights!");
             { var rowsP = new List<string>(); foreach (var rp in MarsWorld.Parts) rowsP.Add("Find the " + rp.Name.ToUpper()); rowsP.Add("Bring them to the LAUNCH PAD");
-              guide.Mission(7, "rocket", "BUILD A NEW ROCKET", rowsP.ToArray()); }
-            hud.Toast("BONUS: ICE HUNT", "3 blue ICE blocks are hidden near the base. Drive into them!", "water", HC.Cyan);
+              guide.Mission(8, "rocket", "BUILD A NEW ROCKET", rowsP.ToArray()); }
             foreach (var p in MarsWorld.Parts)
             {
                 var pp = p;
@@ -1121,7 +1278,7 @@ namespace MissionMars
             partsHunt = false; hud.ForcedPrompt = null; iceOn = false;
             if (MarsWorld.TheRover && MarsWorld.TheRover.Driving) MarsWorld.TheRover.Exit();
             hud.ClearWaypoints();
-            guide.Mission(8, "home", "FLY HOME", "Wait for the LAUNCH WINDOW", "Press E at the LAUNCH CONSOLE");
+            guide.Mission(9, "home", "FLY HOME", "Wait for the LAUNCH WINDOW", "Press E at the LAUNCH CONSOLE");
             guide.Focus(0, "Earth and Mars must line up before we can fly. Watch the clock!");
             yield return hud.SayWait("The rocket is complete! Now we wait for Earth to come around. Let's speed up time…");
             // time-lapse to day 0

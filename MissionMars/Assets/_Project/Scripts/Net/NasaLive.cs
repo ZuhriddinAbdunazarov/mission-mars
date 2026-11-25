@@ -87,10 +87,12 @@ namespace MissionMars
         }
 
         /// <summary>Next time Earth and Mars are closest (opposition season), from the JPL table.</summary>
-        public static bool NextClosest(out DateTime date, out double km)
+        public static bool NextClosest(out DateTime date, out double km) => NextClosest(DateTime.UtcNow, out date, out km);
+        /// <summary>The first Earth–Mars close approach (= launch window season) after the given date, from the JPL table.</summary>
+        public static bool NextClosest(DateTime after, out DateTime date, out double km)
         {
             date = default; km = 0; LoadTable(); if (table == null) return false;
-            int i = Math.Max(1, (int)(Jd(DateTime.UtcNow) - tableJd0));
+            int i = Math.Max(1, (int)(Jd(after) - tableJd0));
             for (; i < table.Length - 1; i++)
                 if (table[i] <= table[i - 1] && table[i] <= table[i + 1]) { date = FromJd(tableJd0 + i); km = table[i] * 1000.0; return true; }
             return false;

@@ -14,7 +14,7 @@ namespace MissionMars
     public class Guide : MonoBehaviour
     {
         public static Guide I;
-        public const int Total = 8;
+        public const int Total = 9;
         /// <summary>Where the door out of the current room is (set by the story). Used when the next place is outside.</summary>
         public static Func<Vector3> Exit;
 

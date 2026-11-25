@@ -24,7 +24,16 @@ namespace MissionMars
         /// <summary>For the kid guide: which step we are on, and where the thing to press is.</summary>
         public int State => state;
         public bool ModelMode => modelMode;
-        public static event System.Action Ate;
+        public static event System.Action Ate, Harvested;
+        bool PotatoesToBag(Hud hud)
+        {
+            var suit = Game.Suit;
+            if (suit && !suit.Add(new Item("POTATO", "Raw Mars potatoes", "food", new Color(0.85f, 0.65f, 0.38f))))
+            { hud.Say("Your bag is full! Use or drop something first (keys 1-6).", 4); return false; }
+            hud.Toast("POTATOES IN YOUR BAG", "Raw potatoes! Cook them in the HABITAT kitchen.", "food", HC.Green);
+            hud.Say("Potatoes in your bag! Raw potatoes are not tasty. Take them to the HABITAT kitchen and COOK them.", 5);
+            Harvested?.Invoke(); return true;
+        }
         public Vector3 TargetPos()
         {
             Interactable t = state == 0 ? (modelMode ? ledSwitch : (beds.Count > 0 ? beds[0] : null)) : state == 1 ? pump : state == 3 ? (beds.Count > 0 ? beds[0] : null) : state == 4 ? crate : null;
@@ -242,14 +251,12 @@ namespace MissionMars
                     Objective(hud);
                     hud.Say("The potatoes are ready! Press E on a bed to HARVEST them.", 4);
                     break;
-                case 3: // harvest
-                    state = 4; Sfx.Play("pickup", 0.8f);
+                case 3: // harvest: the potatoes go into your bag, to cook in the habitat kitchen
+                    if (!PotatoesToBag(hud)) break;
+                    state = 0; Sfx.Play("pickup", 0.8f);
                     foreach (var pot in potatoes) pot.SetActive(false);
                     foreach (var p in plants) StartCoroutine(Grow(p, 0f, 0.6f));
-                    foreach (var b in beds) b.enabled = false;
-                    cratePile.SetActive(true); crate.enabled = true;
-                    Objective(hud);
-                    hud.Say("What a harvest! Take them to the harvest crate and EAT.", 4);
+                    foreach (var b in beds) { b.enabled = true; b.Verb = "Plant"; }
                     break;
                 case 4: // eat
                     state = 0; crate.enabled = false; cratePile.SetActive(false);
@@ -313,13 +320,12 @@ namespace MissionMars
                     Objective(hud);
                     hud.Say("The potatoes are ready! Walk to a soil bed and press E to HARVEST.", 4);
                     break;
-                case 3: // harvest
-                    state = 4; Sfx.Play("pickup", 0.8f);
+                case 3: // harvest: the potatoes go into your bag, to cook in the habitat kitchen
+                    if (!PotatoesToBag(hud)) break;
+                    state = 1; Sfx.Play("pickup", 0.8f); // lights stay on: water again to grow more
                     foreach (var pot in potatoes) pot.SetActive(false);
                     foreach (var b in beds) b.enabled = false;
-                    cratePile.SetActive(true); crate.enabled = true;
-                    Objective(hud);
-                    hud.Say("What a harvest! Take them to the harvest crate and EAT.", 4);
+                    pump.enabled = true;
                     break;
                 case 4: // eat
                     state = 1; crate.enabled = false; cratePile.SetActive(false); pump.enabled = true; // lights stay on: water again to grow more

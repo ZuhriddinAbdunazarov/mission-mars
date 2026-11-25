@@ -133,7 +133,15 @@ namespace MissionMars
             { float t = 0; while (MarsWorld.MoxieSlot.OnUse == null && t < 60) { t += Time.unscaledDeltaTime; yield return null; } }
             yield return Free(); yield return Pic("03d_slots");
             Use(MarsWorld.MoxieSlot, "MOXIE spot"); yield return Idle(1); Use(MarsWorld.WaterSlot, "water spot");
-            Time.timeScale = 4; yield return WaitKey("base"); yield return Free(); yield return Pic("04_exit_arrow");
+            Time.timeScale = 4; yield return WaitKey("ice"); yield return Free(); yield return Pic("04_ice_exit");
+            Use(MarsWorld.ExitDoor, "exit shelter"); yield return Idle(1); yield return Free(); yield return Pic("04b_ice_arrow");
+            { GameObject site = null; float bd = 1e9f; foreach (var g in MarsWorld.IceBlocks) { float d = Vector3.Distance(g.transform.position, MarsWorld.BunkerOutside); if (d < bd) { bd = d; site = g; } }
+              var sp = site.transform.position + Vector3.forward * 4f; sp.y = MarsTerrain.H(sp.x, sp.z) + 0.2f; Game.Player.Teleport(sp, 0); Game.Player.LookAt(site.transform.position + Vector3.up);
+              yield return Idle(0.5f); yield return Pic("04c_dig"); var dig = site.GetComponent<Interactable>(); Use(dig, "dig ice"); yield return Idle(0.5f); Use(dig, "dig ice"); yield return Idle(0.5f); yield return Pic("04d_back"); }
+            Use(MarsWorld.BunkerDoor, "shelter door"); yield return Idle(1); yield return Free(); yield return Pic("04e_machine");
+            Use(MarsWorld.Tap, "water machine: put ice in"); yield return Idle(1); yield return Pic("04f_melting"); yield return Idle(6); yield return Pic("04g_drink");
+            Use(MarsWorld.Tap, "water machine: drink");
+            Time.timeScale = 4; yield return WaitKey("base"); yield return Free(); yield return Pic("05_exit_arrow");
             Use(MarsWorld.ExitDoor, "exit shelter"); yield return Idle(1); yield return Free(); yield return Pic("04b_base_arrow");
             { var b = MarsWorld.MarsBase; var p = b.position + (MarsWorld.BunkerOutside - b.position).normalized * 25f; p.y = MarsTerrain.H(p.x, p.z) + 0.2f; Game.Player.Teleport(p, 0); }
             Time.timeScale = 4; yield return WaitKey("food", 150); yield return Free(); yield return Pic("05_food_arrow");
@@ -142,14 +150,17 @@ namespace MissionMars
             gh.SendMessage("Use"); L("press E: grow lights"); yield return Idle(1.5f); yield return Pic("05c_pump");
             gh.SendMessage("Use"); L("press E: pump"); Time.timeScale = 4;
             { float t = 0; while (gh.State != 3 && t < 60) { t += Time.unscaledDeltaTime; yield return null; } }
-            yield return Pic("05d_harvest"); gh.SendMessage("Use"); L("press E: harvest"); yield return Idle(1); yield return Pic("05e_eat");
-            gh.SendMessage("Use"); L("press E: eat");
+            yield return Pic("05d_harvest"); gh.SendMessage("Use"); L("press E: harvest -> bag has POTATO: " + Game.Suit.Has("POTATO")); yield return Idle(1); yield return Pic("05e_cook_arrow");
+            Use(gh.ExitDoor, "exit plantation"); yield return Idle(1); yield return Free();
+            Use(MarsWorld.HabitatDoor, "habitat door"); yield return Idle(1); yield return Free(); yield return Pic("05f_kitchen");
+            Use(MarsWorld.Kitchen, "kitchen: cook"); yield return Idle(1); yield return Pic("05g_cooking"); yield return Idle(6); yield return Pic("05h_eat");
+            Use(MarsWorld.Kitchen, "kitchen: eat");
             Time.timeScale = 4; yield return WaitKey("night", 120); yield return Free();
-            Use(gh.ExitDoor, "exit plantation"); yield return Idle(1); yield return Free(); yield return Pic("06_night");
+            if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat"); yield return Idle(1); yield return Free(); yield return Pic("06_night");
             { var f = typeof(Computers).GetField("PowerPlanOk", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static); (f?.GetValue(null) as System.Action)?.Invoke(); L("night power planned"); }
             yield return Idle(1); yield return Pic("06b_bunk_arrow");
             Use(MarsWorld.HabitatDoor, "habitat door"); yield return Idle(1); yield return Free(); yield return Pic("06c_habitat");
-            Use(MarsWorld.Bunk, "bunk bed");
+            Use(MarsWorld.Bunk, "bunk bed"); yield return Idle(3); yield return Pic("06d_lying"); yield return Idle(1.5f); yield return Pic("06e_eyes");
             Time.timeScale = 4; yield return WaitKey("rocket", 120); yield return Free();
             if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat");
             yield return Idle(1); yield return Free(); yield return Pic("07_rocket");
