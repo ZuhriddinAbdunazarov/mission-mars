@@ -96,8 +96,12 @@ namespace MissionMars
 
         // ================================================================== guide helpers
         Guide guide => Guide.I;
+        bool wearingSuit = true;
+        bool NeedSuit => curRoom != null && curRoom == MarsWorld.HabitatRoom && !wearingSuit && MarsWorld.Locker;
+        string ExitLabel() => NeedSuit ? "PUT ON SPACESUIT" : "EXIT DOOR";
         Vector3 ExitPos()
         {
+            if (NeedSuit) return MarsWorld.Locker.transform.position;
             if (curRoom != null) return curRoom.ExitPanel.position;
             if (inGreenhouse && Greenhouse.I) return Greenhouse.I.ExitPanel.position;
             return MarsWorld.ExitDoorPanel ? MarsWorld.ExitDoorPanel.position : MarsWorld.InteriorSpawn;
@@ -295,7 +299,7 @@ namespace MissionMars
         {
             if (NasaLive.NextClosest(after, out var w, out _)) WindowDate = w; else WindowDate = after.AddDays(780);
             DaysLeft = Mathf.Max(1, (int)(WindowDate - Date).TotalDays);
-            SecondsPerDay = Mathf.Clamp(480f / DaysLeft, 0.4f, 6f);
+            SecondsPerDay = Mathf.Clamp(180f / DaysLeft, 0.2f, 6f); // about 3 minutes of play
         }
 
         void Tick()
@@ -468,7 +472,7 @@ namespace MissionMars
             yield return new WaitForSeconds(1.0f);
             yield return hud.SayWait("Commander! You're awake! I'm NOVA, your helper robot. Our ship crashed — but you made it!");
             if (NasaApi.I) { var ins = NasaApi.I.LastSol; yield return hud.SayWait($"Brrr! NASA's InSight lander measured real Mars weather: {ins.tempMaxC:0} °C in the day and {ins.tempMinC:0} °C at night. Your suit keeps you warm!", 5); }
-            Guide.Exit = ExitPos;
+            Guide.Exit = ExitPos; Guide.ExitName = ExitLabel;
             guide.Note("LOOK AROUND", "Move the MOUSE. Find EARTH: the blue dot in the sky!", "Move the mouse to look around. Earth is the small blue dot in the sky.");
             yield return hud.SayWait("See that blue dot in the sky? That's EARTH, our home! The grey rock is PHOBOS, a moon of Mars.");
             float w = 0;
@@ -519,17 +523,18 @@ namespace MissionMars
             hud.Warn($"SOLAR FLARE {CurrentFlare.Class} DETECTED — RADIATION STORM", 6);
             yield return hud.SayWait($"WARNING! NASA just measured a {CurrentFlare.Size} solar flare — class {CurrentFlare.Class}! A radiation storm is coming.", 3);
             hud.Toast("REAL SPACE WEATHER", FlareLine(CurrentFlare), "flare", HC.Amber);
-            guide.Mission(1, "storm", "HIDE FROM THE STORM", "Run to the SHELTER (hold SHIFT)", "Press E at the big door");
+            guide.Mission(1, "storm", "HIDE FROM THE STORM", "Run to the SHELTER (hold SHIFT)", "Press E and type the DOOR CODE");
             guide.Focus(0, "Space rays are coming! Run to the SHELTER: Mars soil on top of it blocks the rays. Follow the green arrow and hold SHIFT to run.", () => MarsWorld.BunkerOutside, "SHELTER");
             hud.Say("Mars has no magnetic shield like Earth. Run to the bunker — hold SHIFT to run!", 6);
             // storm ramps up
             StartCoroutine(StormRamp(Mathf.Clamp(0.55f * CurrentFlare.Strength, 0.4f, 0.9f), 4f));
             bot.Lead = MarsWorld.BunkerOutside + Vector3.up * 2.5f;
             bool entered = false;
-            MarsWorld.BunkerDoor.OnUse = () => entered = true;
+            MarsWorld.BunkerDoor.OnUse = () => { if (!askingCode) StartCoroutine(DoorCode(() => entered = true)); };
             while (!entered)
             {
-                if (Dist(MarsWorld.BunkerOutside) < 7f) guide.Focus(1, "Press E at the big door to go inside the shelter.", () => MarsWorld.BunkerOutside, "SHELTER DOOR");
+                if (askingCode) guide.Focus(1, "Type the door code 1 1 2 2. It is at the end of your Junior Astronaut Handbook!");
+                else if (Dist(MarsWorld.BunkerOutside) < 7f) guide.Focus(1, "Press E at the big door, then type the door code.", () => MarsWorld.BunkerOutside, "SHELTER DOOR");
                 yield return null;
             }
             guide.Complete();
@@ -587,6 +592,19 @@ namespace MissionMars
         void StopAllStorms() { suit.Storm = 0; }
 
         // ================================================================== bunker in/out
+        bool codeOk, askingCode;
+        /// <summary>The first time at the shelter you must type the door code (1122, last page of the Handbook).</summary>
+        IEnumerator DoorCode(System.Action ok)
+        {
+            if (codeOk) { ok(); yield break; }
+            askingCode = true;
+            hud.Say("The door is locked! Type the code: it is at the END of your Junior Astronaut Handbook.", 5);
+            yield return Keypad.Ask();
+            codeOk = true; askingCode = false;
+            AstroPass.Award("code", "Opened the shelter with the secret code", 1);
+            ok();
+        }
+
         IEnumerator EnterBunker()
         {
             busy = true;
@@ -605,7 +623,7 @@ namespace MissionMars
             MarsWorld.SetSurface(false); MarsWorld.Interior.SetActive(true);
             Game.Sky.Mode = SkyMode.Interior; Game.Sky.Apply();
             player.Teleport(MarsWorld.InteriorSpawn, MarsWorld.InteriorYaw);
-            bot.Teleport(MarsWorld.InteriorSpawn + new Vector3(1.2f, 1.8f, 1.5f));
+            bot.Teleport(MarsWorld.InteriorSpawn + new Vector3(1.2f, 1.8f, 1.5f)); bot.gameObject.SetActive(false); // NOVA waits outside
             suit.Inside = true; inside = true;
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
             yield return Cinema.I.WhiteIn(0.4f);
@@ -627,7 +645,7 @@ namespace MissionMars
 
             Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
             player.Teleport(MarsWorld.Vestibule.TransformPoint(new Vector3(0,.06f,1.4f)), MarsWorld.BunkerOutsideYaw);
-            bot.Teleport(MarsWorld.BunkerOutside + new Vector3(1.5f, 2, 1.5f));
+            bot.Teleport(MarsWorld.BunkerOutside + new Vector3(1.5f, 2, 1.5f)); bot.gameObject.SetActive(true);
             suit.Inside = false; inside = false;
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
             yield return Cinema.I.WhiteIn(0.4f);
@@ -718,11 +736,35 @@ namespace MissionMars
             yield return Cinema.I.WhiteIn(0.4f);
             player.Frozen = false; busy = false;
             if (!string.IsNullOrEmpty(hello)) hud.Say(hello, 5);
+            if (room == MarsWorld.HabitatRoom)
+            {
+                wearingSuit = false;
+                if (MarsWorld.LockerSuits != null) foreach (var g in MarsWorld.LockerSuits) if (g) g.SetActive(true);
+                hud.Toast("HELMET OFF", "The habitat has air. Put your SPACESUIT on again before you go outside!", "air", HC.Cyan);
+            }
+        }
+
+        /// <summary>The spacesuit locker: put on a suit (helmet sealed, air tank full, suit battery charged).</summary>
+        IEnumerator SuitUp()
+        {
+            if (wearingSuit) { suit.O2 = 100; hud.Toast("SPACESUIT CHECK", "Helmet sealed, air tank full. You are ready to go outside!", "air", HC.Cyan); yield break; }
+            busy = true; player.Frozen = true;
+            yield return Cinema.I.ToBlack(0.35f);
+            if (MarsWorld.LockerSuits != null && MarsWorld.LockerSuits.Length > 0 && MarsWorld.LockerSuits[0]) MarsWorld.LockerSuits[0].SetActive(false); // you take one suit
+            Sfx.Play("powerup", 0.5f); Sfx.Play("click", 0.6f, 0.8f);
+            Cinema.I.Caption("Boots… gloves… helmet… CLICK! Air: ON.", 1.6f);
+            wearingSuit = true; suit.O2 = 100;
+            yield return new WaitForSeconds(1.2f);
+            yield return Cinema.I.FromBlack(0.35f);
+            hud.Toast("SPACESUIT ON", "Helmet sealed, air tank full, suit battery charged. A spacesuit is a tiny spaceship!", "air", HC.Cyan);
+            AstroPass.Award("suit", "Put on a spacesuit", 1);
+            player.Frozen = false; busy = false;
         }
 
         IEnumerator ExitRoom()
         {
             var room = curRoom; if (room == null || (BaseExpedition.I && !BaseExpedition.I.CanExit())) yield break;
+            if (NeedSuit) { hud.Say("Wait! Outside there is no air to breathe. Put on your SPACESUIT first: press E at the spacesuit locker.", 5); Sfx.Play("alarm", 0.3f, 1.5f); yield break; }
             busy = true; player.Frozen = true;
             yield return room.ExitPanel.GetComponent<SlideDoor>().Move(true);
             yield return Cinema.I.WhiteOut(0.35f);
@@ -824,11 +866,7 @@ namespace MissionMars
             foreach (var r in new[] { MarsWorld.HabitatRoom, MarsWorld.WeatherRoom }) if (r != null) r.ExitDoor.OnUse = () => { if (!busy) StartCoroutine(ExitRoom()); };
             if (MarsWorld.Bunk) { MarsWorld.Bunk.Range = 2.0f; MarsWorld.Bunk.Verb = "Lie down in"; MarsWorld.Bunk.OnUse = () => { if (!busy) StartCoroutine(Sleep(MarsWorld.Bunk)); }; }
             if (MarsWorld.Kitchen) { MarsWorld.Kitchen.Verb = "Cook / eat at"; MarsWorld.Kitchen.Label = "the KITCHEN"; MarsWorld.Kitchen.OnUse = UseKitchen; }
-            if (MarsWorld.Locker) MarsWorld.Locker.OnUse = () =>
-            {
-                suit.Drink(25); Sfx.Play("powerup", 0.5f);
-                hud.Toast("SPACESUIT CHECKED", "Oxygen tank and battery refilled. A real NASA spacesuit is like a tiny spaceship!", "air", HC.Cyan);
-            };
+            if (MarsWorld.Locker) MarsWorld.Locker.OnUse = () => { if (!busy) StartCoroutine(SuitUp()); };
             if (MarsWorld.NavComputer) MarsWorld.NavComputer.OnUse = () => { Computers.I.OpenOrbit(); AstroPass.Award("navigator", "Used the navigation computer", 2); };
             if (MarsWorld.WeatherComputer) MarsWorld.WeatherComputer.OnUse = () => Computers.I.OpenWeather();
             if (MarsWorld.Racks) MarsWorld.Racks.OnUse = () => hud.Toast("INSTRUMENT RACKS", "Real fact: NASA's InSight lander felt 1,319 marsquakes. Mars still shakes inside!", "science", HC.Amber);
@@ -1259,7 +1297,7 @@ namespace MissionMars
                 MarsWorld.SetSurface(false); MarsWorld.Interior.SetActive(true);
                 Game.Sky.Mode = SkyMode.Interior; Game.Sky.Apply();
                 player.Teleport(MarsWorld.InteriorSpawn + new Vector3(0, 0, 1), MarsWorld.InteriorYaw);
-                bot.Teleport(MarsWorld.InteriorSpawn + new Vector3(1.2f, 1.8f, 2));
+                bot.Teleport(MarsWorld.InteriorSpawn + new Vector3(1.2f, 1.8f, 2)); bot.gameObject.SetActive(false);
                 suit.Inside = true; inside = true;
             }
             suit.Storm = 0;
@@ -1281,11 +1319,11 @@ namespace MissionMars
             guide.Mission(9, "home", "FLY HOME", "Wait for the LAUNCH WINDOW", "Press E at the LAUNCH CONSOLE");
             guide.Focus(0, "Earth and Mars must line up before we can fly. Watch the clock!");
             yield return hud.SayWait("The rocket is complete! Now we wait for Earth to come around. Let's speed up time…");
-            // time-lapse to day 0
-            int start = DaysLeft, solStart = Sol; float t = 0, d = 6f;
+            // the calendar quickly flips to the launch-window date (the sky does not flash)
+            int start = DaysLeft, solStart = Sol; float t = 0, d = Mathf.Clamp(start * 0.04f, 1.5f, 3.5f);
             ClockRunning = false;
             Sfx.Play("whoosh", 0.5f, 0.5f);
-            var co = StartCoroutine(SkyCycle(d));
+            Cinema.I.Caption($"Waiting for the launch window: {WindowDate:d MMMM yyyy}", d + 0.5f);
             while (t < d) { t += Time.deltaTime; DaysLeft = Mathf.RoundToInt(Mathf.Lerp(start, 0, t / d)); Sol = solStart + (start - DaysLeft); yield return null; }
             DaysLeft = 0;
             Sfx.Play("success", 0.8f);
@@ -1297,20 +1335,7 @@ namespace MissionMars
             MarsWorld.LaunchConsole.enabled = true; MarsWorld.LaunchConsole.OnUse = () => go = true;
             while (!go) yield return null;
             hud.RemoveWaypoint(wpConsole); guide.Complete(); guide.Hide();
-            // countdown on the pad
-            UIState.Cinematic = true; UIState.Refresh(); player.Frozen = true;
-            hud.Show(false, 0.6f);
-            var exh = FX.Exhaust(MarsWorld.Rocket, Vector3.zero, 1.8f); exh.transform.rotation = Quaternion.Euler(90, 0, 0); exh.Stop();
-            AudioManager.I.Music("music_hope", 0.6f, 2f);
-            for (int i = 5; i >= 1; i--) { Cinema.I.Caption($"LAUNCH IN  {i}", 0.9f); Sfx.Play("beep", 0.6f, i == 1 ? 1.4f : 1); yield return new WaitForSeconds(1f); }
-            exh.Play(); Sfx.Play("explosion", 0.7f, 0.6f);
-            var roar = AudioManager.I.Loop("rocket", 0.8f);
-            FX.DustBlast(MarsWorld.Rocket.position, 2f); FX.Explosion(MarsWorld.Rocket.position + Vector3.up * 1.5f, 1.2f);
-            Cinema.I.Caption("LIFT-OFF!", 2);
-            float tt = 0; var r0 = MarsWorld.Rocket.position;
-            while (tt < 4) { tt += Time.deltaTime; MarsWorld.Rocket.position = r0 + Vector3.up * tt * tt * 3; player.Shake(0.4f, 0.2f); player.LookAt(MarsWorld.Rocket.position); yield return null; }
-            yield return Cinema.I.ToBlack(1f);
-            AudioManager.I.FadeSource(roar, 0, 1); Destroy(roar.gameObject, 1.5f);
+            yield return LaunchMovie();
             // flight home
             player.Cam.enabled = false; cineCam.enabled = true; Game.Cam = cineCam;
             SpaceSet.I.Enter(cineCam);
@@ -1324,6 +1349,123 @@ namespace MissionMars
                 $"Radiation dose: <color={HC.Hex(HC.Amber)}>{suit.DoseMSv:0} mSv</color> of the 600 mSv NASA limit  ·  Launch windows missed: {WindowsMissed}\n" +
                 $"Puzzles solved first try: <color={HC.Hex(HC.Green)}>{screens.FirstTry} / {screens.Total}</color>\n" +
                 $"<size=20>Real solar flares you faced came from NASA DONKI. Real Mars missions plan around these same launch windows.</size>");
+        }
+
+        /// <summary>The end movie: the commander rides the tower lift, walks along the crew arm into the rocket, the hatch closes,
+        /// countdown and lift-off, then a camera next to the engine looks back down at the Mars base you built.</summary>
+        IEnumerator LaunchMovie()
+        {
+            UIState.Cinematic = true; UIState.Refresh(); player.Frozen = true;
+            hud.Show(false, 0.6f);
+            AudioManager.I.Music("music_hope", 0.6f, 2f);
+            yield return Cinema.I.ToBlack(0.5f);
+            Cinema.I.Letterbox(true, 0.4f);
+            var rocket = MarsWorld.Rocket; var pad = MarsWorld.Pad;
+            // a movie camera (the player's eyes are switched off for the film)
+            var camGo = new GameObject("LaunchCam"); var cam = camGo.AddComponent<Camera>(); cam.fieldOfView = 50; cam.nearClipPlane = 0.1f; cam.farClipPlane = 5000;
+            ConfigCam(cam);
+            var myEars = player.Cam.GetComponent<AudioListener>(); if (myEars) myEars.enabled = false; camGo.AddComponent<AudioListener>();
+            player.Cam.enabled = false; Game.Cam = cam;
+            void Look(Vector3 from, Vector3 at) { cam.transform.position = from; cam.transform.rotation = Quaternion.LookRotation(at - from); }
+
+            // where things are: the rocket's top part, the tower (+x of the pad), the hatch facing the tower
+            var all = Util.Bounds(rocket.gameObject); float cut = all.min.y + all.size.y * 0.6f;
+            Bounds up = new Bounds(all.center, Vector3.zero); bool any = false;
+            foreach (var r in rocket.GetComponentsInChildren<Renderer>()) if (r.bounds.center.y > cut) { if (!any) { up = r.bounds; any = true; } else up.Encapsulate(r.bounds); }
+            if (!any) up = all;
+            var axis = new Vector3(up.center.x, 0, up.center.z);
+            var tower = pad.TransformPoint(new Vector3(5.6f, 0, 0));
+            var toTower = new Vector3(tower.x - axis.x, 0, tower.z - axis.z).normalized;
+            var side = Vector3.Cross(Vector3.up, toTower);
+            float radius = Mathf.Clamp(Mathf.Min(up.extents.x, up.extents.z) * 0.85f, 0.8f, 3f);
+            float floorY = Mathf.Min(pad.position.y + 15f, up.max.y - 3f);
+            var hatch = new Vector3(axis.x, floorY, axis.z) + toTower * radius;
+            var armEnd = new Vector3(tower.x, floorY, tower.z);
+            var armRot = Quaternion.LookRotation(-toTower).eulerAngles;
+            float armLen = Vector3.Distance(armEnd, hatch);
+            var props = new List<GameObject>();
+            props.Add(ProcMesh.Prim(PrimitiveType.Cube, "CrewArm", null, (armEnd + hatch) / 2 - Vector3.up * 0.08f, new Vector3(1.3f, 0.16f, armLen), R.HullDark, armRot, false));
+            foreach (int sd in new[] { -1, 1 })
+                props.Add(ProcMesh.Prim(PrimitiveType.Cube, "Rail", null, (armEnd + hatch) / 2 + side * sd * 0.62f + Vector3.up * 1.0f, new Vector3(0.06f, 0.06f, armLen), R.Orange, armRot, false));
+            // the hatch: a warm lit doorway with a door that slides up
+            var doorway = ProcMesh.Prim(PrimitiveType.Cube, "Doorway", null, hatch + Vector3.up * 1.0f - toTower * 0.02f, new Vector3(1.1f, 1.9f, 0.04f), R.Emissive(new Color(0.9f, 0.8f, 0.6f), new Color(2.2f, 1.8f, 1.2f)), armRot, false); props.Add(doorway);
+            var hatchDoor = ProcMesh.Prim(PrimitiveType.Cube, "Hatch", null, hatch + Vector3.up * 1.0f + toTower * 0.06f, new Vector3(1.2f, 2.0f, 0.1f), R.Panel, armRot, false); props.Add(hatchDoor);
+            var lift = ProcMesh.Prim(PrimitiveType.Cube, "Lift", null, new Vector3(tower.x, pad.position.y + 0.55f, tower.z), new Vector3(1.4f, 0.12f, 1.4f), R.Orange, null, false); props.Add(lift);
+            var lamp = new GameObject("HatchLight").AddComponent<Light>(); lamp.transform.position = hatch + Vector3.up * 1.6f + toTower * 1.2f; lamp.type = LightType.Point; lamp.range = 8; lamp.intensity = 3; lamp.color = new Color(1f, 0.9f, 0.75f); props.Add(lamp.gameObject);
+            // the astronaut (you!)
+            GameObject astro;
+            if (R.Model("Astronaut"))
+            {
+                astro = Util.PlaceUpright("Astronaut", lift.transform.position + Vector3.up * 0.06f, 1.8f, null); // the model file lies down: stand it up
+                astro.transform.rotation = Quaternion.LookRotation(-toTower); Destroy(astro.GetComponent<BoxCollider>());
+            }
+            else astro = ProcMesh.Prim(PrimitiveType.Capsule, "Astronaut", null, lift.transform.position + Vector3.up * 0.96f, new Vector3(0.6f, 0.9f, 0.6f), R.Panel, null, false);
+            props.Add(astro);
+            var astroOff = astro.transform.position - lift.transform.position;
+
+            // SHOT 1: the tower lift takes the commander up
+            Cinema.I.Caption("The commander rides the tower lift up to the rocket…", 4.5f);
+            yield return Cinema.I.FromBlack(0.6f);
+            float t = 0, d = 4.5f; float y0 = lift.transform.position.y, y1 = floorY - 0.06f;
+            while (t < d)
+            {
+                t += Time.deltaTime; float k = Tween.EaseInOut(t / d);
+                var lp = lift.transform.position; lp.y = Mathf.Lerp(y0, y1, k); lift.transform.position = lp; astro.transform.position = lp + astroOff;
+                Look(tower + side * 13f + toTower * 5f + Vector3.up * (lp.y + 1.5f), lp + Vector3.up * 1f);
+                yield return null;
+            }
+            // SHOT 2: the hatch opens, the commander walks in, the hatch closes
+            Vector3 shot2 = (armEnd + hatch) / 2 + side * 6.5f + Vector3.up * 2.2f;
+            Look(shot2, (armEnd + hatch) / 2 + Vector3.up * 1f);
+            Cinema.I.Caption("The hatch opens…", 2f);
+            Sfx.Play("whoosh", 0.4f, 1.3f);
+            var h0 = hatchDoor.transform.position;
+            for (t = 0; t < 1; t += Time.deltaTime / 0.9f) { hatchDoor.transform.position = h0 + Vector3.up * 2.1f * Tween.EaseInOut(t); yield return null; }
+            var walkFrom = astro.transform.position; var walkTo = new Vector3(hatch.x, walkFrom.y, hatch.z) - toTower * 0.6f;
+            for (t = 0; t < 1; t += Time.deltaTime / 2.6f)
+            {
+                astro.transform.position = Vector3.Lerp(walkFrom, walkTo, t) + Vector3.up * Mathf.Abs(Mathf.Sin(t * 18f)) * 0.05f;
+                Look(shot2, astro.transform.position + Vector3.up * 1f);
+                yield return null;
+            }
+            astro.SetActive(false);
+            Cinema.I.Caption("…and closes. Strap in, Commander!", 2f);
+            for (t = 0; t < 1; t += Time.deltaTime / 0.9f) { hatchDoor.transform.position = h0 + Vector3.up * 2.1f * (1 - Tween.EaseInOut(t)); yield return null; }
+            Sfx.Play("thud", 0.5f, 0.9f);
+            yield return new WaitForSeconds(0.8f);
+
+            // SHOT 3: wide view: countdown and lift-off
+            var wide = new Vector3(axis.x, pad.position.y, axis.z) + side * 48f - toTower * 22f + Vector3.up * 5f;
+            var mid = new Vector3(axis.x, all.center.y, axis.z);
+            Look(wide, mid);
+            var exh = FX.Exhaust(rocket, Vector3.zero, 1.8f); exh.transform.rotation = Quaternion.Euler(90, 0, 0); exh.Stop();
+            for (int i = 5; i >= 1; i--) { Cinema.I.Caption($"LAUNCH IN  {i}", 0.9f); Sfx.Play("beep", 0.6f, i == 1 ? 1.4f : 1); yield return new WaitForSeconds(1f); }
+            exh.Play(); Sfx.Play("explosion", 0.7f, 0.6f);
+            var roar = AudioManager.I.Loop("rocket", 0.8f);
+            FX.DustBlast(rocket.position, 2f); FX.Explosion(rocket.position + Vector3.up * 1.5f, 1.2f);
+            Cinema.I.Caption("LIFT-OFF!", 2);
+            var r0 = rocket.position; float tt = 0;
+            while (tt < 3.2f)
+            {
+                tt += Time.deltaTime; rocket.position = r0 + Vector3.up * tt * tt * 3f;
+                Look(wide + Random.insideUnitSphere * 0.12f, rocket.position + Vector3.up * all.size.y * 0.5f);
+                yield return null;
+            }
+            // SHOT 4: through the dust, a camera next to the engine looks back down at the base
+            Cinema.I.Caption("Goodbye, Mars base! The habitat, the plantation and the shelter wait for the next crew.", 6);
+            var baseAt = MarsWorld.MarsBase ? MarsWorld.MarsBase.position : r0;
+            while (tt < 10f)
+            {
+                tt += Time.deltaTime; rocket.position = r0 + Vector3.up * tt * tt * 3f;
+                var engineCam = rocket.position + toTower * (Mathf.Max(all.extents.x, all.extents.z) + 3.5f) + Vector3.up * 4f; // outside the boosters, next to the engines
+                Look(engineCam + Random.insideUnitSphere * 0.05f, Vector3.Lerp(rocket.position, baseAt, 0.85f));
+                yield return null;
+            }
+            yield return Cinema.I.ToBlack(1f);
+            AudioManager.I.FadeSource(roar, 0, 1); Destroy(roar.gameObject, 1.5f);
+            foreach (var g in props) if (g) Destroy(g);
+            Destroy(camGo);
+            Cinema.I.Letterbox(false, 0.01f);
         }
 
         IEnumerator SkyCycle(float d)

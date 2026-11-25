@@ -119,7 +119,8 @@ namespace MissionMars
             yield return WaitKey("storm"); yield return Pic("01_storm");
             var front = MarsWorld.BunkerDoorPanel.position + MarsWorld.BunkerDoorPanel.forward * 4f; front.y = MarsTerrain.H(front.x, front.z) + 0.1f;
             Game.Player.Teleport(MarsWorld.BunkerOutside, 0); Game.Player.LookAt(MarsWorld.BunkerDoorPanel.position + Vector3.up); yield return Pic("01b_door");
-            Use(MarsWorld.BunkerDoor, "shelter door");
+            Use(MarsWorld.BunkerDoor, "shelter door"); yield return Idle(1.5f); yield return Pic("01c_keypad");
+            { var kp = FindFirstObjectByType<Keypad>(); if (kp) { foreach (var c in "1122") { if (!kp) break; kp.SendMessage("Press", c.ToString()); yield return Idle(0.2f); } L("typed door code 1122"); } else L("FAIL no keypad"); }
             Time.timeScale = 4; yield return WaitKey("power"); yield return Free(); yield return Pic("02_power");
             Use(MarsWorld.BatteryPlug, "battery"); yield return Idle(1); yield return Pic("02b_switch");
             Use(MarsWorld.PowerSwitch, "main switch");
@@ -156,21 +157,31 @@ namespace MissionMars
             Use(MarsWorld.Kitchen, "kitchen: cook"); yield return Idle(1); yield return Pic("05g_cooking"); yield return Idle(6); yield return Pic("05h_eat");
             Use(MarsWorld.Kitchen, "kitchen: eat");
             Time.timeScale = 4; yield return WaitKey("night", 120); yield return Free();
+            { var lk = MarsWorld.Locker.transform.position; Game.Player.LookAt(lk + Vector3.up * 0.5f); yield return Idle(0.3f); yield return Pic("x_suits"); }
+            if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat (no suit: must refuse)"); yield return Idle(1); yield return Pic("x_nosuit");
+            Use(MarsWorld.Locker, "put on spacesuit"); yield return Idle(3);
             if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat"); yield return Idle(1); yield return Free(); yield return Pic("06_night");
             { var f = typeof(Computers).GetField("PowerPlanOk", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static); (f?.GetValue(null) as System.Action)?.Invoke(); L("night power planned"); }
             yield return Idle(1); yield return Pic("06b_bunk_arrow");
             Use(MarsWorld.HabitatDoor, "habitat door"); yield return Idle(1); yield return Free(); yield return Pic("06c_habitat");
             Use(MarsWorld.Bunk, "bunk bed"); yield return Idle(3); yield return Pic("06d_lying"); yield return Idle(1.5f); yield return Pic("06e_eyes");
             Time.timeScale = 4; yield return WaitKey("rocket", 120); yield return Free();
+            { var lk = MarsWorld.Locker.transform.position; Game.Player.LookAt(lk + Vector3.up * 0.5f); yield return Idle(0.3f); yield return Pic("x_suits"); }
+            if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat (no suit: must refuse)"); yield return Idle(1); yield return Pic("x_nosuit");
+            Use(MarsWorld.Locker, "put on spacesuit"); yield return Idle(3);
             if (MarsWorld.HabitatRoom != null) Use(MarsWorld.HabitatRoom.ExitDoor, "exit habitat");
             yield return Idle(1); yield return Free(); yield return Pic("07_rocket");
             foreach (var p in MarsWorld.Parts) { p.Found = true; p.Go.SetActive(false); Game.Suit.Add(new Item(p.Id, p.Name, p.Icon, p.Color)); }
             yield return Idle(1); yield return Pic("07b_pad");
             Use(MarsWorld.RocketUse, "launch pad");
             Time.timeScale = 4; yield return WaitKey("home", 90); yield return Pic("08_home");
-            Time.timeScale = 4; yield return Idle(6); yield return Free(); yield return Pic("08b_console");
+            { float w = 0; while (!(MarsWorld.LaunchConsole.enabled && MarsWorld.LaunchConsole.OnUse != null) && w < 60) { w += Time.unscaledDeltaTime; yield return null; } }
+            yield return Free(); yield return Pic("08b_console");
             Use(MarsWorld.LaunchConsole, "launch console");
-            Time.timeScale = 4; yield return Idle(25); yield return Pic("09_end");
+            Time.timeScale = 1;
+            foreach (var (sec, n) in new[] { (3f, "10a_lift"), (3.5f, "10b_hatch"), (3.5f, "10c_walk"), (4f, "10d_countdown"), (4.5f, "10e_liftoff"), (2.5f, "10f_enginecam"), (3f, "10g_base") })
+            { yield return Idle(sec); ScreenCapture.CaptureScreenshot(Path.Combine(dir, n + ".png")); L("picture " + n); }
+            Time.timeScale = 4; yield return Idle(20); yield return Pic("09_end");
             L("DONE"); Application.Quit();
         }
 

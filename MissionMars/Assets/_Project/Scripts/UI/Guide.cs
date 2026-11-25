@@ -17,6 +17,8 @@ namespace MissionMars
         public const int Total = 9;
         /// <summary>Where the door out of the current room is (set by the story). Used when the next place is outside.</summary>
         public static Func<Vector3> Exit;
+        /// <summary>What the arrow calls that place ("EXIT DOOR", or "PUT ON SPACESUIT" in the habitat).</summary>
+        public static Func<string> ExitName;
 
         // ---- state ----
         public int Num { get; private set; }
@@ -200,7 +202,7 @@ namespace MissionMars
                 if (otherSpace)
                 {
                     bool insideNow = Game.Suit && Game.Suit.Inside;
-                    if (insideNow && Exit != null) { tp = Exit(); name = "EXIT DOOR"; }
+                    if (insideNow && Exit != null) { tp = Exit(); name = ExitName != null ? ExitName() : "EXIT DOOR"; }
                     else if (!insideNow && door != null) { tp = door(); }
                     else has = false;
                     if (has && Mathf.Abs(tp.y - p.transform.position.y) > 25f) has = false;

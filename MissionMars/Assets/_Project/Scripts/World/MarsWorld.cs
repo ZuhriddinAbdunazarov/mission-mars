@@ -549,6 +549,7 @@ namespace MissionMars
         public static Interactable HabitatDoor, WeatherDoor; public static Vector3 HabitatOutside, WeatherOutside;
         public static ModelRoom HabitatRoom, WeatherRoom;
         public static Interactable Bunk, Kitchen, Locker, NavComputer, WeatherComputer, Racks;
+        public static GameObject[] LockerSuits;
 
         /// <summary>The walk-in HABITAT and WEATHER LAB rooms, made from the team's Tripo interiors (Assets/Paid).
         /// Press-E zones sit on the model's furniture (positions measured from the model's height map).</summary>
@@ -557,7 +558,35 @@ namespace MissionMars
             HabitatRoom = ModelRoom.Build("06_Habitat_Interior", new Vector3(0, -260, 0), 10, 5);
             Bunk = HabitatRoom.UsePart("Double bunk -", "Sleep in", "your bunk bed (1 sol passes)");
             Kitchen = HabitatRoom.UsePart("Galley", "Eat & drink at", "the kitchen");
-            Locker = HabitatRoom.UsePart("EVA locker", "Check", "spacesuit locker");
+            Locker = HabitatRoom.UsePart("EVA locker", "Put on", "SPACESUIT");
+            // real 3D astronaut suits in a clean open cabinet (the model has locker + simple suits as ONE piece:
+            // we hide its look but keep it as the press-E spot, and build the cabinet around the real NASA suit models)
+            if (R.Model("Astronaut"))
+            {
+                var lockerT = Locker.transform; var sb = Util.Bounds(lockerT.gameObject);
+                foreach (var rr in lockerT.GetComponentsInChildren<Renderer>()) rr.enabled = false;
+                var face = HabitatRoom.Room.transform.position - sb.center; face.y = 0;
+                face = Mathf.Abs(face.x) > Mathf.Abs(face.z) ? new Vector3(Mathf.Sign(face.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(face.z)); // cabinets stand against a wall
+                float yaw = Quaternion.LookRotation(face).eulerAngles.y;
+                var side = Quaternion.Euler(0, 90, 0) * face;
+                float w = Mathf.Abs(Vector3.Dot(sb.size, new Vector3(Mathf.Abs(side.x), 0, Mathf.Abs(side.z)))), dp = Mathf.Abs(Vector3.Dot(sb.size, new Vector3(Mathf.Abs(face.x), 0, Mathf.Abs(face.z)))), h = sb.size.y;
+                var cab = new GameObject("SuitCabinet").transform; cab.SetParent(HabitatRoom.Room.transform, true);
+                cab.position = new Vector3(sb.center.x, sb.min.y, sb.center.z); cab.rotation = Quaternion.Euler(0, yaw, 0);
+                var wood = R.Lit(new Color(0.86f, 0.87f, 0.89f), 0.35f); var dark = R.Lit(new Color(0.18f, 0.2f, 0.23f), 0.3f);
+                ProcMesh.Prim(PrimitiveType.Cube, "Back", cab, new Vector3(0, h / 2, -dp / 2 + 0.03f), new Vector3(w, h, 0.06f), dark, null, false);
+                foreach (int sd in new[] { -1, 1 }) ProcMesh.Prim(PrimitiveType.Cube, "Side", cab, new Vector3(sd * (w / 2 - 0.03f), h / 2, 0), new Vector3(0.06f, h, dp), wood, null, false);
+                ProcMesh.Prim(PrimitiveType.Cube, "Top", cab, new Vector3(0, h - 0.03f, 0), new Vector3(w, 0.06f, dp), wood, null, false);
+                ProcMesh.Prim(PrimitiveType.Cube, "Floor", cab, new Vector3(0, 0.04f, 0), new Vector3(w, 0.08f, dp), dark, null, false);
+                ProcMesh.Prim(PrimitiveType.Cube, "Light", cab, new Vector3(0, h - 0.08f, 0.1f), new Vector3(w * 0.8f, 0.03f, 0.08f), R.Emissive(Color.white, new Color(1.6f, 1.6f, 1.5f)), null, false);
+                LockerSuits = new GameObject[2];
+                for (int i = 0; i < 2; i++)
+                {
+                    var at = cab.TransformPoint(new Vector3((i == 0 ? -1 : 1) * w * 0.23f, 0.08f, 0));
+                    var suitGo = Util.PlaceUpright("Astronaut", at, Mathf.Min(h * 0.86f, 1.85f), cab); // the model file lies down: stand it up
+                    suitGo.transform.rotation = Quaternion.Euler(0, yaw, 0); Object.Destroy(suitGo.GetComponent<BoxCollider>());
+                    LockerSuits[i] = suitGo;
+                }
+            }
             NavComputer = HabitatRoom.UsePart("Crew workstation", "Use", "NAVIGATION COMPUTER (Earth & Mars)");
             HabitatRoom.Room.SetActive(false);
 
@@ -666,6 +695,10 @@ namespace MissionMars
             var shell = ModelRoom.Place("09_Storm_Shelter_Interior", t, Vector3.zero);
             shell.transform.localScale = new Vector3(W / 8f, Hh / 2f, D / 5f);
             ModelRoom.Part(shell, "Centered short-wall").gameObject.SetActive(false);
+            // solid walls just behind the model walls: no gaps where you could see the outside (behind the bunks)
+            foreach (var (pos, size) in new[] { (new Vector3(-W / 2 - 0.12f, Hh / 2, 0), new Vector3(0.14f, Hh + 0.4f, D + 0.4f)), (new Vector3(W / 2 + 0.12f, Hh / 2, 0), new Vector3(0.14f, Hh + 0.4f, D + 0.4f)),
+                                                (new Vector3(0, Hh / 2, D / 2 + 0.12f), new Vector3(W + 0.4f, Hh + 0.4f, 0.14f)) })
+                ProcMesh.Prim(PrimitiveType.Cube, "BackWall", t, pos, size, R.Panel);
 
             // Reposition the pack's equipment at the shelter mission stations.
             GameObject Equipment(string name, Transform parent, Vector3 floor, float yaw = 0)
@@ -756,7 +789,7 @@ namespace MissionMars
 
             // exit: a CLOSED airlock door; Mars daylight shows behind it when it slides open
             ProcMesh.Prim(PrimitiveType.Cube, "ExitSign", t, new Vector3(-3.2f, 2.55f, -D / 2 + 0.15f), new Vector3(0.7f, 0.18f, 0.05f), R.Emissive(Color.black, new Color(0.3f, 2.2f, 0.9f)), null, false);
-            ExitDoorPanel = DoorPanel(t, new Vector3(-3.2f, 1.15f, -D / 2 + 0.24f), new Vector3(1.4f, 2.35f, 0.1f));
+            ExitDoorPanel = DoorPanel(t, new Vector3(-3.2f, 1.18f, -D / 2 + 0.1f), new Vector3(1.7f, 2.4f, 0.1f)); // fills the whole doorway, slides shut behind you
             ExitDoor = Interactable.Add(ExitDoorPanel.gameObject, "Go outside", "Airlock", null);
             InteriorSpawn = t.TransformPoint(new Vector3(-3.2f, 0.05f, -D / 2 + 1.4f)); InteriorYaw = 0;
 
@@ -875,16 +908,21 @@ namespace MissionMars
     {
         public Vector3 Direction = Vector3.right;
         public Vector3 Closed; public float Slide = 1.5f;
+        public bool AutoClose = true; bool isOpen, moving; float openedAt;
         public IEnumerator Move(bool open, float d = 0.45f)
         {
+            moving = true;
             Vector3 from = transform.localPosition, to = Closed + (open ? Direction * Slide : Vector3.zero);
             Sfx.Play("whoosh", 0.35f, open ? 1.4f : 1.1f);
             float t = 0;
             while (t < d) { t += Time.deltaTime; transform.localPosition = Vector3.Lerp(from, to, Tween.EaseInOut(t / d)); yield return null; }
             transform.localPosition = to;
             if (!open) Sfx.Play("thud", 0.3f, 1.3f);
+            moving = false; isOpen = open; openedAt = Time.time;
         }
-        public void Snap(bool open) { transform.localPosition = Closed + (open ? Direction * Slide : Vector3.zero); }
+        public void Snap(bool open) { transform.localPosition = Closed + (open ? Direction * Slide : Vector3.zero); isOpen = open; openedAt = Time.time; }
+        // a door never stays open: it slides shut by itself after 2.5 seconds
+        void Update() { if (AutoClose && isOpen && !moving && Time.time - openedAt > 2.5f) StartCoroutine(Move(false)); }
     }
 
     /// <summary>Shows its children only when the camera is near (so labels do not clutter the sky).</summary>
