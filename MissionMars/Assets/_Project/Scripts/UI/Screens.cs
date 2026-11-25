@@ -335,7 +335,7 @@ namespace MissionMars
             {
                 if (controls.blocksRaycasts) { Show(controls, false); return; }
                 if (data.blocksRaycasts) { CloseData(); return; }
-                if (!Game.InMenu && !UIState.Cinematic && !puzzle.blocksRaycasts && !ending.blocksRaycasts) TogglePause(!PauseOpen);
+                if (!Game.InMenu && !UIState.Cinematic && (!UIState.Modal || PauseOpen) && Time.frameCount != Computers.ClosedFrame && !puzzle.blocksRaycasts && !ending.blocksRaycasts) TogglePause(!PauseOpen);
             }
         }
 

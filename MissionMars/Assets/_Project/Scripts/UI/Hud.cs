@@ -27,7 +27,7 @@ namespace MissionMars
         public Canvas Canvas; public RectTransform Root;
         CanvasGroup group;
         // vitals
-        class Bar { public RectTransform Fill; public Image FillImg; public TextMeshProUGUI Val; public Image Icon; public float Shown = 1; public Color Col; public CanvasGroup G; }
+        class Bar { public TextMeshProUGUI Label; public RectTransform Fill; public Image FillImg; public TextMeshProUGUI Val; public Image Icon; public float Shown = 1; public Color Col; public CanvasGroup G; }
         Bar o2, water, health, rad;
         // objective
         TextMeshProUGUI objTitle, objBody; CanvasGroup objGroup; RectTransform objRt;
@@ -189,7 +189,7 @@ namespace MissionMars
             var r = UIX.Go(label, p).RT(); r.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(20, -46 - row * 48), new Vector2(-40, 40));
             b.G = r.gameObject.AddComponent<CanvasGroup>();
             b.Icon = UIX.Img(r, "Icon", c, Icons.Get(icon)); b.Icon.rectTransform.Set(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(30, 30));
-            var l = UIX.Text(r, label, 18, HC.Dim, R.Bold); l.characterSpacing = 4; l.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, 0), new Vector2(190, 22));
+            var l = UIX.Text(r, label, 18, HC.Dim, R.Bold); b.Label=l; l.characterSpacing = 4; l.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, 0), new Vector2(190, 22));
             b.Val = UIX.Text(r, "", 20, HC.Text, R.Mono, TextAlignmentOptions.Right); b.Val.rectTransform.Set(new Vector2(1, 1), new Vector2(1, 1), new Vector2(1, 1), Vector2.zero, new Vector2(230, 22));
             var track = UIX.Img(r, "Track", new Color(1, 1, 1, 0.08f)); track.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(40, 2), new Vector2(-40, 8));
             b.FillImg = UIX.Img(track.transform, "Fill", c); b.Fill = b.FillImg.rectTransform; b.Fill.Set(Vector2.zero, Vector2.one, new Vector2(0, 0.5f), Vector2.zero, Vector2.zero);
@@ -311,7 +311,9 @@ namespace MissionMars
             var s = Game.Suit; var p = Game.Player; var cam = Game.Cam;
             if (s)
             {
-                Set(o2, s.O2 / 100f, $"{s.O2:0}%", s.O2 < 25);
+                if(BaseExpedition.I) o2.Label.text=s.Inside && BaseExpedition.I.CabinReady ? "CABIN AIR" : "SUIT AIR";
+                bool cabin=BaseExpedition.I && BaseExpedition.I.CabinReady && s.Inside;
+                Set(o2, cabin ? 1 : s.O2/100f, cabin ? "READY" : $"{s.O2:0}%", !cabin && s.O2 < 25);
 
                 Set(health, s.Health / 100f, $"{s.Health:0}%", s.Health < 30);
                 float rr = Mathf.Clamp01(s.DoseMSv / 600f); // NASA career limit: 600 mSv

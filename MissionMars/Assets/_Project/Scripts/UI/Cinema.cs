@@ -66,7 +66,7 @@ namespace MissionMars
             yield return new WaitForSecondsRealtime(hold);
             yield return FadeImg(white, 0, d);
         }
-        public IEnumerator WhiteOut(float d) { yield return FadeImg(white, 1, d); }
+        public IEnumerator WhiteOut(float d) { white.color = new Color(1f,.96f,.89f,white.color.a); yield return FadeImg(white, 1, d); }
         public IEnumerator WhiteIn(float d) { yield return FadeImg(white, 0, d); }
 
         IEnumerator FadeImg(Image i, float to, float d)

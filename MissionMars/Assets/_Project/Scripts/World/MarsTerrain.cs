@@ -82,7 +82,19 @@ namespace MissionMars
                 float target = FlatBase(f.c) + f.h;
                 h = Mathf.Lerp(h, target, k);
             }
-            return h;
+            var approach=(MarsWorld.WakeXZ-MarsWorld.BunkerXZ).normalized;
+            var hatch=MarsWorld.BunkerXZ+approach*10.65f;
+            var offset=new Vector2(x,z)-hatch;
+            float lateral=Mathf.Abs(offset.x*approach.y-offset.y*approach.x);
+            float forward=Vector2.Dot(offset,approach);
+            float trench=(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(1.55f,3.1f,lateral)))*
+                Mathf.SmoothStep(0,1,Mathf.InverseLerp(-9,-4,forward))*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,5,forward)));
+            h-=.24f*trench;
+            var skid = new Vector2(x, z) - MarsWorld.CrashXZ;
+            float along = Mathf.InverseLerp(-16,-6,skid.y) * (1-Mathf.InverseLerp(4,8,skid.y));
+            float furrow = Mathf.Exp(-skid.x*skid.x/3f);
+            return h + along * (-.23f*furrow + .12f*Mathf.Exp(-Mathf.Pow((Mathf.Abs(skid.x)-2.1f)/.65f,2)));
+
         }
 
         static readonly Dictionary<Vector2, float> flatCache = new Dictionary<Vector2, float>();

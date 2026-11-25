@@ -68,6 +68,7 @@ namespace MissionMars
             LoadCache();
             // 3) ask once, in the background, for fresh numbers; on any error the saved ones stay
 
+            if (Game.ExploreBase) return;
             StartCoroutine(FetchFlares());
             StartCoroutine(FetchWeather());
             StartCoroutine(FetchCme());

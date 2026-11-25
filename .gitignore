@@ -33,3 +33,10 @@ MissionMars/Assets/Paid/
 MissionMars/Assets/Paid.meta
 MissionMars/Assets/AnimasterStudio*
 MissionMars/Assets/Cosmic_Retro_Reactor_Demo*
+
+# Mars base models made for the team (3D models stay off GitHub)
+MissionMars/Assets/_Project/Resources/MarsBase9/
+MissionMars/Assets/_Project/Resources/MarsBase9.meta
+# local helper files
+*.cmd
+*Plan.docx

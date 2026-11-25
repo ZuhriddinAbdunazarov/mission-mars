@@ -30,130 +30,54 @@ namespace MissionMars
         // ---- the realistic room made from the team's Tripo model (Assets/Paid/PlantationIn) ----
         bool modelMode; Interactable ledSwitch; readonly List<Light> growLights = new List<Light>(); readonly List<Material> growMats = new List<Material>();
         readonly List<Vector3> bedTops = new List<Vector3>();
-        const float MS = 12f, FloorY = 0.045f; // real size: potato plants about knee high
-        public Collider BedsCollider; // you can walk between and through the plants (the story ignores it for the player) // model scale; model floor height (model units)
+        public Collider BedsCollider;
 
-        bool MakeFromModel()
+        public void SetExpeditionCrop(bool ripe,bool lighting)
         {
-            var prefab = R.Model("P_PlantationIn"); var ta = Resources.Load<TextAsset>("Paid/PlantationIn_heights");
-            if (!prefab || !ta) return false;
+            foreach(var plant in potatoes) plant.SetActive(ripe);
+            foreach(var lamp in growLights) lamp.intensity=lighting?2.2f:0f;
+        }
+        void MakeFromModel()
+        {
+            var module = ModelRoom.Build("08_Greenhouse_Interior", Origin, 12, 5);
+            Room = module.Room;
+            Spawn = module.Spawn;
+            SpawnYaw = module.SpawnYaw;
+            ExitPanel = module.ExitPanel;
+            ExitDoor = module.ExitDoor;
             modelMode = true;
-            Room = new GameObject("GreenhouseRoom"); var t = Room.transform; t.position = Origin;
-            var m = Instantiate(prefab, t, false); m.name = "Model";
-            m.transform.localScale = Vector3.one * MS; m.transform.localPosition = new Vector3(0, -FloorY * MS, 0);
-            foreach (var r in m.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-            ModelRoom.Matte(m);
 
-            // height map -> what is floor (walk), bed (solid, press E to harvest) and wall/tank (solid)
-            var lines = new List<string>(); foreach (var l in ta.text.Split('\n')) { var tl = l.Trim(); if (tl.Length > 0 && tl[0] != '#') lines.Add(tl); }
-            var hd = lines[0].Split(' '); var inv = System.Globalization.CultureInfo.InvariantCulture;
-            int NX = int.Parse(hd[0]), NZ = int.Parse(hd[1]); float minx = float.Parse(hd[2], inv), maxx = float.Parse(hd[3], inv), minz = float.Parse(hd[4], inv), maxz = float.Parse(hd[5], inv);
-            var h = new float[NX, NZ];
-            for (int k = 0; k < NZ; k++) { var row = lines[1 + k].Split(' '); for (int i = 0; i < NX; i++) h[i, k] = float.Parse(row[i], inv); }
-            float cw = (maxx - minx) / NX * MS, cd = (maxz - minz) / NZ * MS;
-            // glTF -> Unity mirrors X
-            Vector3 Cell(int i, int k) => new Vector3(-(minx + (i + 0.5f) * (maxx - minx) / NX) * MS, 0, (minz + (k + 0.5f) * (maxz - minz) / NZ) * MS);
-            const float walk = 0.062f, bedMax = 0.12f;
-            float Hc(int i, int k) => i < 0 || k < 0 || i >= NX || k >= NZ ? 0.3f : h[i, k];
-            var bedV = new List<Vector3>(); var bedT = new List<int>(); var wallV = new List<Vector3>(); var wallT = new List<int>();
-            void Quad(List<Vector3> v, List<int> tri, Vector3 a, Vector3 b, Vector3 c2, Vector3 d) { int n = v.Count; v.Add(a); v.Add(b); v.Add(c2); v.Add(d); tri.AddRange(new[] { n, n + 1, n + 2, n, n + 2, n + 3, n, n + 2, n + 1, n, n + 3, n + 2 }); }
-            for (int k = 0; k < NZ; k++)
-                for (int i = 0; i < NX; i++)
-                {
-                    float y0 = h[i, k]; if (y0 < walk) continue;
-                    bool bed = y0 < bedMax; var v = bed ? bedV : wallV; var tri = bed ? bedT : wallT;
-                    var c = Cell(i, k); float Y = Mathf.Max(0.5f, (y0 - FloorY) * MS);
-                    float x0 = c.x - cw / 2, x1 = c.x + cw / 2, z0 = c.z - cd / 2, z1 = c.z + cd / 2;
-                    if (bed) bedTops.Add(new Vector3(c.x, Y, c.z));
-                    Quad(v, tri, new Vector3(x0, Y, z0), new Vector3(x1, Y, z0), new Vector3(x1, Y, z1), new Vector3(x0, Y, z1));
-                    Quad(v, tri, new Vector3(x0, 0, z0), new Vector3(x0, 0, z1), new Vector3(x0, Y, z1), new Vector3(x0, Y, z0));
-                    Quad(v, tri, new Vector3(x1, 0, z0), new Vector3(x1, 0, z1), new Vector3(x1, Y, z1), new Vector3(x1, Y, z0));
-                    Quad(v, tri, new Vector3(x0, 0, z0), new Vector3(x1, 0, z0), new Vector3(x1, Y, z0), new Vector3(x0, Y, z0));
-                    Quad(v, tri, new Vector3(x0, 0, z1), new Vector3(x1, 0, z1), new Vector3(x1, Y, z1), new Vector3(x0, Y, z1));
-                }
-            GameObject Solid(string n, List<Vector3> v, List<int> tri)
+            foreach (var side in new[] { "Port", "Starboard" })
             {
-                var mesh = new Mesh { name = n, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; mesh.SetVertices(v); mesh.SetTriangles(tri, 0); mesh.RecalculateBounds();
-                var g = new GameObject(n); g.transform.SetParent(t, false); g.AddComponent<MeshCollider>().sharedMesh = mesh; return g;
+                var bed = module.UsePart(side + " | planting trough", "Harvest", "potatoes", Use);
+                bed.enabled = false;
+                beds.Add(bed);
+                var crop = ModelRoom.Part(Room, side + " | potato stems");
+                bedTops.Add(crop.localPosition);
+                potatoes.Add(crop.gameObject);
+                crop.gameObject.SetActive(false);
+                var lamp = ModelRoom.Part(Room, side + " | cantilever");
+                var light = lamp.gameObject.AddComponent<Light>();
+                light.color = new Color(1f, 0.45f, 1f);
+                light.range = 8;
+                light.intensity = 0;
+                growLights.Add(light);
             }
-            var bedsGo = Solid("Beds", bedV, bedT); Solid("Walls", wallV, wallT); BedsCollider = bedsGo.GetComponent<Collider>();
-            var floor = new GameObject("Floor"); floor.transform.SetParent(t, false); floor.transform.localPosition = new Vector3(0, -0.1f, 0);
-            floor.AddComponent<BoxCollider>().size = new Vector3((maxx - minx) * MS + 2, 0.2f, (maxz - minz) * MS + 2);
-            var bedUse = Interactable.Add(bedsGo, "Harvest", "potatoes", Use, 0, false); bedUse.Range = 4f; bedUse.enabled = false; beds.Add(bedUse);
-
-            // where you come in: the free floor spot nearest the -z end, close to the middle, with free floor around it
-            int si = NX / 2, sk = 1; float best = 1e9f;
-            for (int k = 1; k < NZ / 3; k++)
-                for (int i = 1; i < NX - 1; i++)
-                {
-                    if (Hc(i, k) >= walk || Hc(i - 1, k) >= walk || Hc(i + 1, k) >= walk || Hc(i, k + 1) >= walk) continue;
-                    float score = k * 3 + Mathf.Abs(i - NX / 2);
-                    if (score < best) { best = score; si = i; sk = k; }
-                }
-            var sp = Cell(si, sk); Spawn = t.TransformPoint(sp + new Vector3(0, 0.05f, 0)); SpawnYaw = 0;
-            // exit door just behind the spawn spot, on the -z wall
-            var door = new GameObject("DoorPanel").transform; door.SetParent(t, false); door.localPosition = new Vector3(sp.x, 1.2f, sp.z - 1.0f);
-            ProcMesh.Prim(PrimitiveType.Cube, "Doorway", t, door.localPosition - new Vector3(0, 0, 0.1f), new Vector3(1.4f, 2.4f, 0.02f), R.Emissive(new Color(0.9f, 0.55f, 0.35f), new Color(1.6f, 0.85f, 0.5f)), null, false);
-            ProcMesh.Prim(PrimitiveType.Cube, "Slab", door, Vector3.zero, new Vector3(1.5f, 2.45f, 0.1f), R.Panel);
-            ProcMesh.Prim(PrimitiveType.Cube, "Stripe", door, new Vector3(0, 0.9f, 0.06f), new Vector3(1.5f, 0.16f, 0.02f), R.Orange, null, false);
-            ProcMesh.Prim(PrimitiveType.Cube, "Window", door, new Vector3(0, 0.4f, 0.06f), new Vector3(0.6f, 0.32f, 0.02f), R.Emissive(new Color(0.05f, 0.15f, 0.2f), new Color(0.2f, 0.9f, 1.3f)), null, false);
-            var sd = door.gameObject.AddComponent<SlideDoor>(); sd.Closed = door.localPosition; sd.Slide = 1.55f;
-            ExitPanel = door; ExitDoor = Interactable.Add(door.gameObject, "Go outside", "Mars base", null);
-            // LED grow lights switch next to the door
-            var sw = ProcMesh.Prim(PrimitiveType.Cube, "LedSwitch", t, door.localPosition + new Vector3(1.4f, 0.1f, 0.1f), new Vector3(0.7f, 0.5f, 0.12f), R.Emissive(new Color(0.15f, 0.05f, 0.15f), new Color(1.6f, 0.4f, 1.7f)));
-            ledSwitch = Interactable.Add(sw, "Switch on", "LED GROW LIGHTS", Use); ledSwitch.Range = 4f;
-            // the water pump = the tallest thing inside (the big water tank)
-            int ti = 0, tk = 0; for (int k = 0; k < NZ; k++) for (int i = 0; i < NX; i++) if (h[i, k] > h[ti, tk] && i > 0 && i < NX - 1 && k > 0 && k < NZ - 1) { ti = i; tk = k; }
-            var pumpGo = new GameObject("WaterPump"); pumpGo.transform.SetParent(t, false); pumpGo.transform.localPosition = Cell(ti, tk) + new Vector3(0, 1.5f, 0);
-            var pbc = pumpGo.AddComponent<BoxCollider>(); pbc.isTrigger = true; pbc.size = new Vector3(cw * 4, 3, cd * 4);
-            pump = Interactable.Add(pumpGo, "Turn on", "WATER PUMP (melted Mars ice)", Use, 0, false); pump.Range = 5f; pump.enabled = false;
-            // potato crate next to the door
-            var crateGo = ProcMesh.Prim(PrimitiveType.Cube, "Crate", t, new Vector3(sp.x - 1.5f, 0.45f, sp.z - 0.2f), new Vector3(1.2f, 0.9f, 0.9f), R.Lit(new Color(0.55f, 0.38f, 0.22f), 0.2f));
-            cratePile = new GameObject("Pile"); cratePile.transform.SetParent(crateGo.transform, false);
-            for (int i = 0; i < 9; i++) ProcMesh.Prim(PrimitiveType.Sphere, "Potato", cratePile.transform, new Vector3(-0.3f + (i % 3) * 0.3f, 0.55f, -0.25f + (i / 3) * 0.25f), new Vector3(0.2f, 0.18f, 0.22f), R.Lit(new Color(0.62f, 0.45f, 0.26f), 0.2f), null, false);
+            var sw = ProcMesh.Prim(PrimitiveType.Cube, "LED switch", Room.transform,
+                new Vector3(-5.7f, 1.35f, 0.85f), new Vector3(0.18f, 0.4f, 0.25f), R.CyanGlow);
+            ledSwitch = Interactable.Add(sw, "Switch on", "LED GROW LIGHTS", Use);
+            pump = module.UsePart("Ice melt system", "Turn on", "WATER PUMP", Use);
+            pump.enabled = false;
+            crate = module.UsePart("Harvest crate", "Eat", "fresh Mars potatoes", Use);
+            cratePile = crate.gameObject;
+            crate.enabled = false;
             cratePile.SetActive(false);
-            crate = Interactable.Add(crateGo, "Eat", "fresh Mars potatoes", Use); crate.Range = 4f; crate.enabled = false;
-            // potatoes that pop out of the soil when they are ready
-            var rng = new System.Random(5);
-            for (int n = 0; n < 40 && bedTops.Count > 0; n++)
-            {
-                var bt = bedTops[rng.Next(bedTops.Count)];
-                var pot = ProcMesh.Prim(PrimitiveType.Sphere, "Potato", t, bt + new Vector3(0, 0.05f, 0), new Vector3(0.28f, 0.2f, 0.24f), R.Lit(new Color(0.62f, 0.45f, 0.26f), 0.2f), null, false);
-                pot.SetActive(false); potatoes.Add(pot);
-            }
-            // glass roof with white frames: sunlight comes in from above
-            float W = (maxx - minx) * MS, D = (maxz - minz) * MS, H = (0.26f - FloorY) * MS;
-            H = Mathf.Max(H, 3.0f);
-            // glass walls all around (you see bright Mars sky through them, never the void)
-            var glassWall = R.Emissive(new Color(0.85f, 0.62f, 0.45f), new Color(0.95f, 0.72f, 0.5f), 0.9f);
-            foreach (var (pos, size) in new[] { (new Vector3(0, H / 2, D / 2 + 0.3f), new Vector3(W + 0.8f, H, 0.1f)), (new Vector3(0, H / 2, -D / 2 - 0.3f), new Vector3(W + 0.8f, H, 0.1f)),
-                (new Vector3(W / 2 + 0.3f, H / 2, 0), new Vector3(0.1f, H, D + 0.8f)), (new Vector3(-W / 2 - 0.3f, H / 2, 0), new Vector3(0.1f, H, D + 0.8f)) })
-                ProcMesh.Prim(PrimitiveType.Cube, "GlassWall", t, pos, size, glassWall);
-            ProcMesh.Prim(PrimitiveType.Cube, "GlassRoof", t, new Vector3(0, H, 0), new Vector3(W + 0.8f, 0.1f, D + 0.8f), R.Emissive(new Color(0.85f, 0.62f, 0.45f), new Color(1.0f, 0.75f, 0.52f), 0.9f), null, false);
-            var frame = R.Lit(new Color(0.92f, 0.93f, 0.95f), 0.5f, 0.1f);
-            for (float x = -W / 2; x <= W / 2 + 0.01f; x += W / 4) ProcMesh.Prim(PrimitiveType.Cube, "RoofBeam", t, new Vector3(x, H - 0.1f, 0), new Vector3(0.2f, 0.2f, D), frame, null, false);
-            for (float z = -D / 2; z <= D / 2 + 0.01f; z += D / 6) ProcMesh.Prim(PrimitiveType.Cube, "RoofBeam", t, new Vector3(0, H - 0.1f, z), new Vector3(W, 0.2f, 0.2f), frame, null, false);
-            for (int i = -1; i <= 1; i += 2)
-                for (int k = -1; k <= 1; k++)
-                {
-                    var l = new GameObject("Sun").AddComponent<Light>(); l.transform.SetParent(t, false); l.transform.localPosition = new Vector3(i * W * 0.25f, H - 0.8f, k * D * 0.3f);
-                    l.type = LightType.Point; l.range = 14; l.intensity = 2.4f; l.color = new Color(1f, 0.93f, 0.82f); l.shadows = LightShadows.None;
-                }
-            // pink LED grow-light bars (off until you switch them on)
-            for (int b = -1; b <= 1; b++)
-            {
-                var gm = R.Emissive(new Color(0.15f, 0.12f, 0.15f), Color.black); growMats.Add(gm);
-                ProcMesh.Prim(PrimitiveType.Cube, "GrowLight", t, new Vector3(b * W * 0.28f, H - 0.45f, 0), new Vector3(0.4f, 0.1f, D * 0.8f), gm, null, false);
-                var gl = new GameObject("GrowGlow").AddComponent<Light>(); gl.transform.SetParent(t, false); gl.transform.localPosition = new Vector3(b * W * 0.28f, H - 0.9f, 0);
-                gl.type = LightType.Point; gl.range = 10; gl.intensity = 0; gl.color = new Color(1f, 0.45f, 1f); gl.shadows = LightShadows.None; growLights.Add(gl);
-            }
             Room.SetActive(false);
-            return true;
         }
 
         void Make()
         {
-            if (MakeFromModel()) return;
+            if (Resources.Load<GameObject>("MarsBase9/08_Greenhouse_Interior")) { MakeFromModel(); return; }
             Room = new GameObject("GreenhouseRoom"); var t = Room.transform; t.position = Origin;
             const float W = 14, D = 14, H = 6.5f;
             var white = R.Panel;
@@ -253,6 +177,7 @@ namespace MissionMars
         /// <summary>Called by the story each time the player walks in.</summary>
         public IEnumerator OnEnter(Hud hud)
         {
+            if(Game.ExploreBase){hud.Say("The grow beds need power and water. Load ice at the melt system, then use the pump.");yield break;}
             Objective(hud);
             if (told) yield break;
             told = true;
@@ -267,7 +192,7 @@ namespace MissionMars
             if (modelMode)
             {
                 string S2(int n, string txt) => state > n ? $"<color=#7FE07F><s>{txt}</s></color>" : state == n ? $"<b>{txt}</b>" : $"<color=#9FB6D6>{txt}</color>";
-                hud.Objective("GROW YOUR FOOD", $"{S2(0, "1. Switch on the LED GROW LIGHTS (by the door)")}\n{S2(1, "2. Turn on the WATER PUMP (big tank)")}\n{S2(2, "3. Wait: the potatoes grow!")}\n{S2(3, "4. Harvest (E on the soil beds)")}\n{S2(4, "5. Eat the potatoes (crate by the door)")}");
+                hud.Objective("GROW YOUR FOOD", $"{S2(0, "1. Switch on the LED GROW LIGHTS (by the door)")}\n{S2(1, "2. Turn on the WATER PUMP (big tank)")}\n{S2(2, "3. Wait: the potatoes grow!")}\n{S2(3, "4. Harvest (E on the soil beds)")}\n{S2(4, "5. Eat the potatoes (harvest crate)")}");
                 return;
             }
             string Step(int n, string s) => state > n ? $"<color=#7FE07F><s>{s}</s></color>" : state == n ? $"<b>{s}</b>" : $"<color=#9FB6D6>{s}</color>";
@@ -314,7 +239,7 @@ namespace MissionMars
                     foreach (var b in beds) b.enabled = false;
                     cratePile.SetActive(true); crate.enabled = true;
                     Objective(hud);
-                    hud.Say("What a harvest! Take them to the crate by the door and EAT.", 4);
+                    hud.Say("What a harvest! Take them to the harvest crate and EAT.", 4);
                     break;
                 case 4: // eat
                     state = 0; crate.enabled = false; cratePile.SetActive(false);
@@ -384,7 +309,7 @@ namespace MissionMars
                     foreach (var b in beds) b.enabled = false;
                     cratePile.SetActive(true); crate.enabled = true;
                     Objective(hud);
-                    hud.Say("What a harvest! Take them to the crate by the door and EAT.", 4);
+                    hud.Say("What a harvest! Take them to the harvest crate and EAT.", 4);
                     break;
                 case 4: // eat
                     state = 1; crate.enabled = false; cratePile.SetActive(false); pump.enabled = true; // lights stay on: water again to grow more

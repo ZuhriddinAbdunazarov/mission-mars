@@ -84,7 +84,8 @@ namespace MissionMars
             }
             else
             {
-                { float dust = Game.Sky ? Game.Sky.DustStorm : 0; float make = (MoxieOn ? 7f * (1 - 0.65f * dust) : 0) + (WaterOn ? 5f : 0); O2 = make > 0 ? Mathf.Min(100, O2 + make * dt) : Mathf.Max(0, O2 - 0.06f * dt); }
+                if (BaseExpedition.I) { if(!BaseExpedition.I.CabinReady) O2=Mathf.Max(0,O2-O2Drain*dt); }
+                else { float dust = Game.Sky ? Game.Sky.DustStorm : 0; float make = (MoxieOn ? 7f * (1 - 0.65f * dust) : 0) + (WaterOn ? 5f : 0); O2 = make > 0 ? Mathf.Min(100, O2 + make * dt) : Mathf.Max(0, O2 - 0.06f * dt); }
                 if (O2 > 30) Health = Mathf.Min(100, Health + 2.5f * dt);
             }
             Water = Mathf.Max(0, Water - WaterDrain * dt);

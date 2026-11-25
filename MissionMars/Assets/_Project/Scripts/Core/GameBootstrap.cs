@@ -144,6 +144,18 @@ namespace MissionMars
                 for (int f = 0; f < 30; f++) { Game.Player.Teleport(p0, 0); Game.Player.LookAt(MarsWorld.BunkerDoorPanel.position + Vector3.up * 0.8f); yield return null; }
                 yield return Shot(dir, "bunker_entrance", 0.4f);
             }
+            if (Game.ExploreBase)
+            {
+                var lander=MarsWorld.G(MarsWorld.CrashXZ);
+                var p=MarsWorld.G(lander.x-10,lander.z-13,.1f);
+                for(int i=0;i<16;i++){Game.Player.Teleport(p,0);Game.Player.LookAt(lander+Vector3.up*1.4f);yield return null;}
+                yield return Shot(dir,"cargo_lander");
+                MarsWorld.BunkerDoorPanel.GetComponent<SlideDoor>().Snap(true);
+                var lockView=MarsWorld.BunkerOutside;
+                for(int i=0;i<16;i++){Game.Player.Teleport(lockView,0);Game.Player.LookAt(MarsWorld.InnerHatch.transform.position);yield return null;}
+                yield return Shot(dir,"lit_airlock");
+                MarsWorld.BunkerDoorPanel.GetComponent<SlideDoor>().Snap(false);
+            }
             { // the rover: from its front and from the side
                 var rv = MarsWorld.TheRover.transform;
                 foreach (var (o, n) in new[] { (new Vector3(0, 0, 9), "rover_front"), (new Vector3(8, 0, 2), "rover_side") })

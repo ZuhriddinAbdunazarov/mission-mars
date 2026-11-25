@@ -13,6 +13,7 @@ namespace MissionMars
         public Interactable Use;
         public System.Action OnFirstDrive;
         readonly List<Transform> wheels = new List<Transform>();
+        float tireRadius = 0.48f;
         float speed, yaw, camYaw; Vector3 camPos; int enterFrame; bool everDriven;
         AudioSource hum; Light headlight;
 
@@ -26,7 +27,7 @@ namespace MissionMars
         /// <summary>The team's bought rover model (Assets/Paid, not in git). It is long along its X axis with the cabin at -X: turn it so the cabin faces +Z.</summary>
         bool BuildModel()
         {
-            var prefab = R.Model("P_Rover"); if (!prefab) return false;
+            var prefab = R.Model("P_MarsBaseCrewRover"); if (!prefab) return false;
             var m = Instantiate(prefab, transform, false); m.name = "Model";
             m.transform.localRotation = Quaternion.Euler(0, -90, 0); // cabin to the front (+Z)
             var b = Util.Bounds(m);
@@ -35,6 +36,9 @@ namespace MissionMars
             m.transform.localPosition += new Vector3(-b.center.x, -b.min.y, -b.center.z);
             foreach (var r in m.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
             b = Util.Bounds(m);
+            foreach (var part in m.GetComponentsInChildren<Transform>())
+                if (part.name.StartsWith("Tire_")) wheels.Add(part);
+            if (wheels.Count > 0) tireRadius = Util.Bounds(wheels[0].gameObject).extents.y;
             var bc = gameObject.AddComponent<BoxCollider>(); bc.center = b.center; bc.size = b.size;
             Use = Interactable.Add(gameObject, "Drive", "MARS ROVER", Enter, 0, false); Use.Range = 5.5f;
             headlight = new GameObject("Headlight").AddComponent<Light>(); headlight.transform.SetParent(transform, false);
@@ -79,6 +83,12 @@ namespace MissionMars
             headlight.transform.localPosition = new Vector3(0, 1.3f, 2.2f); headlight.transform.localRotation = Quaternion.Euler(12, 0, 0);
             headlight.type = LightType.Spot; headlight.spotAngle = 70; headlight.range = 30; headlight.intensity = 0; headlight.shadows = LightShadows.None;
             foreach (var r in GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+        }
+
+        public void Park(Vector3 position, float heading)
+        {
+            yaw = heading;
+            Place(position, true);
         }
 
         void Place(Vector3 p, bool snap)
@@ -155,8 +165,9 @@ namespace MissionMars
             }
             pos += step;
             pos.x = Mathf.Clamp(pos.x, -300, 300); pos.z = Mathf.Clamp(pos.z, -300, 300);
+            float travel = Vector3.Dot(pos - transform.position, fwd);
             Place(pos, false);
-            foreach (var w in wheels) w.Rotate(Vector3.right, speed / 0.48f * Mathf.Rad2Deg * dt, Space.Self);
+            foreach (var w in wheels) w.Rotate(transform.right, travel / tireRadius * Mathf.Rad2Deg, Space.World);
             if (hum) hum.pitch = 0.7f + Mathf.Abs(speed) / max * 0.9f;
             if (Mathf.Abs(speed) > 4 && Random.value < dt * 6) FX.DustBlast(transform.position - fwd * 2f, 0.25f);
 

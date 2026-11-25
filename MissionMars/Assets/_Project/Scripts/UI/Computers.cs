@@ -80,12 +80,116 @@ namespace MissionMars
                 int k = i; var b = UIX.Button(view, "", () => Answer(k), 250, 70, 26, HC.Cyan);
                 ((RectTransform)b.transform).At(new Vector2(0, 0), new Vector2(135 + i * 270, 80), new Vector2(250, 70)); quiz.Add(b); Wx(b.gameObject);
             }
+            BuildTerminal();
             group.alpha = 0; group.blocksRaycasts = false; group.interactable = false; gameObject.SetActive(false);
+        }
+
+        GameObject terminal, terminalButton;
+        TMP_InputField command;
+        TextMeshProUGUI transcript;
+        readonly Queue<string> messages = new Queue<string>();
+
+        void BuildTerminal()
+        {
+            terminalButton = UIX.Button(card, "MISSION TERMINAL", OpenTerminal, 310, 60, 24, HC.Cyan).gameObject;
+            Put((RectTransform)terminalButton.transform, Vector2.zero, new Vector2(205, 65), new Vector2(310, 60));
+
+            var panel = UIX.Img(card, "Mission terminal", new Color(0.025f, 0.045f, 0.06f), UISprites.Round, true);
+            terminal = panel.gameObject;
+            panel.rectTransform.Fill();
+            var heading = UIX.Text(panel.transform, "MISSION TERMINAL", 42, HC.Cyan, R.Title);
+            Put(heading.rectTransform, Vector2.up, new Vector2(765, -80), new Vector2(1430, 70));
+            var help = UIX.Text(panel.transform, "Ask about Earth distance, closest approach, signal delay or Mars weather. Type SEND followed by a message to use the simulated Earth radio.", 28, HC.Text, R.KidBody);
+            Put(help.rectTransform, Vector2.up, new Vector2(765, -178), new Vector2(1430, 100));
+            transcript = UIX.Text(panel.transform, "", 27, HC.Text, R.KidBody);
+            Put(transcript.rectTransform, Vector2.up, new Vector2(765, -465), new Vector2(1430, 450));
+            transcript.richText = false;
+            transcript.overflowMode = TextOverflowModes.Ellipsis;
+
+            var input = UIX.Img(panel.transform, "Question", new Color(0.09f, 0.14f, 0.17f), UISprites.Round, true);
+            Put(input.rectTransform, Vector2.zero, new Vector2(620, 125), new Vector2(1130, 76));
+            var area = UIX.Go("Text area", input.transform).RT();
+            area.Fill(); area.offsetMin = new Vector2(18, 4); area.offsetMax = new Vector2(-18, -4);
+            area.gameObject.AddComponent<RectMask2D>();
+            var value = UIX.Text(area, "", 28, Color.white, R.KidBody, TextAlignmentOptions.MidlineLeft);
+            value.rectTransform.Fill(); value.enableWordWrapping = false; value.richText = false;
+            var hint = UIX.Text(area, "How far is Earth?", 28, HC.Dim, R.KidBody, TextAlignmentOptions.MidlineLeft);
+            hint.rectTransform.Fill();
+            command = input.gameObject.AddComponent<TMP_InputField>();
+            command.targetGraphic = input; command.textViewport = area; command.textComponent = value;
+            command.placeholder = hint; command.characterLimit = 160; command.richText = false;
+            command.lineType = TMP_InputField.LineType.SingleLine;
+            command.onSubmit.AddListener(Submit);
+            var submit = UIX.Button(panel.transform, "SUBMIT", () => Submit(command.text), 300, 76, 26, HC.Cyan);
+            Put((RectTransform)submit.transform, Vector2.zero, new Vector2(1370, 125), new Vector2(300, 76));
+            var close = UIX.Button(panel.transform, "CLOSE", Close, 180, 54, 22, HC.Cyan);
+            Put((RectTransform)close.transform, Vector2.one, new Vector2(-150, -75), new Vector2(180, 54));
+            terminal.SetActive(false);
+        }
+
+        public void OpenTerminal()
+        {
+            if (!open) Show(null);
+            terminal.SetActive(true);
+            transcript.text = string.Join("\n\n", messages);
+            command.text = "";
+            command.ActivateInputField();
+        }
+
+        void LogExchange(string text)
+        {
+            if (messages.Count == 3) messages.Dequeue();
+            messages.Enqueue(text);
+            transcript.text = string.Join("\n\n", messages);
+        }
+
+        void Submit(string raw)
+        {
+            string question = raw.Trim();
+            if (question.Length == 0) return;
+            command.text = "";
+            var nasa = NasaLive.I;
+            if (question.StartsWith("send ", StringComparison.OrdinalIgnoreCase))
+            {
+                string message = question.Substring(5).Trim();
+                LogExchange($"Mars → Earth   {message}\nSimulated round trip: {2 * nasa.LightMinutes:0.0} seconds at 1 second per light-minute.");
+                Game.Runner.StartCoroutine(RadioReply(message, (float)nasa.LightMinutes * 2));
+            }
+            else LogExchange(question + "\n" + AnswerQuestion(question));
+            command.ActivateInputField();
+        }
+
+        System.Collections.IEnumerator RadioReply(string message, float seconds)
+        {
+            yield return new WaitForSecondsRealtime(seconds);
+            LogExchange($"Mission Control · simulated reply to “{message}”\n" + AnswerQuestion(message, true));
+            AstroPass.Award("earthcall", "Called Earth", 1);
+        }
+
+        static string AnswerQuestion(string question, bool radio = false)
+        {
+            string q = question.ToLowerInvariant();
+            var nasa = NasaLive.I;
+            if (q.Contains("weather") || q.Contains("temperature") || q.Contains("cold") || q.Contains("wind") || q.Contains("pressure") || q.Contains("hot"))
+            {
+                var sol = NasaApi.I.LastSol;
+                return $"NASA InSight archive · {sol.date}, sol {sol.sol}. Low {sol.tempMinC:0.#} °C, high {sol.tempMaxC:0.#} °C. Wind {sol.windMs:0.#} m/s {sol.windDir}. Pressure {sol.pressurePa:0} Pa.";
+            }
+            if (q.Contains("closest") || q.Contains("nearest") || q.Contains("approach"))
+                return NasaLive.NextClosest(out var date, out var km)
+                    ? $"Next closest Earth–Mars separation in the NASA/JPL daily table: {km:N0} km on {date:dd MMM yyyy} UTC."
+                    : "The stored NASA/JPL table has no later close approach.";
+            if (q.Contains("delay") || q.Contains("signal") || q.Contains("radio") || q.Contains("connection"))
+                return $"Radio travel time: {nasa.DelayText} one way, {nasa.LightMinutes * 2:0.0} minutes round trip. Source: {nasa.SourceText}.";
+            if (q.Contains("earth") || q.Contains("distance") || q.Contains("kilomet") || q.Contains("far"))
+                return $"Earth–Mars separation: {nasa.DistanceKm:N0} km. {nasa.SourceText} · {nasa.DistanceDate}.";
+            return radio ? "Message received. Mission Control reads you." : "Try “Mars weather”, “How far is Earth?”, “closest approach”, or “send Hello from Mars”.";
         }
 
         // ------------------------------------------------------------------ open / close
         void Show(Action closed)
         {
+            terminal.SetActive(false); terminalButton.SetActive(!pwOnly[0].activeSelf);
             onClose = closed; open = true; openedAt = Time.unscaledTime;
             gameObject.SetActive(true); group.alpha = 1; group.blocksRaycasts = true; group.interactable = true;
             UIState.Push(); Sfx.Play("beep", 0.6f, 1.2f);
@@ -144,6 +248,7 @@ namespace MissionMars
 
         void Toggle(int i) { onOff[i] = !onOff[i]; Sfx.Play("click", 0.6f, onOff[i] ? 1.2f : 0.8f); RefreshPower(); }
 
+        public float NightDemand => Used();
         float Used() { float u = 0; for (int i = 0; i < Devices.Length; i++) if (onOff[i]) u += Devices[i].kwh; return u; }
 
         void RefreshPower()
@@ -165,9 +270,11 @@ namespace MissionMars
             float u = Used();
             if (!onOff[0]) { Sfx.Play("error", 0.6f); powerResult.text = "<color=#FF6A60><b>Brrr!</b></color> Without the HEATER the base freezes at -95 °C. Turn the heater ON."; return; }
             if (!onOff[1]) { Sfx.Play("error", 0.6f); powerResult.text = "<color=#FF6A60><b>No air!</b></color> The OXYGEN MAKER must stay ON all night."; return; }
+            if (BaseExpedition.I && u>BaseExpedition.I.Charge) {powerResult.text=$"Battery is charging. Available {BaseExpedition.I.Charge:0.0} kWh; plan needs {u:0} kWh.";return;}
             if (u > Battery) { Sfx.Play("error", 0.6f); powerResult.text = $"<color=#FF6A60><b>Battery empty at 3 AM!</b></color> You need {u:0} kWh but the battery has only {Battery:0}. Turn something OFF."; return; }
             powerSolved = true; Sfx.Play("success", 0.8f);
             powerResult.text = $"<color=#7FE07F><b>GREAT PLAN!</b></color> {u:0} kWh used, {Battery - u:0} kWh left for the morning.\n<size=21>Real fact: NASA is building a small nuclear power plant for the Moon and Mars that works day AND night, even in dust storms.</size>";
+            if(BaseExpedition.I) powerResult.text=$"Reserved {u:0} kWh for tonight. Sleep in a supplied bunk to run the night shift.";
             AstroPass.Award("power_plan", "Planned the night power", 3);
             PowerPlanOk?.Invoke();
         }
@@ -195,7 +302,8 @@ namespace MissionMars
         void Update()
         {
             if (!open) return;
-            if (Time.unscaledTime - openedAt > 0.4f && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape))) { Close(); return; }
+            if (Time.unscaledTime - openedAt > 0.4f && ((!terminal.activeSelf && Input.GetKeyDown(KeyCode.E)) || Input.GetKeyDown(KeyCode.Escape))) { Close(); return; }
+            if (terminal.activeSelf) return;
             if (navOnly.Count > 0 && navOnly[0].activeSelf)
             {
                 if (warp) dayShift += Time.unscaledDeltaTime * 45; // 45 days every second
@@ -263,7 +371,7 @@ namespace MissionMars
             var w = api ? api.LastSol : null;
             string space = api && api.CmeCount30d >= 0 ? $"{api.CmeCount30d} clouds of hot gas left the Sun this month (NASA DONKI)" : "Sun data: saved NASA DONKI flares";
             info.text = w == null ? "Weather data loading…" :
-                $"<color=#7FE3FF>TODAY AT THE STATION</color>\nDay <b>{w.tempMaxC:0} °C</b>, night <b>{w.tempMinC:0} °C</b>\n\n" +
+                $"<color=#7FE3FF>INSIGHT ARCHIVE · SOL {w.sol} · {w.date}</color>\nDay <b>{w.tempMaxC:0} °C</b>, night <b>{w.tempMinC:0} °C</b>\n\n" +
                 $"<color=#7FE3FF>AIR PRESSURE</color>\n<b>{w.pressurePa:0} Pa</b>. On Earth it is 101 325 Pa: Mars air is <b>130 times thinner</b>!\n\n" +
                 $"<color=#7FE3FF>WIND</color>\n<b>{w.windMs:0.0} m/s</b> from the {w.windDir}\n\n" +
                 $"<color=#7FE3FF>SPACE WEATHER</color>\n{space}\n\n" +

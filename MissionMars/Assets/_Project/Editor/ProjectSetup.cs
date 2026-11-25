@@ -188,12 +188,14 @@ namespace MissionMars.EditorTools
         [MenuItem("Mission Mars/3. Build Windows (.exe)")]
         public static void Build()
         {
-            string outDir = Path.GetFullPath("../Build/MissionMars");
+            bool revision = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-revision-build") >= 0;
+            string outDir = Path.GetFullPath(revision ? "../Build/MarsBaseRevision" : "../Build/MissionMars");
             Directory.CreateDirectory(outDir);
             var opts = new BuildPlayerOptions
             {
                 scenes = new[] { P + "/Scenes/Main.unity" },
                 locationPathName = Path.Combine(outDir, "MissionMars.exe"),
+                extraScriptingDefines = revision ? new[] { "MARS_BASE_REVISION" } : System.Array.Empty<string>(),
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None,
             };

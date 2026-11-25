@@ -28,6 +28,7 @@ namespace MissionMars
 
         public string ClockText()
         {
+            if (Game.ExploreBase) return $"SOL {Sol}  |  MARS BASE";
             if (!ClockRunning && DaysLeft >= 780) return $"SOL {Sol}  ·  <color={HC.Hex(HC.Amber)}>CRASH SITE</color>";
             return DaysLeft > 0 ? $"SOL {Sol}  ·  EARTH WINDOW <color={HC.Hex(HC.Cyan)}>T-{DaysLeft} DAYS</color>" : $"SOL {Sol}  ·  <color={HC.Hex(HC.Green)}>LAUNCH WINDOW OPEN</color>";
         }
@@ -194,7 +195,7 @@ namespace MissionMars
             bool play = false; screens.OnPlay = () => play = true;
             screens.OnRestart = () => SceneManager.LoadScene(0);
             screens.OnQuit = () => StartCoroutine(QuitWithFlyAway(space));
-            if (!QuickStart)
+            if (!QuickStart && !Game.ExploreBase)
             {
                 screens.ShowTitle(true);
                 yield return Cinema.I.FromBlack(1.5f);
@@ -212,13 +213,15 @@ namespace MissionMars
 
             // ---- INTRO ----
             Cinema.I.Letterbox(true, 0.01f);
-            yield return space.Intro();
+            if (!Game.ExploreBase) yield return space.Intro();
             Cinema.I.Letterbox(false, 0.01f);
             space.Exit(cineCam);
             cineCam.enabled = false;
+            if (Game.ExploreBase) cineCam.GetComponent<AudioListener>().enabled = false;
 
             // ---- WAKE UP ----
             yield return WakeUp();
+            if (Game.ExploreBase) yield break;
             // ---- STORM → BUNKER ----
             yield return FirstStorm();
             // ---- SALVAGE ----
@@ -247,6 +250,26 @@ namespace MissionMars
             bot = Robot.Create(spawn + new Vector3(30, 20, 30));
             Game.Sky.TimeOfDay = 0.36f; Game.Sky.Apply();
             AudioManager.I.Wind = AudioManager.I.Loop("wind", 0.35f);
+
+            if (Game.ExploreBase)
+            {
+                var rover = MarsWorld.TheRover;
+                var plaza = MarsWorld.MarsBase.TransformPoint(new Vector3(4, 0, 16));
+                rover.Park(plaza, MarsWorld.MarsBase.eulerAngles.y + 30);
+                rover.Use.enabled = true;
+                var from = rover.transform.position + rover.transform.forward * 3.6f + rover.transform.right * 2.2f;
+                player.Teleport(MarsWorld.G(from.x, from.z, 0.1f), 0);
+                player.LookAt(rover.transform.position + Vector3.up * 1.4f);
+                bot.Teleport(player.transform.position + Vector3.up * 2 + player.transform.right * 3);
+                WireDoors();
+                MarsWorld.SetPower(0);
+                UIState.Cinematic = false; UIState.Refresh();
+                player.Frozen = false;
+                Cinema.I.SetBlack(0); Cinema.I.Eyes(1);
+                hud.Show(true);
+                gameObject.AddComponent<BaseExpedition>().Begin();
+                yield break;
+            }
 
             // lying on the ground, looking up at the sky
             player.Frozen = true;
@@ -412,7 +435,11 @@ namespace MissionMars
             player.Frozen = true;
             var outer = MarsWorld.BunkerDoorPanel.GetComponent<SlideDoor>();
             yield return outer.Move(true); // the door slides open...
-            yield return Cinema.I.ToBlack(0.35f);
+            yield return WalkThroughLock(MarsWorld.Vestibule.TransformPoint(new Vector3(0,.06f,1.4f)), MarsWorld.BunkerOutsideYaw+180);
+            yield return outer.Move(false);
+            yield return MarsWorld.InnerHatch.Move(true);
+            yield return Cinema.I.WhiteOut(0.35f);
+            MarsWorld.InnerHatch.Snap(false);
             outer.Snap(false);              // ...and shuts behind you
             MarsWorld.ExitDoorPanel.GetComponent<SlideDoor>().Snap(false);
             Sfx.Play("thud", 0.4f, 1.2f);
@@ -423,7 +450,7 @@ namespace MissionMars
             bot.Teleport(MarsWorld.InteriorSpawn + new Vector3(1.2f, 1.8f, 1.5f));
             suit.Inside = true; inside = true;
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
-            yield return Cinema.I.FromBlack(0.4f);
+            yield return Cinema.I.WhiteIn(0.4f);
             player.Frozen = false; busy = false;
         }
 
@@ -433,22 +460,37 @@ namespace MissionMars
             player.Frozen = true;
             var inner = MarsWorld.ExitDoorPanel.GetComponent<SlideDoor>();
             yield return inner.Move(true);
-            yield return Cinema.I.ToBlack(0.35f);
+            yield return Cinema.I.WhiteOut(0.35f);
             inner.Snap(false);
             Sfx.Play("whoosh", 0.4f, 0.6f);
             MarsWorld.Interior.SetActive(false); MarsWorld.SetSurface(true);
             var outer = MarsWorld.BunkerDoorPanel.GetComponent<SlideDoor>();
-            outer.Snap(true); // you come out of the open door, then it closes behind you
-            Game.Runner.StartCoroutine(CloseLater(outer));
+            outer.Snap(false);
+
             Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
-            player.Teleport(MarsWorld.BunkerOutside, MarsWorld.BunkerOutsideYaw);
+            player.Teleport(MarsWorld.Vestibule.TransformPoint(new Vector3(0,.06f,1.4f)), MarsWorld.BunkerOutsideYaw);
             bot.Teleport(MarsWorld.BunkerOutside + new Vector3(1.5f, 2, 1.5f));
             suit.Inside = false; inside = false;
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
-            yield return Cinema.I.FromBlack(0.4f);
+            yield return Cinema.I.WhiteIn(0.4f);
+            yield return outer.Move(true);
+            yield return WalkThroughLock(MarsWorld.BunkerOutside, MarsWorld.BunkerOutsideYaw);
+            Game.Runner.StartCoroutine(CloseLater(outer));
             player.Frozen = false; busy = false;
         }
 
+        IEnumerator WalkThroughLock(Vector3 end, float yaw)
+        {
+            var start=player.transform.position;
+            var angle=player.YawDeg;
+            for(float t=0;t<1;t+=Time.deltaTime/1.1f)
+            {
+                float k=Mathf.SmoothStep(0,1,t);
+                player.Teleport(Vector3.Lerp(start,end,k),Mathf.LerpAngle(angle,yaw,k));
+                yield return null;
+            }
+            player.Teleport(end,yaw);
+        }
         static IEnumerator CloseLater(SlideDoor d)
         {
             yield return new WaitForSeconds(1.1f);
@@ -464,7 +506,7 @@ namespace MissionMars
             savedObjTitle = hud.LastTitle; savedObjBody = hud.LastBody; savedObjId = hud.ObjectiveId;
             var outer = MarsWorld.GreenhouseDoorPanel ? MarsWorld.GreenhouseDoorPanel.GetComponent<SlideDoor>() : null;
             if (outer) yield return outer.Move(true); // the door slides open...
-            yield return Cinema.I.ToBlack(0.35f);
+            yield return Cinema.I.WhiteOut(0.35f);
             if (outer) outer.Snap(false);              // ...and shuts behind you
             MarsWorld.SetSurface(false); gh.Room.SetActive(true);
             Game.Sky.Mode = SkyMode.Interior; Game.Sky.InteriorBright = 1.3f; Game.Sky.Apply();
@@ -476,7 +518,7 @@ namespace MissionMars
             if (gh.BedsCollider) Physics.IgnoreCollision(player.GetComponent<CharacterController>(), gh.BedsCollider, true); // walk between the plants
             bot.gameObject.SetActive(false); // NOVA waits outside
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
-            yield return Cinema.I.FromBlack(0.4f);
+            yield return Cinema.I.WhiteIn(0.4f);
             player.Frozen = false; busy = false;
             StartCoroutine(gh.OnEnter(hud));
         }
@@ -486,7 +528,7 @@ namespace MissionMars
             var gh = Greenhouse.I; if (!gh) yield break;
             busy = true; player.Frozen = true;
             yield return gh.ExitPanel.GetComponent<SlideDoor>().Move(true);
-            yield return Cinema.I.ToBlack(0.35f);
+            yield return Cinema.I.WhiteOut(0.35f);
             gh.Room.SetActive(false); MarsWorld.SetSurface(true);
             Game.Sky.Mode = SkyMode.Surface; Game.Sky.InteriorBright = MarsWorld.PowerOn ? 1f : 0.35f; Game.Sky.Apply();
             player.Teleport(MarsWorld.GreenhouseOutside, MarsWorld.GreenhouseOutsideYaw);
@@ -495,7 +537,7 @@ namespace MissionMars
             player.GetComponent<CharacterController>().radius = 0.38f; bot.gameObject.SetActive(true);
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
             if (!string.IsNullOrEmpty(savedObjTitle)) hud.Objective(savedObjTitle, savedObjBody, savedObjId);
-            yield return Cinema.I.FromBlack(0.4f);
+            yield return Cinema.I.WhiteIn(0.4f);
             player.Frozen = false; busy = false;
         }
 
@@ -507,7 +549,7 @@ namespace MissionMars
             busy = true; player.Frozen = true;
             savedObjTitle = hud.LastTitle; savedObjBody = hud.LastBody; savedObjId = hud.ObjectiveId;
             Sfx.Play("whoosh", 0.4f, 1.3f);
-            yield return Cinema.I.ToBlack(0.35f);
+            yield return Cinema.I.WhiteOut(0.35f);
             MarsWorld.SetSurface(false); room.Room.SetActive(true);
             Game.Sky.Mode = SkyMode.Interior; Game.Sky.InteriorBright = 1.4f; Game.Sky.Apply();
             room.ExitPanel.GetComponent<SlideDoor>().Snap(false);
@@ -516,17 +558,17 @@ namespace MissionMars
             suit.Inside = true; inside = true; inGreenhouse = true; curRoom = room; roomOutside = outside; roomOutsideYaw = MarsWorld.GreenhouseOutsideYaw;
             player.GetComponent<CharacterController>().radius = 0.3f; bot.gameObject.SetActive(false); // NOVA waits outside
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.05f, 0.5f);
-            yield return Cinema.I.FromBlack(0.4f);
+            yield return Cinema.I.WhiteIn(0.4f);
             player.Frozen = false; busy = false;
             if (!string.IsNullOrEmpty(hello)) hud.Say(hello, 5);
         }
 
         IEnumerator ExitRoom()
         {
-            var room = curRoom; if (room == null) yield break;
+            var room = curRoom; if (room == null || (BaseExpedition.I && !BaseExpedition.I.CanExit())) yield break;
             busy = true; player.Frozen = true;
             yield return room.ExitPanel.GetComponent<SlideDoor>().Move(true);
-            yield return Cinema.I.ToBlack(0.35f);
+            yield return Cinema.I.WhiteOut(0.35f);
             room.Room.SetActive(false); MarsWorld.SetSurface(true);
             Game.Sky.Mode = SkyMode.Surface; Game.Sky.InteriorBright = MarsWorld.PowerOn ? 1f : 0.35f; Game.Sky.Apply();
             player.Teleport(roomOutside, roomOutsideYaw);
@@ -535,7 +577,7 @@ namespace MissionMars
             player.GetComponent<CharacterController>().radius = 0.38f;
             if (AudioManager.I.Wind) AudioManager.I.FadeSource(AudioManager.I.Wind, 0.35f, 0.5f);
             if (!string.IsNullOrEmpty(savedObjTitle)) hud.Objective(savedObjTitle, savedObjBody, savedObjId);
-            yield return Cinema.I.FromBlack(0.4f);
+            yield return Cinema.I.WhiteIn(0.4f);
             player.Frozen = false; busy = false;
         }
 

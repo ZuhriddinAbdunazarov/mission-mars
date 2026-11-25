@@ -12,7 +12,7 @@ namespace MissionMars
         public Light HelmetLamp;
         public float WalkSpeed = 4.2f, SprintSpeed = 7.5f, JumpSpeed = 3.4f;
         public static float Sensitivity = 2.0f;
-        public bool Frozen;
+        public bool Frozen, Resting;
         public float SpeedMul = 1f;
         public float HeadHeight = 1.62f, ExtraRoll, ExtraPitch;
         public float YawDeg => yaw; public float PitchDeg => pitch;
@@ -103,6 +103,7 @@ namespace MissionMars
                 if (canControl && Input.GetKeyDown(KeyCode.Space)) { vy = JumpSpeed; Sfx.Play("step", 0.6f, 0.8f); }
             }
             vy -= MarsGravity * dt;
+            if(Resting){vel=Vector3.zero;vy=0;Head.localPosition=Vector3.up*HeadHeight;Head.localRotation=Quaternion.Euler(pitch+ExtraPitch,0,ExtraRoll);return;}
             var flags = cc.Move((vel + Vector3.up * vy) * dt);
             if ((flags & CollisionFlags.Above) != 0 && vy > 0) vy = 0;
 

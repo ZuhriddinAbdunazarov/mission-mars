@@ -17,6 +17,11 @@ namespace MissionMars
         public static Story Story;
         public static bool InMenu = true;
         public static bool Paused;
+#if MARS_BASE_REVISION
+        public static readonly bool ExploreBase = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-campaign") < 0;
+#else
+        public static readonly bool ExploreBase = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-explore-base") >= 0;
+#endif
         public static bool PointerOverUI => EventSystem.current && EventSystem.current.IsPointerOverGameObject();
     }
 
