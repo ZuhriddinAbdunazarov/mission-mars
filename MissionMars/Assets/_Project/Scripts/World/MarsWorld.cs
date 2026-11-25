@@ -523,10 +523,8 @@ namespace MissionMars
                     if (!panel) panel = p;
                 }
             Kit("K_barrels", -24, 6, 30, 3f);
-            // a few big rocks around the edge, so the base sits in a real landscape
+            // one big rock at the far edge (the rocks next to the plantation were removed: they blocked the view)
             Kit("Q_Rock_Large_1", -30, -14, 40, 2.2f);
-            Kit("Q_Rock_Large_2", 33, 4, 200, 2.0f);
-            Kit("Q_Rock_Large_1", 28, -22, 120, 1.6f);
 
             // what each building does (press E)
 
