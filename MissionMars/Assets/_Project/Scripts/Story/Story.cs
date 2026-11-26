@@ -531,7 +531,10 @@ namespace MissionMars
             bot.Lead = MarsWorld.BunkerOutside + Vector3.up * 2.5f;
             bool entered = false;
             MarsWorld.BunkerDoor.OnUse = () => { if (!askingCode) StartCoroutine(DoorCode(() => entered = true)); };
-            while (!entered)
+            // until mission 3 the shelter's inside door explains instead of doing nothing
+            MarsWorld.ExitDoor.OnUse = () => hud.Say("Stay inside for now, Commander! The storm is dangerous and the shelter needs POWER first.", 4);
+            // "inside": NOVA carried you into the shelter (air or radiation ran out on the way) — that counts too
+            while (!entered && !inside)
             {
                 if (askingCode) guide.Focus(1, "Type the door code 1 1 2 2. It is at the end of your Junior Astronaut Handbook!");
                 else if (Dist(MarsWorld.BunkerOutside) < 7f) guide.Focus(1, "Press E at the big door, then type the door code.", () => MarsWorld.BunkerOutside, "SHELTER DOOR");
@@ -539,7 +542,8 @@ namespace MissionMars
             }
             guide.Complete();
             bot.Lead = null;
-            yield return EnterBunker();
+            if (inside) { while (busy) yield return null; }
+            else yield return EnterBunker();
             // time passes: storm ends (kept short — about 1.5 seconds)
             yield return Cinema.I.ToBlack(0.3f);
             suit.Storm = 0; StopAllStorms();
