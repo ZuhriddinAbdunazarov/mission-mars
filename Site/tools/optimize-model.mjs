@@ -1,9 +1,10 @@
-// Makes a lighter copy of a .glb for the web build.
-//   node optimize-model.mjs <in.glb> <out.glb> <maxTexturePx> [meshRatio]
+// Makes a lighter copy of a .glb or .gltf for the web build.
+//   node optimize-model.mjs <in.glb|gltf> <out.glb|gltf> <maxTexturePx> [meshRatio] [maxError]
 // - textures larger than maxTexturePx are scaled down (Unity keeps glb textures uncompressed,
 //   so resolution is what decides the download size)
 // - meshRatio < 1 simplifies the mesh to about that share of its triangles (meshoptimizer)
 import { NodeIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { weld, simplify } from '@gltf-transform/functions';
 import { MeshoptSimplifier } from 'meshoptimizer';
 import Jimp from 'jimp';
@@ -14,10 +15,10 @@ Jimp.decoders['image/jpeg'] = (d) => JPEG.decode(d, { maxMemoryUsageInMB: 4096, 
 const [, , input, output, maxStr, ratioStr, errStr] = process.argv; // errStr: allowed shape error (default 0.002, bigger = fewer triangles)
 const max = Number(maxStr);
 const ratio = ratioStr ? Number(ratioStr) : 1;
-const io = new NodeIO();
+const io = new NodeIO().registerExtensions(ALL_EXTENSIONS); // keep emissive strength etc.
 const doc = await io.read(input);
 
-for (const tex of doc.getRoot().listTextures()) {
+for (const tex of max < 99999 ? doc.getRoot().listTextures() : []) { // 99999 = keep the pictures as they are
   const mime = tex.getMimeType();
   const img = tex.getImage();
   if (!img || !/jpeg|png/.test(mime)) continue;

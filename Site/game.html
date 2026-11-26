@@ -216,12 +216,70 @@
       productVersion: "1.0",
       showBanner: unityShowBanner,
     };
+    function show(p, text) {
+      document.querySelector("#unity-progress-bar-full").style.width = (100 * p) + "%";
+      document.querySelector("#pct").textContent = text || ("Loading " + Math.round(100 * p) + "%");
+    }
+    // ---- download the big files in 4 MB pieces (Build/parts.json), 3 at a time, retrying any piece that drops ----
+    function getPiece(url, onBytes) {
+      var tries = 0;
+      function attempt() {
+        tries++;
+        var ctrl = window.AbortController ? new AbortController() : null, got = 0, timer;
+        function stall() { clearTimeout(timer); timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000); } // no bytes for 30 s: try again
+        stall();
+        return fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          if (!r.body || !r.body.getReader) return r.arrayBuffer().then(function (b) { onBytes(b.byteLength); return b; });
+          var reader = r.body.getReader(), chunks = [];
+          function pump() {
+            return reader.read().then(function (s) {
+              if (s.done) return new Blob(chunks);
+              chunks.push(s.value); got += s.value.byteLength; onBytes(s.value.byteLength); stall();
+              return pump();
+            });
+          }
+          return pump();
+        }).then(function (b) { clearTimeout(timer); return b; }, function (e) {
+          clearTimeout(timer); onBytes(-got); // forget the bytes of the dropped try
+          if (tries >= 8) throw e;
+          return new Promise(function (ok) { setTimeout(ok, 1000 * tries); }).then(attempt);
+        });
+      }
+      return attempt();
+    }
+    function getPieces(list, onBytes) {
+      var out = new Array(list.length), next = 0;
+      function worker() {
+        if (next >= list.length) return Promise.resolve();
+        var i = next++;
+        return getPiece(buildUrl + "/" + list[i], onBytes).then(function (b) { out[i] = b; return worker(); });
+      }
+      return Promise.all([worker(), worker(), worker()]).then(function () { return new Blob(out); });
+    }
+    function downloadPieces() {
+      return fetch(buildUrl + "/parts.json", { cache: "no-cache" }).then(function (r) {
+        if (!r.ok) throw new Error("no parts.json");
+        return r.json();
+      }).then(function (m) {
+        var total = m.data.size + m.code.size, done = 0;
+        function onBytes(n) { done += n; show(0.85 * Math.min(1, done / total), "Loading " + Math.round(85 * done / total) + "%"); }
+        return Promise.all([getPieces(m.data.parts, onBytes), getPieces(m.code.parts, onBytes)]).then(function (b) {
+          config.dataUrl = URL.createObjectURL(b[0]);
+          config.codeUrl = URL.createObjectURL(b[1]);
+          config.cacheControl = function () { return "no-store"; }; // pieces are already in the browser's normal cache
+          return 0.85;
+        });
+      }).catch(function (e) {
+        console.warn("[MissionMars] pieces not used:", e); return 0; // fall back to the whole files
+      });
+    }
+
     var script = document.createElement("script");
     script.src = buildUrl + "/Web.loader.js";
     script.onload = function () {
-      createUnityInstance(canvas, config, function (p) {
-        document.querySelector("#unity-progress-bar-full").style.width = (100 * p) + "%";
-        document.querySelector("#pct").textContent = "Loading " + Math.round(100 * p) + "%";
+      downloadPieces().then(function (base) {
+        return createUnityInstance(canvas, config, function (p) { show(base + (1 - base) * p); });
       }).then(function () {
         try { sessionStorage.removeItem("mm_retry"); } catch (e) {}
         document.querySelector("#unity-loading-bar").style.display = "none";
