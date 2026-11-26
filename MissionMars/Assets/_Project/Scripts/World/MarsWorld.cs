@@ -188,8 +188,11 @@ namespace MissionMars
             var lockPos=lockT.position; lockPos.y=MarsTerrain.H(sill.x,sill.z); lockT.position=lockPos;
             var entrance = ModelRoom.Place("04_Storm_Shelter_Entrance", lockT, new Vector3(0,-0.35f,-2.8f), -90);
             ModelRoom.Part(entrance, "Armoured hatch").gameObject.SetActive(false);
-            ModelRoom.Part(entrance, "Concrete portal").gameObject.SetActive(false);
+            var portal = ModelRoom.Part(entrance, "Concrete portal");
+            // the hidden ramp leaves a pit in the dirt mound behind the airlock: fill it up to the mound's surface
+            portal.gameObject.SetActive(false);
             ModelRoom.AddColliders(entrance);
+            PitFill(lockT);
             void Panel(string name, Vector3 p, Vector3 size, Material mat) =>
                 ProcMesh.Prim(PrimitiveType.Cube, name, lockT, p, size, mat);
             Panel("Airlock deck", new Vector3(0,-0.045f,1.4f), new Vector3(2.9f,0.12f,4.8f), R.Floor);
@@ -219,6 +222,32 @@ namespace MissionMars
             TimerText = World3DText(TimerHolo.transform, Vector3.zero, "", 7, new Color(0.55f, 0.95f, 1f));
             TimerText.gameObject.AddComponent<Billboard>();
             TimerHolo.SetActive(false);
+        }
+
+        /// <summary>A sloped block of Mars rock that fills the old ramp pit of the shelter mound. The pit sits right behind
+        /// the airlock (airlock coordinates, measured from a top-down picture): 3.3 m wide, from the airlock's back (z -1)
+        /// about 1.6 m into the hill; the mound around it is about 3 m high inside and 2.3 m next to the airlock.</summary>
+        static void PitFill(Transform lockT)
+        {
+            const float w = 1.8f, yb = -0.4f, zIn = -2.9f, zOut = -0.75f, hIn = 3.05f, hOut = 2.45f;
+            var c = new[] {
+                new Vector3(-w, yb, zIn), new Vector3(w, yb, zIn), new Vector3(w, yb, zOut), new Vector3(-w, yb, zOut), // bottom
+                new Vector3(-w, hIn, zIn), new Vector3(w, hIn, zIn), new Vector3(w, hOut, zOut), new Vector3(-w, hOut, zOut) }; // top
+            int[][] quads = { new[] { 4, 5, 6, 7 }, new[] { 0, 3, 2, 1 }, new[] { 0, 1, 5, 4 }, new[] { 3, 7, 6, 2 }, new[] { 0, 4, 7, 3 }, new[] { 1, 2, 6, 5 } };
+            var v = new List<Vector3>(); var uv = new List<Vector2>(); var tri = new List<int>();
+            foreach (var q in quads)
+                for (int side = 0; side < 2; side++) // both sides, so it looks right whichever way the model is mirrored
+                {
+                    int b = v.Count;
+                    foreach (int i in q) { var p = c[i]; v.Add(p); uv.Add(new Vector2(p.x + p.z, p.y + p.z * 0.5f) / 3f); }
+                    if (side == 0) tri.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
+                    else tri.AddRange(new[] { b, b + 2, b + 1, b, b + 3, b + 2 });
+                }
+            var mesh = new Mesh { name = "Pit fill" }; mesh.SetVertices(v); mesh.SetUVs(0, uv); mesh.SetTriangles(tri, 0);
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            var g = new GameObject("Pit fill"); g.transform.SetParent(lockT, false);
+            g.AddComponent<MeshFilter>().sharedMesh = mesh; g.AddComponent<MeshRenderer>().sharedMaterial = R.Rock;
+            g.AddComponent<MeshCollider>().sharedMesh = mesh;
         }
 
         public static TextMeshPro World3DText(Transform parent, Vector3 lpos, string s, float size, Color c)

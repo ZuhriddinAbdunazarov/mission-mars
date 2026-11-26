@@ -887,9 +887,7 @@ namespace MissionMars
             WireDoors();
             guide.Mission(3, "machines", "MAKE AIR AND WATER", "Get in the ROVER", "Pick up MOXIE (air maker)", "Pick up the WATER MAKER", "Drive back to the SHELTER", "Put both machines in their spots");
             if (MarsWorld.TheRover) guide.Focus(0, "The machines are HEAVY. Take the ROVER! Go outside, walk to it and press E.", () => MarsWorld.TheRover.transform.position, "ROVER");
-            yield return hud.SayWait("Our rocket brought 2 machines: MOXIE makes AIR to breathe. The other turns ICE into WATER.");
-            yield return hud.SayWait("They're at the crash site. They are HEAVY, so take the ROVER parked outside the shelter!", 4);
-            hud.Say("Walk to the door and press E to go outside. Then press E next to the rover to drive.", 6);
+            // the rover works as soon as the mission shows (not only after NOVA finishes talking)
             var rover = MarsWorld.TheRover; Waypoint wpRover = null; bool drove = false;
             if (rover)
             {
@@ -901,6 +899,9 @@ namespace MissionMars
                     AstroPass.Award("rover", "First rover drive", 1);
                 };
             }
+            if (!drove) yield return hud.SayWait("Our rocket brought 2 machines: MOXIE makes AIR to breathe. The other turns ICE into WATER.");
+            if (!drove) yield return hud.SayWait("They're at the crash site. They are HEAVY, so take the ROVER parked outside the shelter!", 4);
+            if (!drove) hud.Say("Walk to the door and press E to go outside. Then press E next to the rover to drive.", 6);
 
             foreach (var p in MarsWorld.Pouches) { var pp = p; pp.OnUse = () => { suit.Drink(35); Sfx.Play("pickup", 0.6f); hud.Toast("LIFE SUPPORT +35", "Emergency air & water pack from the ship.", "water", HC.Cyan); pp.gameObject.SetActive(false); }; }
             MarsWorld.Tap.OnUse = UseWaterMachine;
@@ -1360,6 +1361,12 @@ namespace MissionMars
             AudioManager.I.Music("music_hope", 0.6f, 2f);
             yield return Cinema.I.ToBlack(0.5f);
             Cinema.I.Letterbox(true, 0.4f);
+            // the film happens outside: make sure the Mars surface is shown (and no room is) whatever happened before
+            if (MarsWorld.Interior) MarsWorld.Interior.SetActive(false);
+            if (curRoom != null && curRoom.Room) curRoom.Room.SetActive(false);
+            if (Greenhouse.I && Greenhouse.I.Room) Greenhouse.I.Room.SetActive(false);
+            MarsWorld.SetSurface(true); Game.Sky.Mode = SkyMode.Surface; Game.Sky.Apply();
+            foreach (var lbl in FindObjectsByType<NearOnly>(FindObjectsSortMode.None)) lbl.gameObject.SetActive(false); // no floating signs in the film
             var rocket = MarsWorld.Rocket; var pad = MarsWorld.Pad;
             // a movie camera (the player's eyes are switched off for the film)
             var camGo = new GameObject("LaunchCam"); var cam = camGo.AddComponent<Camera>(); cam.fieldOfView = 50; cam.nearClipPlane = 0.1f; cam.farClipPlane = 5000;

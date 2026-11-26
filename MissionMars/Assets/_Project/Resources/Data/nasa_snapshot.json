@@ -1,29 +1,29 @@
 {
- "retrievedAt": "2026-11-25T07:07:56.551Z",
+ "retrievedAt": "2026-11-25T16:35:11.348Z",
  "sources": {
   "cme": {
    "from": "api.nasa.gov DONKI CME",
-   "at": "2026-11-25T07:07:56.551Z"
+   "at": "2026-11-25T16:35:11.348Z"
   },
   "insight": {
    "from": "api.nasa.gov InSight",
-   "at": "2026-11-25T07:07:56.551Z"
+   "at": "2026-11-25T16:35:11.348Z"
   },
   "photos": {
    "from": "images-api.nasa.gov",
-   "at": "2026-11-25T07:07:56.551Z"
+   "at": "2026-11-25T16:35:11.348Z"
   },
   "horizons": {
    "from": "ssd.jpl.nasa.gov Horizons",
-   "at": "2026-11-25T07:07:56.551Z"
+   "at": "2026-11-25T16:35:11.348Z"
   },
   "apod": {
    "from": "api.nasa.gov APOD",
-   "at": "2026-11-25T05:16:51.970Z"
+   "at": "2026-11-25T16:35:11.348Z"
   }
  },
- "cmeCount": 90,
- "cmeLatest": "2026-11-24T20:00Z",
+ "cmeCount": 93,
+ "cmeLatest": "2026-11-25T08:12Z",
  "sols": [
   {
    "sol": 675,
@@ -120,11 +120,11 @@
    "image": "NASA_photo2"
   }
  ],
- "earthMarsKm": 183594094,
+ "earthMarsKm": 183083177,
  "apod": {
   "title": "NASA Science",
   "date": "2026-11-25",
-  "explanation": "After this galaxy battle, only one galaxy will remain. Already visible in the featured picture are rings and faint star swirls from previous gravitational encounters. Known collectively as the NGC 7771 Group, these galaxies lie almost 200 million light-years away toward the high-flying constellation Pegasus. The largest galaxy, barred spiral NGC 7771 on the lower right, is itself about 75,000 light-years across, and the galaxy on the upper left is spiral NGC 7769, which is almost as large. As these and other smaller galaxies make repeated close passages, they will all likely merge into one very large galaxy. Playing out over billions of years, the merger process is understood to be a normal part of the evolution of galaxies. Studying galaxy clashes like this helps humanity to better understand the possible merger between our own Milky Way and Andromeda galaxies.Tomorrow's picture: open space\t\t\t\t\t\t",
+  "explanation": "To view this video please enable JavaScript, and consider upgrading to a web browser that \t\t\t\t\tsupports HTML5 vide",
   "url": "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png",
   "media_type": "image",
   "copyright": ""

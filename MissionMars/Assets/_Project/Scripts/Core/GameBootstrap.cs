@@ -238,6 +238,14 @@ namespace MissionMars
                 var p0 = bo + fwd * 5f; p0.y = MarsTerrain.H(p0.x, p0.z) + 0.2f;
                 for (int f = 0; f < 30; f++) { Game.Player.Teleport(p0, 0); Game.Player.LookAt(MarsWorld.BunkerDoorPanel.position + Vector3.up * 0.8f); yield return null; }
                 yield return Shot(dir, "bunker_entrance", 0.4f);
+                // behind and beside the airlock (where the old ramp pit was)
+                var vt = MarsWorld.Vestibule; var look = vt.TransformPoint(new Vector3(0, 1, -4.5f));
+                foreach (var (o, n) in new[] { (new Vector3(0, 0, -14), "pit_back"), (new Vector3(7, 0, -6), "pit_side"), (new Vector3(-3, 0, -9), "pit_close"), (new Vector3(3.2f, 3f, -2.5f), "pit_top"), (new Vector3(-3.5f, 2.5f, -1.5f), "pit_top2"), (new Vector3(0, 16f, -2.2f), "pit_above") })
+                {
+                    var p = vt.TransformPoint(o); p.y = Mathf.Max(MarsTerrain.H(p.x, p.z) + 1.2f, p.y + 1.2f);
+                    for (int f = 0; f < 30; f++) { Game.Player.Teleport(p, 0); Game.Player.LookAt(look); yield return null; }
+                    yield return Shot(dir, n, 0.3f);
+                }
             }
             if (Game.ExploreBase)
             {
