@@ -50,6 +50,7 @@ namespace MissionMars
             }
             // the outpost sits on a wide flat plain
             Flats.Add(new Flat { c = new Vector2(0, 0), r = 70, fall = 40, h = 0 });
+            Flats.Add(new Flat { c = MarsWorld.IceXZ[MarsWorld.CaveIndex], r = 20, fall = 14, h = 0 }); // level ground under the ICE CAVE
         }
 
         /// <summary>Height in metres at world XZ (terrain centred on origin).</summary>

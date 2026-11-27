@@ -131,7 +131,7 @@ namespace MissionMars
             hi.rectTransform.Fill();
             var tail = UIX.Img(bub.transform, "Tail", new Color(1f, 1f, 1f, 0.94f), UISprites.Diamond);
             tail.rectTransform.Set(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(40, 2), new Vector2(34, 34));
-            var foot = UIX.Text(title.transform, "Made with real NASA data  ·  Astronaut model by Jungle Jim (CC-BY)  ·  Sounds: Kenney (CC0)  ·  Music: OpenGameArt (CC0)  ·  Not an official NASA product", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
+            var foot = UIX.Text(title.transform, "Made with real NASA data  ·  Astronaut and ice cave models by Jungle Jim (CC-BY)  ·  Sounds: Kenney (CC0)  ·  Music: OpenGameArt (CC0)  ·  Not an official NASA product", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
             foot.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(-80, 24));
 
             // ---------------- CONTROLS ----------------

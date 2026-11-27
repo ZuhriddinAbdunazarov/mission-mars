@@ -11,5 +11,7 @@ Sound effects (Kenney.nl, CC0)
 NOVA's voice
   The speech voice built into the player's own web browser (Web Speech API). Nothing is downloaded.
 
-Astronaut 3D model
-  "Astronaut" by Jungle Jim (CC-BY)
+
+3D models
+  "Astronaut" and "Rock Mountain with cave (realistic version)" by Jungle Jim (CC-BY, Sketchfab)
+  RASSOR digging robot: NASA 3D Resources (public domain)

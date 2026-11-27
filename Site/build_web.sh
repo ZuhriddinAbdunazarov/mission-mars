@@ -25,6 +25,7 @@ MODELS=(
   "NASA/Astronaut:512:1"
   "NASA/Orbital_Replacement_Unit:512:1"
   "NASA/Crew_Lock_Bag:512:1"
+  "NASA/RASSOR:512:1"
   "Sketchfab/SF_Rocket:512:0.6"
   "Sketchfab/SF_Asteroid1:256:0.25:0.002"
   "Sketchfab/SF_Asteroid2:256:0.25:0.002"

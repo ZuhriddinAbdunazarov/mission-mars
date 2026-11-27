@@ -53,6 +53,17 @@ namespace MissionMars.EditorTools
                     log.AppendLine($"  {mf.name} slice {s} y {y0:F2}-{y1:F2}: {c} verts  x {minX:F2}..{maxX:F2}  z {minZ:F2}..{maxZ:F2}");
                 }
             }
+            // how deep is any opening on the front (+Z)? rays from the front going -Z
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>()) mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
+            Physics.SyncTransforms();
+            log.AppendLine("FRONT DEPTH MAP (rows y, cols x; value = z where the ray hits; front face z max = " + b.max.z.ToString("F2") + ")");
+            for (float y = b.min.y + 0.01f; y < b.min.y + b.size.y * 0.5f; y += b.size.y * 0.04f)
+            {
+                var row = new StringBuilder($"y {y - b.min.y:F2}: ");
+                for (float x = b.min.x + b.size.x * 0.2f; x <= b.max.x - b.size.x * 0.2f; x += b.size.x * 0.04f)
+                    row.Append(Physics.Raycast(new Vector3(x, y, b.max.z + 1), Vector3.back, out var h, 5) ? h.point.z.ToString("F2").PadLeft(6) : "  ----");
+                log.AppendLine(row.ToString());
+            }
             File.WriteAllText(Path.Combine(outDir, "info.txt"), log.ToString());
 
             // pictures

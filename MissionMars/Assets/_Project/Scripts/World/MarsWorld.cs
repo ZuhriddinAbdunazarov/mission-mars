@@ -48,6 +48,9 @@ namespace MissionMars
         public static Interactable BatteryPlug, PowerSwitch, LeakValve;
         public static GameObject Cable; public static ParticleSystem LeakSteam; public static Vector3 LeakPos;
         public static Rover TheRover; public static readonly List<GameObject> IceBlocks = new List<GameObject>();
+        /// <summary>The ice spot nearest the shelter is inside the ICE CAVE (Mars ice hides from the Sun in dark caves).</summary>
+        public static int CaveIndex { get { int best = 0; float bd = 1e9f; for (int i = 0; i < IceXZ.Length; i++) { float d = Vector2.Distance(IceXZ[i], BunkerXZ); if (d < bd) { bd = d; best = i; } } return best; } }
+        public static GameObject CaveIce; public static Transform Cave;
         static readonly List<(Light l, float on)> powerLights = new List<(Light, float)>();
         static readonly List<(Material m, Color c)> powerGlows = new List<(Material, Color)>();
         static Light emergency;
@@ -86,7 +89,7 @@ namespace MissionMars
             if (Vector2.Distance(xz, CrashXZ) < 26 + pad) return true;
             if (Vector2.Distance(xz, BunkerXZ) < 20 + pad) return true;
             if (Vector2.Distance(xz, PadXZ) < 16 + pad) return true;
-            foreach (var q in IceXZ) if (Vector2.Distance(xz, q) < 5 + pad) return true;
+            for (int qi = 0; qi < IceXZ.Length; qi++) if (Vector2.Distance(xz, IceXZ[qi]) < (qi == CaveIndex ? 24 : 5) + pad) return true; // the ice cave mountain is big
             if (Vector2.Distance(xz, BaseXZ) < BaseSize * 1.15f + pad) return true; // keep big boulders away from the base view
             if (Parts != null) foreach (var p in Parts) foreach (var q in p.Path) if (Vector2.Distance(xz, q) < 5 + pad) return true;
             return false;
@@ -465,8 +468,10 @@ namespace MissionMars
             if (Game.ExploreBase) return;
             var parent = new GameObject("Ice").transform; parent.SetParent(Root.transform);
             var ice = new Color(0.7f, 0.9f, 1f);
-            foreach (var xz in IceXZ)
+            CaveIce = null; Cave = null;
+            for (int ii = 0; ii < IceXZ.Length; ii++)
             {
+                var xz = IceXZ[ii];
                 var g = new GameObject("IceBlock"); g.transform.SetParent(parent); g.transform.position = G(xz);
                 var m = Util.PlaceModel("K_rock_crystalsLargeA", G(xz), 2.6f, xz.x * 7, g.transform);
                 foreach (var r in m.GetComponentsInChildren<Renderer>())
@@ -482,9 +487,68 @@ namespace MissionMars
                 beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 var l = new GameObject("Light").AddComponent<Light>(); l.transform.SetParent(g.transform, false); l.transform.localPosition = Vector3.up * 2f;
                 l.type = LightType.Point; l.range = 8; l.intensity = 3; l.color = new Color(0.5f, 0.85f, 1f); l.shadows = LightShadows.None;
+                if (ii == CaveIndex) BuildIceCave(g, xz);
                 g.SetActive(false);
                 IceBlocks.Add(g);
             }
+        }
+
+        /// <summary>The ICE CAVE: a rocky Mars hill (Jungle Jim, CC-BY) with a real tunnel. The ice glows deep inside, where the Sun
+        /// never reaches it. A work lamp lights the tunnel, NASA's RASSOR digging robot (public domain) is parked inside and an
+        /// ice drill rig stands in the ice. Model space (measured): opening on +Z, tunnel floor at y 0.06, ice spot at z 0.12.</summary>
+        static void BuildIceCave(GameObject ice, Vector2 xz)
+        {
+            var prefab = R.Model("P_MarsCave"); if (!prefab) return;
+            const float S = 35f;                                       // opening about 3 m wide and 4 m tall
+            var spot = G(xz);                                          // the ice stays exactly here, inside the tunnel
+            var toShelter = new Vector3(BunkerXZ.x - xz.x, 0, BunkerXZ.y - xz.y).normalized;
+            var root = new GameObject("IceCave").transform; root.SetParent(Root.transform, false);
+            root.rotation = Quaternion.LookRotation(toShelter);         // the opening faces the shelter
+            root.localScale = Vector3.one * S;
+            var inst = Object.Instantiate(prefab, root, false); inst.name = "MarsCave";
+            var icePoint = new Vector3(0.065f, 0.06f, 0.12f);
+            root.position = spot - root.rotation * (icePoint * S);       // tunnel floor = ground level
+            ModelRoom.AddColliders(inst);
+            // Mars colours: the grey-brown rock tinted rusty brown like the Mars ground
+            var tint = new Color(1f, 0.62f, 0.42f);
+            foreach (var r in inst.GetComponentsInChildren<Renderer>())
+            {
+                var mats = r.materials;
+                foreach (var m in mats) { if (m.HasProperty("baseColorFactor")) m.SetColor("baseColorFactor", tint); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", tint); }
+                r.materials = mats; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided;
+            }
+            Cave = root; CaveIce = ice;
+            Physics.SyncTransforms();
+            Vector3 At(float x, float z)
+            {   // a point on the tunnel floor (model x,z)
+                var p = root.TransformPoint(new Vector3(x, 0.13f, z));
+                return Physics.Raycast(p, Vector3.down, out var h, 8f) ? h.point : root.TransformPoint(new Vector3(x, 0.06f, z));
+            }
+            // the ice sits on the tunnel floor; the tall light beam would stick out of the mountain, so it stays off here
+            ice.transform.position = At(0.065f, 0.12f); ice.transform.localScale = Vector3.one * 0.75f; // fits the tunnel
+            var beam = ice.transform.Find("Beacon"); if (beam) beam.gameObject.SetActive(false);
+            // work lamp on a tripod, lighting the tunnel
+            var lampAt = At(0.045f, 0.26f);
+            var lamp = new GameObject("WorkLamp").transform; lamp.SetParent(root, true); lamp.position = lampAt;
+            foreach (int k in new[] { 0, 120, 240 })
+                ProcMesh.Prim(PrimitiveType.Cylinder, "Leg", lamp, Quaternion.Euler(0, k, 0) * new Vector3(0, 0.75f, 0.25f), new Vector3(0.04f, 0.78f, 0.04f), R.HullDark, new Vector3(-18, k, 0), false);
+            ProcMesh.Prim(PrimitiveType.Cylinder, "Pole", lamp, new Vector3(0, 1.6f, 0), new Vector3(0.05f, 0.4f, 0.05f), R.HullDark, null, false);
+            ProcMesh.Prim(PrimitiveType.Cube, "LampHead", lamp, new Vector3(0, 2.05f, 0.05f), new Vector3(0.5f, 0.32f, 0.18f), R.Orange, new Vector3(20, 0, 0), false);
+            ProcMesh.Prim(PrimitiveType.Cube, "LampGlass", lamp, new Vector3(0, 2.02f, 0.15f), new Vector3(0.42f, 0.24f, 0.02f), R.Emissive(Color.white, new Color(2.2f, 2.0f, 1.6f)), new Vector3(20, 0, 0), false);
+            var wl = new GameObject("Light").AddComponent<Light>(); wl.transform.SetParent(lamp, false); wl.transform.localPosition = new Vector3(0, 2.2f, 0.6f);
+            wl.type = LightType.Point; wl.range = 16; wl.intensity = 2.6f; wl.color = new Color(1f, 0.88f, 0.7f); wl.shadows = LightShadows.Soft;
+            lamp.LookAt(new Vector3(ice.transform.position.x, lamp.position.y, ice.transform.position.z));
+            // NASA's RASSOR digging robot, parked near the entrance (its drums scoop up ice and soil)
+            var rp = At(0.09f, 0.33f);
+            var rassor = Util.PlaceModel("RASSOR", rp, 2.2f, root.eulerAngles.y + 200, root, false, true);
+            if (rassor) foreach (var r in rassor.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            // an ice drill rig standing in the ice: tripod + long auger
+            var drill = new GameObject("IceDrill").transform; drill.SetParent(root, true); drill.position = At(0.04f, 0.14f);
+            foreach (int k in new[] { 0, 120, 240 })
+                ProcMesh.Prim(PrimitiveType.Cylinder, "Leg", drill, Quaternion.Euler(0, k, 0) * new Vector3(0, 1.1f, 0.42f), new Vector3(0.05f, 1.15f, 0.05f), R.Orange, new Vector3(-20, k, 0), false);
+            ProcMesh.Prim(PrimitiveType.Cylinder, "Motor", drill, new Vector3(0, 2.25f, 0), new Vector3(0.36f, 0.22f, 0.36f), R.HullDark, null, false);
+            ProcMesh.Prim(PrimitiveType.Cylinder, "Auger", drill, new Vector3(0, 1.1f, 0), new Vector3(0.12f, 1.1f, 0.12f), R.Panel, null, false);
+            for (int k = 0; k < 7; k++) ProcMesh.Prim(PrimitiveType.Cylinder, "Flight", drill, new Vector3(0, 0.25f + k * 0.26f, 0), new Vector3(0.3f, 0.015f, 0.3f), R.Panel, new Vector3(8, k * 50, 0), false);
         }
 
         /// <summary>Dish tower: send a message to Earth. It travels at the speed of light and still needs

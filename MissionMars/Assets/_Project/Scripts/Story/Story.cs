@@ -114,6 +114,7 @@ namespace MissionMars
         int IceCount() { int n = 0; foreach (var it in suit.Items) if (it.Id == "ICEBLOCK") n++; return n; }
         GameObject IceSite()
         {
+            if (MarsWorld.CaveIce) return MarsWorld.CaveIce; // the ice is inside the ICE CAVE
             GameObject best = null; float bd = 1e9f;
             foreach (var g in MarsWorld.IceBlocks) { float d = Vector3.Distance(g.transform.position, MarsWorld.BunkerOutside); if (d < bd) { bd = d; best = g; } }
             return best;
@@ -158,9 +159,9 @@ namespace MissionMars
                 dig.HoldTime = 1.5f; dig.Range = 5f; dig.OnUse = () => DigIce(gg);
             }
             MarsWorld.Tap.Verb = "Use"; MarsWorld.Tap.Label = "WATER MACHINE (put ice in / drink)";
-            guide.Mission(4, "ice", "GET WATER FROM ICE", "Go to the blue ICE field", "HOLD E to dig 2 pieces of ice", "Bring the ice to the SHELTER",
+            guide.Mission(4, "ice", "GET WATER FROM ICE", "Go into the ICE CAVE", "HOLD E to dig 2 pieces of ice", "Bring the ice to the SHELTER",
                 "Put the ice in the WATER MACHINE", "Wait: it melts the ice", "DRINK the clean water");
-            yield return hud.SayWait("The water machine is in, but its tank is EMPTY. On Mars, water is FROZEN in the ground. Let's dig some ICE!", 5);
+            yield return hud.SayWait("The water machine is in, but its tank is EMPTY. On Mars, water is FROZEN. NASA found ice under the dust, and scientists think dark caves can keep ice too: the Sun never reaches it there. Let's go to the ICE CAVE!", 6);
             while (!drankIce)
             {
                 int have = IceCount();
@@ -174,7 +175,7 @@ namespace MissionMars
                     else guide.Focus(3, "Press E on the WATER MACHINE to put the ice in.", () => MarsWorld.Tap.transform.position, "WATER MACHINE");
                 }
                 else if (inside || Dist(site.transform.position) > 9f)
-                    guide.Focus(0, "Follow the arrow to the blue ICE field. Take the ROVER: it is far! NASA found ice just under the Mars dust.", () => site.transform.position, "ICE FIELD");
+                    guide.Focus(0, MarsWorld.CaveIce ? "Follow the arrow to the ICE CAVE and walk inside. Take the ROVER: it is far! A lamp lights the tunnel." : "Follow the arrow to the blue ICE field. Take the ROVER: it is far! NASA found ice just under the Mars dust.", () => site.transform.position, MarsWorld.CaveIce ? "ICE CAVE" : "ICE FIELD");
                 else
                     guide.Focus(1, $"HOLD E on the blue ice to dig it out. You have {have} of 2.", () => site.transform.position, "ICE");
                 yield return null;

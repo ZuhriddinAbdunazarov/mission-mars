@@ -207,7 +207,7 @@ namespace MissionMars.EditorTools
 
     public class TexImport : AssetPostprocessor
     {
-        public override uint GetVersion() => 5; // bump to reimport textures when these rules change
+        public override uint GetVersion() => 6; // bump to reimport textures when these rules change
 
         static readonly System.Text.RegularExpressions.Regex ModelTex = new System.Text.RegularExpressions.Regex(@"_\d+_(color|normal|mr|occlusion|emissive)\.(jpg|png)$");
 
@@ -250,7 +250,7 @@ namespace MissionMars.EditorTools
                 return;
             }
             ti.mipmapEnabled = true; ti.anisoLevel = 4;
-            bool hero = System.Text.RegularExpressions.Regex.IsMatch(assetPath, "MarsBase|Plantation|Habitat|Weather|Comms|Bunker"); // buildings seen up close: keep them sharp
+            bool hero = System.Text.RegularExpressions.Regex.IsMatch(assetPath, "MarsBase|Plantation|Habitat|Weather|Comms|Bunker|MarsCave"); // buildings seen up close: keep them sharp
             ti.maxTextureSize = hero ? 2048 : 1024;
             ti.textureCompression = TextureImporterCompression.Compressed;
             bool alpha = ti.DoesSourceTextureHaveAlpha();

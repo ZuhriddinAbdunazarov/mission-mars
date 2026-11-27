@@ -114,6 +114,20 @@ namespace MissionMars
                 yield return MarsWorld.CabinetOpen(true); Game.Player.LookAt(lk + Vector3.up * 0.4f);
                 yield return Shot(dir, "r4_doors_open", 0.3f);
             }
+            if (MarsWorld.Cave)
+            {   // the ICE CAVE: from outside, at the entrance, at the ice
+                MarsWorld.Locker?.OnUse?.Invoke(); yield return Idle(3); yield return Free(); // suit on, or the habitat will not let you out
+                MarsWorld.HabitatRoom?.ExitDoor.OnUse?.Invoke(); yield return Idle(2); yield return Free();
+                L($"outside={!Game.Suit.Inside}");
+                var c = MarsWorld.Cave; var mouth = c.TransformPoint(new Vector3(0.065f, 0.06f, 0.45f)); var ice = MarsWorld.CaveIce.transform.position;
+                MarsWorld.CaveIce.SetActive(true);
+                foreach (var (from, at, n) in new[] { (mouth + c.forward * 22f, mouth + Vector3.up * 6f, "c1_cave_outside"), (mouth + c.forward * 3f, ice + Vector3.up, "c2_entrance"), (ice + (mouth - ice).normalized * 4.5f, ice + Vector3.up * 0.8f, "c3_ice") })
+                {
+                    var p = from; p.y = Mathf.Max(MarsTerrain.H(p.x, p.z), from.y - 3f) + 0.1f;
+                    for (int f = 0; f < 20; f++) { Game.Player.Teleport(p, 0); Game.Player.LookAt(at); yield return null; }
+                    yield return Shot(dir, n, 0.6f);
+                }
+            }
             L("DONE"); Application.Quit();
         }
 
