@@ -116,7 +116,9 @@ namespace MissionMars
             var t2 = UIX.Text(tp, "THE 2-YEAR WINDOW", 34, HC.Cyan, R.Bold); t2.characterSpacing = 22; t2.rectTransform.Set(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1), new Vector2(4, -152), new Vector2(0, 44));
             var t3 = UIX.Text(tp, "Your rocket crashed on Mars! Find air, water and a safe place to hide. Then fix your rocket and fly home.", 26, HC.Text, R.Body);
             t3.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -214), new Vector2(680, 80));
-            Btn(tp, "START MISSION", () => OnPlay?.Invoke(), new Vector2(0, -350), 380, 70, HC.Amber, new Vector2(0, 1)).transform.SetAsLastSibling();
+            startBtn = Btn(tp, "START MISSION", () => OnPlay?.Invoke(), new Vector2(0, -350), 380, 70, HC.Amber, new Vector2(0, 1));
+            startBtn.transform.SetAsLastSibling();
+            titlePanel = tp;
             Btn(tp, "NASA DATA", () => OpenData(false), new Vector2(0, -432), 380, 58, HC.Cyan, new Vector2(0, 1));
             Btn(tp, "HOW TO PLAY", () => Show(controls, true), new Vector2(0, -500), 380, 58, HC.Cyan, new Vector2(0, 1));
             Btn(tp, "HANDBOOK", () => Application.OpenURL(BookUrl), new Vector2(0, -568), 186, 58, HC.Green, new Vector2(0, 1));
@@ -129,7 +131,7 @@ namespace MissionMars
             hi.rectTransform.Fill();
             var tail = UIX.Img(bub.transform, "Tail", new Color(1f, 1f, 1f, 0.94f), UISprites.Diamond);
             tail.rectTransform.Set(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(40, 2), new Vector2(34, 34));
-            var foot = UIX.Text(title.transform, "Made with real NASA data  ·  Astronaut model by Jungle Jim (CC-BY)  ·  Not an official NASA product", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
+            var foot = UIX.Text(title.transform, "Made with real NASA data  ·  Astronaut model by Jungle Jim (CC-BY)  ·  Sounds: Kenney (CC0)  ·  Music: OpenGameArt (CC0)  ·  Not an official NASA product", 16, new Color(1, 1, 1, 0.45f), R.Body, TextAlignmentOptions.Center);
             foot.rectTransform.Set(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(-80, 24));
 
             // ---------------- CONTROLS ----------------
@@ -152,6 +154,15 @@ namespace MissionMars
             Btn(pause.transform, "CONTROLS", () => Show(controls, true), new Vector2(0, -64), 400, 60);
             Btn(pause.transform, "RESTART MISSION", () => { TogglePause(false); OnRestart?.Invoke(); }, new Vector2(0, -138), 400, 60);
             if (Application.platform != RuntimePlatform.WebGLPlayer) Btn(pause.transform, "QUIT GAME", () => Application.Quit(), new Vector2(0, -212), 400, 60);
+            if (Voice.Available)
+            {   // NOVA's spoken voice on/off (remembered on this device)
+                Button vb = null;
+                vb = Btn(pause.transform, Voice.On ? "NOVA VOICE: ON" : "NOVA VOICE: OFF", () =>
+                {
+                    Voice.On = !Voice.On;
+                    var tx = vb.GetComponentInChildren<TextMeshProUGUI>(); if (tx) tx.text = Voice.On ? "NOVA VOICE: ON" : "NOVA VOICE: OFF";
+                }, new Vector2(0, -212), 400, 60, HC.Green);
+            }
 
             // ---------------- PUZZLE ----------------
             puzzle = Layer("Puzzle", true);
@@ -300,6 +311,18 @@ namespace MissionMars
         }
 
         public void ShowTitle(bool on) { Show(title, on); }
+
+        Button startBtn; RectTransform titlePanel;
+        /// <summary>A saved game exists: CONTINUE (big) and NEW GAME (next to it), plus a line about the save.</summary>
+        public void SetContinue(int mission, int stars, Action onContinue)
+        {
+            var srt = (RectTransform)startBtn.transform; srt.At(new Vector2(0, 1), new Vector2(194, -350), new Vector2(186, 70));
+            var st = startBtn.GetComponentInChildren<TextMeshProUGUI>(); if (st) st.text = "NEW GAME";
+            var c = Btn(titlePanel, "CONTINUE", () => onContinue?.Invoke(), new Vector2(0, -350), 186, 70, HC.Green, new Vector2(0, 1));
+            c.transform.SetAsLastSibling();
+            var note = UIX.Text(titlePanel, $"Saved game: MISSION {mission} OF 9  ·  {stars} stars", 20, HC.Green, R.Bold);
+            note.rectTransform.Set(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -300), new Vector2(560, 30));
+        }
         public bool PauseOpen => pause.blocksRaycasts;
 
         public void TogglePause(bool on)

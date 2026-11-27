@@ -73,7 +73,48 @@ namespace MissionMars
             if (shots2 != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(Tour2(shots2)); }
             string shots = Arg("-shots");
             if (shots != null) { Application.runInBackground = true; Story.QuickStart = true; StartCoroutine(Tour(shots)); }
+            string rtest = Arg("-resumetest");
+            if (rtest != null)
+            {   // CONTINUE test: a saved game at mission N (default 6), the story picks CONTINUE by itself
+                Application.runInBackground = true;
+                int cp = int.TryParse(Arg("-resumecp"), out var c) ? c : 6;
+                SaveGame.Write(new SaveData { cp = cp, sol = 20, startDate = System.DateTime.UtcNow.ToString("yyyy-MM-dd"), stars = 12, done = new[] { "storm", "power", "code", "moxie", "water", "ice", "base" }, o2 = 80, health = 90 });
+                Story.AutoContinue = true;
+                StartCoroutine(ResumeTest(rtest));
+            }
             yield return story.Run();
+        }
+
+        IEnumerator ResumeTest(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            var log = new System.Text.StringBuilder();
+            void L(string s) { log.AppendLine($"{Time.unscaledTime:0.0}s  {s}"); File.WriteAllText(Path.Combine(dir, "log.txt"), log.ToString()); }
+            IEnumerator Idle(float s) { float t = 0; while (t < s) { t += Time.unscaledDeltaTime; yield return null; } }
+            IEnumerator Free(float max = 40) { float t = 0; while ((!Game.Player || Game.Player.Frozen || UIState.Modal || UIState.Cinematic) && t < max) { t += Time.unscaledDeltaTime; yield return null; } }
+            { float t = 0; while ((!Game.Player || Game.Player.Frozen) && t < 90) { t += Time.unscaledDeltaTime; yield return null; } }
+            yield return Idle(4);
+            L($"resumed: mission {(Guide.I ? Guide.I.Key : "?")}  stars {(AstroPass.I ? AstroPass.I.Stars : -1)}  sol {Game.Story.Sol}  inside={Game.Suit.Inside}  power={MarsWorld.PowerOn}  moxie={Game.Suit.MoxieOn}");
+            yield return Shot(dir, "r1_continue", 0.5f);
+            MarsWorld.ExitDoor.OnUse?.Invoke(); yield return Idle(2); yield return Free();
+            for (int i = 0; i < 3; i++)
+            {   // walk a little and see where NOVA stays
+                float t = 0; while (t < 2.5f) { t += Time.deltaTime; Game.Player.Teleport(Game.Player.transform.position + Game.Player.transform.forward * 3f * Time.deltaTime, Game.Player.YawDeg); yield return null; }
+                yield return Idle(2.5f);
+                L($"NOVA distance {Vector3.Distance(Game.Bot.transform.position, Game.Player.transform.position):0.0} m");
+                yield return Shot(dir, "r2_nova" + i, 0.3f);
+            }
+            if (MarsWorld.HabitatDoor) { MarsWorld.HabitatDoor.OnUse?.Invoke(); yield return Idle(2); yield return Free(); }
+            if (MarsWorld.Locker)
+            {
+                var lk = Util.Bounds(MarsWorld.Locker.gameObject).center; var away = MarsWorld.HabitatRoom.Room.transform.position - lk; away.y = 0;
+                var stand = lk + away.normalized * 2.4f; stand.y = MarsWorld.HabitatRoom.Spawn.y;
+                Game.Player.Teleport(stand, 0); Game.Player.LookAt(lk + Vector3.up * 0.2f); yield return Idle(0.5f);
+                yield return Shot(dir, "r3_cabinet", 0.3f);
+                yield return MarsWorld.CabinetOpen(true); Game.Player.LookAt(lk + Vector3.up * 0.4f);
+                yield return Shot(dir, "r4_doors_open", 0.3f);
+            }
+            L("DONE"); Application.Quit();
         }
 
         static string Arg(string name)
@@ -179,7 +220,7 @@ namespace MissionMars
             yield return Free(); yield return Pic("08b_console");
             Use(MarsWorld.LaunchConsole, "launch console");
             Time.timeScale = 1;
-            foreach (var (sec, n) in new[] { (3f, "10a_lift"), (3.5f, "10b_hatch"), (3.5f, "10c_walk"), (4f, "10d_countdown"), (4.5f, "10e_liftoff"), (2.5f, "10f_enginecam"), (3f, "10g_base") })
+            foreach (var (sec, n) in new[] { (3f, "10a_lift"), (4.5f, "10b_walk"), (3.3f, "10c_hatch"), (4.5f, "10d_arm"), (4.5f, "10e_countdown"), (4f, "10f_liftoff"), (4f, "10g_enginecam"), (3f, "10h_base") })
             { yield return Idle(sec); ScreenCapture.CaptureScreenshot(Path.Combine(dir, n + ".png")); L("picture " + n); }
             Time.timeScale = 4; yield return Idle(20); yield return Pic("09_end");
             L("DONE"); Application.Quit();

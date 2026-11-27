@@ -18,9 +18,20 @@ namespace MissionMars
         AudioSource musicA, musicB; bool aActive = true;
         public AudioSource Wind, Hum, Breath;
 
+        readonly Dictionary<string, List<AudioClip>> variants = new Dictionary<string, List<AudioClip>>();
+
         public void Init(Dictionary<string, AudioClip> c)
         {
             I = this; clips = c;
+            // real recorded sounds (Kenney.nl, CC0) in Resources/Audio replace the code-made ones with the same name.
+            // "step__2" is a second version of "step": a random one plays each time, so footsteps never sound the same.
+            foreach (var clip in Resources.LoadAll<AudioClip>("Audio"))
+            {
+                var n = clip.name; int k = n.IndexOf("__"); var key = k > 0 ? n.Substring(0, k) : n;
+                if (!variants.TryGetValue(key, out var l)) variants[key] = l = new List<AudioClip>();
+                l.Add(clip); clips[key] = l[0];
+            }
+            StartCoroutine(LoadStreamed());
             for (int i = 0; i < 16; i++) pool.Add(NewSource("sfx" + i));
             musicA = NewSource("musicA"); musicB = NewSource("musicB");
             musicA.loop = musicB.loop = true;
@@ -33,7 +44,37 @@ namespace MissionMars
             var s = g.AddComponent<AudioSource>(); s.playOnAwake = false; return s;
         }
 
-        public AudioClip Get(string n) { clips.TryGetValue(n, out var c); return c; }
+        public AudioClip Get(string n)
+        {
+            if (variants.TryGetValue(n, out var l) && l.Count > 1) return l[Random.Range(0, l.Count)];
+            clips.TryGetValue(n, out var c);
+            if (!c && n == "rover") clips.TryGetValue("hum", out c);
+            return c;
+        }
+
+        /// <summary>Music and the Mars wind (CC0, OpenGameArt) stream in from StreamingAssets AFTER the game has started,
+        /// so they never make the first loading slower. Until they arrive, the code-made versions play.</summary>
+        IEnumerator LoadStreamed()
+        {
+            var files = new[] { ("music_ambient", "Music/ambient.mp3"), ("wind", "Music/wind.mp3"), ("music_tension", "Music/tension.mp3"), ("music_hope", "Music/hope.mp3") };
+            foreach (var (name, file) in files)
+            {
+                var url = System.IO.Path.Combine(Application.streamingAssetsPath, file).Replace('\\', '/');
+                if (!url.Contains("://")) url = "file:///" + url.TrimStart('/');
+                using (var req = UnityEngine.Networking.UnityWebRequestMultimedia.GetAudioClip(url, AudioType.MPEG))
+                {
+                    yield return req.SendWebRequest();
+                    if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success) { Debug.LogWarning($"[Audio] {file}: {req.error}"); continue; }
+                    var clip = UnityEngine.Networking.DownloadHandlerAudioClip.GetContent(req);
+                    if (!clip) continue;
+                    clip.name = name;
+                    clips.TryGetValue(name, out var old); clips[name] = clip;
+                    if (!old) continue;
+                    foreach (var s in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                        if (s.clip == old) { bool was = s.isPlaying; s.clip = clip; if (was) { if (s.loop && s.name.StartsWith("loop_")) s.time = Random.Range(0, clip.length * 0.5f); s.Play(); } }
+                }
+            }
+        }
 
         public void Play2D(string n, float vol, float pitch)
         {

@@ -227,7 +227,8 @@ namespace MissionMars
         {
             sayId++;
             if (botCo != null) StopCoroutine(botCo);
-            botCo = StartCoroutine(SayCo(text, hold <= 0 ? 2.2f + text.Length * 0.045f : hold));
+            Voice.Say(text); // NOVA speaks the line (browser voice; a new line stops the old one)
+            botCo = StartCoroutine(SayCo(text, Mathf.Max(hold <= 0 ? 2.2f + text.Length * 0.045f : hold, Voice.Seconds(text) - text.Length / 55f)));
             return botCo;
         }
         /// <summary>Say a line and wait until it is finished. If another line interrupts it, stop waiting (never hang the story).</summary>

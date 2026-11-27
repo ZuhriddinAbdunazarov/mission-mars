@@ -44,7 +44,31 @@ namespace MissionMars
         }
 
         public void Talk(float dur) { talk = Mathf.Max(talk, dur); }
-        public void Teleport(Vector3 p) { transform.position = p; vel = Vector3.zero; }
+        public void Teleport(Vector3 p) { transform.position = p; vel = Vector3.zero; spot = p; rethink = 0; }
+
+        Vector3 spot; float rethink; bool wasTalking, lastTalkSpot;
+        /// <summary>A free place near the player: not inside the rover, a building or a hill, and with a clear view to the player.</summary>
+        Vector3 FreeSpot(PlayerController p, bool talking)
+        {
+            var cam = p.Cam.transform;
+            var fwd = Vector3.ProjectOnPlane(cam.forward, Vector3.up); if (fwd.sqrMagnitude < 0.01f) fwd = p.transform.forward; fwd.Normalize();
+            var right = Vector3.Cross(Vector3.up, fwd);
+            var head = cam.position;
+            Vector3[] tries = talking
+                ? new[] { fwd * 2.8f + right * 1.6f, fwd * 2.8f - right * 1.6f, right * 2.6f + fwd * 0.6f, -right * 2.6f + fwd * 0.6f }
+                : new[] { right * 3.2f + fwd * 0.8f, -right * 3.2f + fwd * 0.8f, right * 2.6f - fwd * 1.6f, -right * 2.6f - fwd * 1.6f };
+            bool outside = !Game.Suit || !Game.Suit.Inside;
+            foreach (var off in tries)
+            {
+                var c = p.transform.position + off + Vector3.up * (talking ? 1.35f : 1.7f);
+                if (outside) c.y = Mathf.Max(c.y, MarsTerrain.H(c.x, c.z) + 1.3f);
+                if (Physics.CheckSphere(c, 0.5f, ~0, QueryTriggerInteraction.Ignore)) continue;               // inside something
+                var d = c - head;
+                if (Physics.Raycast(head, d.normalized, out var h, d.magnitude, ~0, QueryTriggerInteraction.Ignore) && !h.collider.GetComponent<CharacterController>()) continue; // a wall between
+                return c;
+            }
+            return p.transform.position + Vector3.up * 2.8f - fwd * 0.5f; // nowhere free: float just above and behind
+        }
 
         void Update()
         {
@@ -55,18 +79,24 @@ namespace MissionMars
             if (Lead.HasValue) { target = Lead.Value; }
             else if (Follow && p)
             {
-                var cam = p.Cam.transform;
-                var fwd = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
-                var right = Vector3.Cross(Vector3.up, fwd);
-                // a little below eye level and to the right, so kids see NOVA without looking up
-                target = p.transform.position + fwd * 2.4f + right * 1.3f + Vector3.up * 1.25f;
-                if (!Game.Suit || !Game.Suit.Inside)
+                // NOVA keeps a little distance: about 3 m to the side. She comes into view only when she talks.
+                // She only flies when you walked away from her spot, so she does not dance around in front of you.
+                rethink -= dt;
+                bool far = (transform.position - p.transform.position).sqrMagnitude > 6.5f * 6.5f;
+                if (rethink <= 0 || far || (talk > 0) != wasTalking)
                 {
-                    float gy = MarsTerrain.H(target.x, target.z) + 1.2f;
-                    if (target.y < gy) target.y = gy;
+                    rethink = 0.35f; wasTalking = talk > 0;
+                    var cand = FreeSpot(p, talk > 0);
+                    if (far || (cand - spot).sqrMagnitude > 2.2f * 2.2f || (talk > 0) != lastTalkSpot) { spot = cand; lastTalkSpot = talk > 0; }
                 }
+                target = spot;
             }
-            transform.position = Vector3.SmoothDamp(transform.position, target, ref vel, Lead.HasValue ? 0.9f : 0.45f, 14f);
+            // never fly through a wall, the rover or the shelter mound: go over it
+            var step = target - transform.position;
+            if (step.sqrMagnitude > 0.04f && Physics.SphereCast(transform.position, 0.35f, step.normalized, out var hit, step.magnitude, ~0, QueryTriggerInteraction.Ignore)
+                && !hit.collider.GetComponent<CharacterController>())
+                target = transform.position + Vector3.up * 1.5f + step.normalized * Mathf.Max(0, hit.distance - 0.5f);
+            transform.position = Vector3.SmoothDamp(transform.position, target, ref vel, Lead.HasValue ? 0.9f : 0.7f, 10f);
             var dir = lookAt - transform.position; dir.y *= 0.4f;
             if (Lead.HasValue && p && (transform.position - target).sqrMagnitude > 4) dir = vel;
             if (dir.sqrMagnitude > 0.001f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), dt * 4);

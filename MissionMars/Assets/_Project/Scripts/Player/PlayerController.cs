@@ -104,8 +104,24 @@ namespace MissionMars
             }
             vy -= MarsGravity * dt * (vy < 0 ? 1.5f : 1f); // real Mars gravity going up; the heavy suit lands a bit faster
             if(Resting){vel=Vector3.zero;vy=0;Head.localPosition=Vector3.up*HeadHeight;Head.localRotation=Quaternion.Euler(pitch+ExtraPitch,0,ExtraRoll);return;}
+            // too steep to climb: the astronaut slips back down with a little stumble
+            if (cc.isGrounded && groundN.y < 0.74f && groundT > Time.time - 0.2f)
+            {
+                var downhill = new Vector3(groundN.x, 0, groundN.z).normalized;
+                if (Vector3.Dot(vel, downhill) < -0.3f || stumble > 0)
+                {
+                    vel = downhill * 3.2f;
+                    if (stumble <= 0)
+                    {
+                        stumble = 0.7f; Shake(0.12f, 0.25f); Sfx.Play("step", 0.6f, 0.7f);
+                        if (Time.time > steepSaid + 10 && Game.Hud) { steepSaid = Time.time; Game.Hud.Say("Too steep to climb! Go around the hill.", 3); }
+                    }
+                }
+            }
             var flags = cc.Move((vel + Vector3.up * vy) * dt);
             if ((flags & CollisionFlags.Above) != 0 && vy > 0) vy = 0;
+            float dip = 0, tilt = 0;
+            if (stumble > 0) { stumble -= dt; float k = Mathf.Sin(Mathf.Clamp01(1 - stumble / 0.7f) * Mathf.PI); dip = k * 0.28f; tilt = k * 9f; }
 
             // head bob + footsteps
             float hspeed = new Vector3(cc.velocity.x, 0, cc.velocity.z).magnitude;
@@ -129,8 +145,15 @@ namespace MissionMars
             Vector3 sh = Vector3.zero;
             if (shakeT > 0) { shakeT -= dt; sh = Random.insideUnitSphere * ShakeAmt; if (shakeT <= 0) ShakeAmt = 0; }
 
-            Head.localPosition = new Vector3(bobX, HeadHeight + bobY, 0) + sh * 0.1f;
-            Head.localRotation = Quaternion.Euler(pitch + ExtraPitch + swayP + sh.x * 4, sh.y * 4, swayR + ExtraRoll + sh.z * 3);
+            Head.localPosition = new Vector3(bobX, HeadHeight + bobY - dip, 0) + sh * 0.1f;
+            Head.localRotation = Quaternion.Euler(pitch + ExtraPitch + swayP + sh.x * 4 + tilt * 0.6f, sh.y * 4, swayR + ExtraRoll + sh.z * 3 + tilt);
+        }
+
+        Vector3 groundN = Vector3.up; float groundT, stumble, steepSaid = -99;
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            // what we stand on: only Mars hills count as "too steep" (stairs and step edges inside buildings never do)
+            if (hit.normal.y > 0.2f && hit.point.y < transform.position.y + 0.5f) { groundN = hit.collider is TerrainCollider ? hit.normal : Vector3.up; groundT = Time.time; }
         }
     }
 }

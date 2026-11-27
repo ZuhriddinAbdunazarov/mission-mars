@@ -82,6 +82,17 @@ namespace MissionMars
             if (!I.showing) I.StartCoroutine(I.Show());
         }
 
+        /// <summary>For the save file: the awards already given.</summary>
+        public static string[] DoneList() { if (!I) return new string[0]; var a = new string[I.done.Count]; I.done.CopyTo(a); return a; }
+        /// <summary>Loading a save: put back the stars and awards without pop-ups.</summary>
+        public static void Restore(int stars, string[] done)
+        {
+            if (!I) return;
+            I.done.Clear(); if (done != null) foreach (var d in done) I.done.Add(d);
+            I.Stars = stars; I.Refresh();
+            for (int r = 1; r <= I.Rank; r++) GiveReward(r); // NOVA's gold ring, rover turbo... come back too
+        }
+
         /// <summary>Count stars without any pop-up (used during the ending).</summary>
         public static void AwardSilent(string id, int stars)
         {

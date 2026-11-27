@@ -14,7 +14,7 @@ namespace MissionMars
         public System.Action OnFirstDrive;
         readonly List<Transform> wheels = new List<Transform>();
         float tireRadius = 0.48f;
-        float speed, yaw, camYaw; Vector3 camPos; int enterFrame; bool everDriven;
+        float speed, yaw, camYaw, steepSaid = -99; Vector3 camPos; int enterFrame; bool everDriven;
         AudioSource hum; Light headlight;
 
         public static Rover Create(Vector3 pos, float yawDeg, Transform parent)
@@ -108,7 +108,7 @@ namespace MissionMars
             speed = 0; camYaw = 0;
             camPos = transform.position + Vector3.up * 3.5f - transform.forward * 9f;
             headlight.intensity = 6;
-            if (AudioManager.I) { if (!hum) hum = AudioManager.I.Loop("hum", 0.0f, transform, 0); AudioManager.I.FadeSource(hum, 0.45f, 0.5f); }
+            if (AudioManager.I) { if (!hum) hum = AudioManager.I.Loop("rover", 0.0f, transform, 0); AudioManager.I.FadeSource(hum, 0.45f, 0.5f); }
             Sfx.Play("powerup", 0.4f, 1.3f);
             if (!everDriven) { everDriven = true; OnFirstDrive?.Invoke(); }
         }
@@ -158,9 +158,17 @@ namespace MissionMars
                 foreach (var h in Physics.SphereCastAll(pos + Vector3.up * 1.3f, 0.9f, dir, Mathf.Abs(speed * dt) + 1.4f, ~0, QueryTriggerInteraction.Ignore))
                 {
                     if (h.collider.transform.IsChildOf(transform) || h.collider.transform.IsChildOf(p.transform)) continue;
-                    if (h.normal.y > 0.6f || h.distance <= 0) continue;
+                    if (h.collider is TerrainCollider || h.distance <= 0) continue;                     // the ground itself
+                    if (h.normal.y > 0.85f && h.point.y < pos.y + 0.6f) continue;                       // a low flat deck or pad
                     if (Mathf.Abs(speed) > 5) { Sfx.Play("thud", 0.6f, 0.8f); p.Shake(0.25f, 0.25f); }
-                    speed = -speed * 0.3f; step = Vector3.zero; break;
+                    speed = -speed * 0.3f; step = Vector3.zero; break;                                 // rocks, buildings, the shelter mound
+                }
+                // too steep to drive up: the rover stops and rolls back a little
+                var ahead = pos + dir * 2.6f; var n = MarsTerrain.Normal(ahead.x, ahead.z);
+                if (step != Vector3.zero && n.y < 0.8f && Vector3.Dot(new Vector3(n.x, 0, n.z).normalized, dir) < -0.3f)
+                {
+                    speed = -Mathf.Sign(speed) * 1.5f; step = Vector3.zero; p.Shake(0.12f, 0.3f);
+                    if (Time.time > steepSaid + 8 && Game.Hud) { steepSaid = Time.time; Game.Hud.Say("Too steep for the rover! Drive around the hill.", 3); }
                 }
             }
             pos += step;

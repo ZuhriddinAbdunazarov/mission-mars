@@ -117,8 +117,9 @@ namespace MissionMars
                 g.transform.position = G(x, z, -s * 0.18f);
                 g.transform.rotation = Quaternion.FromToRotation(Vector3.up, Vector3.Lerp(Vector3.up, n, 0.6f)) * Quaternion.Euler(0, Rnd() * 360, 0);
                 g.transform.localScale = new Vector3(s * (0.8f + Rnd() * 0.5f), s * (0.7f + Rnd() * 0.5f), s * (0.8f + Rnd() * 0.5f));
-                if (s > 1.4f) { var mc = g.AddComponent<MeshCollider>(); mc.sharedMesh = g.GetComponent<MeshFilter>().sharedMesh; }
-                else g.GetComponent<MeshRenderer>().shadowCastingMode = s > 0.6f ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+                // every rock taller than a step is solid: you walk around it (or step up on it), never through it
+                if (s > 0.55f) { var mc = g.AddComponent<MeshCollider>(); mc.sharedMesh = g.GetComponent<MeshFilter>().sharedMesh; }
+                if (s <= 1.4f) g.GetComponent<MeshRenderer>().shadowCastingMode = s > 0.6f ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
                 placed++;
             }
             // photogrammetry rock scans (Sketchfab, CC-BY) scattered near the play area if available
@@ -578,7 +579,21 @@ namespace MissionMars
         public static Interactable HabitatDoor, WeatherDoor; public static Vector3 HabitatOutside, WeatherOutside;
         public static ModelRoom HabitatRoom, WeatherRoom;
         public static Interactable Bunk, Kitchen, Locker, NavComputer, WeatherComputer, Racks;
-        public static GameObject[] LockerSuits;
+        public static GameObject[] LockerSuits; public static Transform[] CabinetDoors;
+        /// <summary>Swing the suit cabinet's glass doors open (or shut).</summary>
+        public static System.Collections.IEnumerator CabinetOpen(bool open, float d = 0.7f)
+        {
+            if (CabinetDoors == null) yield break;
+            Sfx.Play(open ? "whoosh" : "thud", 0.35f, open ? 1.4f : 1.2f);
+            float a0 = CabinetDoors[0].localEulerAngles.y; a0 = a0 > 180 ? a0 - 360 : a0; float a1 = open ? 105 : 0;
+            for (float t = 0; t < 1; t += Time.deltaTime / d)
+            {
+                float a = Mathf.Lerp(Mathf.Abs(a0), a1, Tween.EaseInOut(t));
+                CabinetDoors[0].localRotation = Quaternion.Euler(0, -a, 0); CabinetDoors[1].localRotation = Quaternion.Euler(0, a, 0);
+                yield return null;
+            }
+            CabinetDoors[0].localRotation = Quaternion.Euler(0, -a1, 0); CabinetDoors[1].localRotation = Quaternion.Euler(0, a1, 0);
+        }
 
         /// <summary>The walk-in HABITAT and WEATHER LAB rooms, made from the team's Tripo interiors (Assets/Paid).
         /// Press-E zones sit on the model's furniture (positions measured from the model's height map).</summary>
@@ -594,8 +609,16 @@ namespace MissionMars
             {
                 var lockerT = Locker.transform; var sb = Util.Bounds(lockerT.gameObject);
                 foreach (var rr in lockerT.GetComponentsInChildren<Renderer>()) rr.enabled = false;
-                var face = HabitatRoom.Room.transform.position - sb.center; face.y = 0;
-                face = Mathf.Abs(face.x) > Mathf.Abs(face.z) ? new Vector3(Mathf.Sign(face.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(face.z)); // cabinets stand against a wall
+                // a cabinet is wide and shallow: its front is along the SHORT side, toward the open room
+                var toRoom = HabitatRoom.Room.transform.position - sb.center; toRoom.y = 0;
+                bool alongX = sb.size.x < sb.size.z;
+                var face = alongX ? new Vector3(Mathf.Sign(toRoom.x == 0 ? 1 : toRoom.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(toRoom.z == 0 ? 1 : toRoom.z));
+                {   // check: the front must open into free space (not a wall); else turn around
+                    Physics.SyncTransforms(); var from = sb.center + Vector3.up * 0.3f;
+                    float fwdFree = Physics.Raycast(from + face * (Mathf.Abs(Vector3.Dot(sb.extents, face)) + 0.05f), face, out var hf, 3f) ? hf.distance : 3f;
+                    float backFree = Physics.Raycast(from - face * (Mathf.Abs(Vector3.Dot(sb.extents, face)) + 0.05f), -face, out var hb, 3f) ? hb.distance : 3f;
+                    if (backFree > fwdFree + 0.3f) face = -face;
+                }
                 float yaw = Quaternion.LookRotation(face).eulerAngles.y;
                 var side = Quaternion.Euler(0, 90, 0) * face;
                 float w = Mathf.Abs(Vector3.Dot(sb.size, new Vector3(Mathf.Abs(side.x), 0, Mathf.Abs(side.z)))), dp = Mathf.Abs(Vector3.Dot(sb.size, new Vector3(Mathf.Abs(face.x), 0, Mathf.Abs(face.z)))), h = sb.size.y;
@@ -609,11 +632,25 @@ namespace MissionMars
                 ProcMesh.Prim(PrimitiveType.Cube, "Light", cab, new Vector3(0, h - 0.08f, 0.1f), new Vector3(w * 0.8f, 0.03f, 0.08f), R.Emissive(Color.white, new Color(1.6f, 1.6f, 1.5f)), null, false);
                 LockerSuits = new GameObject[2];
                 for (int i = 0; i < 2; i++)
+                {   // two spacesuits hanging relaxed, arms down (Jungle Jim astronaut model)
+                    var at = cab.TransformPoint(new Vector3((i == 0 ? -1 : 1) * w * 0.23f, 0.08f, -0.05f));
+                    LockerSuits[i] = AstroRig.Spawn(at, yaw, Mathf.Min(h * 0.86f, 1.8f), cab);
+                }
+                // glass doors on hinges: they swing open when you take a suit
+                var glass = R.Holo(new Color(0.65f, 0.85f, 1f), 0.35f, 0.07f);
+                CabinetDoors = new Transform[2];
+                for (int i = 0; i < 2; i++)
                 {
-                    var at = cab.TransformPoint(new Vector3((i == 0 ? -1 : 1) * w * 0.23f, 0.08f, 0));
-                    var suitGo = Util.PlaceUpright("Astronaut", at, Mathf.Min(h * 0.86f, 1.85f), cab); // the model file lies down: stand it up
-                    suitGo.transform.rotation = Quaternion.Euler(0, yaw, 0); Object.Destroy(suitGo.GetComponent<BoxCollider>());
-                    LockerSuits[i] = suitGo;
+                    int sd = i == 0 ? -1 : 1;
+                    var hinge = new GameObject(i == 0 ? "HingeL" : "HingeR").transform; hinge.SetParent(cab, false);
+                    hinge.localPosition = new Vector3(sd * (w / 2 - 0.03f), 0, dp / 2 + 0.02f);
+                    float dw = w / 2 - 0.04f;
+                    ProcMesh.Prim(PrimitiveType.Cube, "Pane", hinge, new Vector3(-sd * dw / 2, h / 2, 0), new Vector3(dw - 0.06f, h - 0.16f, 0.015f), glass, null, false);
+                    foreach (var (pos, size) in new[] { (new Vector3(-sd * dw / 2, 0.06f, 0), new Vector3(dw, 0.05f, 0.04f)), (new Vector3(-sd * dw / 2, h - 0.08f, 0), new Vector3(dw, 0.05f, 0.04f)),
+                                                        (new Vector3(-sd * 0.02f, h / 2, 0), new Vector3(0.05f, h - 0.1f, 0.04f)), (new Vector3(-sd * (dw - 0.02f), h / 2, 0), new Vector3(0.05f, h - 0.1f, 0.04f)) })
+                        ProcMesh.Prim(PrimitiveType.Cube, "Frame", hinge, pos, size, wood, null, false);
+                    ProcMesh.Prim(PrimitiveType.Cube, "Handle", hinge, new Vector3(-sd * (dw - 0.08f), h * 0.5f, 0.04f), new Vector3(0.03f, 0.3f, 0.03f), dark, null, false);
+                    CabinetDoors[i] = hinge;
                 }
             }
             NavComputer = HabitatRoom.UsePart("Crew workstation", "Use", "NAVIGATION COMPUTER (Earth & Mars)");
