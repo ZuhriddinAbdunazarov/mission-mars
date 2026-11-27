@@ -47,7 +47,7 @@ namespace MissionMars
         {
             ["power"] = p => Poly(p, 0.2f, 0.95f, -0.55f, -0.08f, -0.05f, -0.08f, -0.22f, -0.95f, 0.58f, 0.12f, 0.06f, 0.12f),
             ["air"] = p => Circle(p, -0.1f, -0.18f, 0.6f) && !Circle(p, -0.3f, 0.05f, 0.14f) || Circle(p, 0.55f, 0.5f, 0.3f) || Circle(p, -0.55f, 0.68f, 0.18f),
-            ["food"] = p => Poly(p, -0.38f, 0.42f, 0.38f, 0.42f, 0.02f, -0.95f) || Seg(p, new Vector2(0, 0.45f), new Vector2(0, 0.9f), 0.1f) || Seg(p, new Vector2(0, 0.45f), new Vector2(-0.35f, 0.85f), 0.1f) || Seg(p, new Vector2(0, 0.45f), new Vector2(0.35f, 0.85f), 0.1f),
+            ["food"] = p => { float c = 0.866f, sn = 0.5f; float x = p.x * c + p.y * sn, y = -p.x * sn + p.y * c; bool body = (x * x) / (0.86f * 0.86f) + (y * y) / (0.56f * 0.56f) <= 1 || Circle(p, -0.38f, -0.3f, 0.42f) || Circle(p, 0.42f, 0.28f, 0.4f); bool eye = Circle(p, -0.3f, -0.12f, 0.07f) || Circle(p, 0.18f, 0.12f, 0.07f) || Circle(p, 0.5f, 0.42f, 0.06f) || Circle(p, -0.05f, -0.42f, 0.06f); return body && !eye; }, // a potato (all the food in the game is Mars potatoes)
             ["health"] = p => { float x = p.x * 1.15f, y = p.y * 1.15f + 0.15f; float a = x * x + y * y - 1; return a * a * a - x * x * y * y * y <= 0; },
             ["shield"] = p => Poly(p, -0.75f, 0.85f, 0, 0.98f, 0.75f, 0.85f, 0.72f, 0.05f, 0, -0.95f, -0.72f, 0.05f) && !(Poly(p, -0.5f, 0.68f, 0, 0.78f, 0.5f, 0.68f, 0.48f, 0.08f, 0, -0.62f, -0.48f, 0.08f) && p.x > 0),
             ["science"] = p => Poly(p, StarPts(5, 0.98f, 0.42f)),

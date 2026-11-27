@@ -56,7 +56,7 @@ namespace MissionMars
         /// so they never make the first loading slower. Until they arrive, the code-made versions play.</summary>
         IEnumerator LoadStreamed()
         {
-            var files = new[] { ("music_ambient", "Music/ambient.mp3"), ("wind", "Music/wind.mp3"), ("music_tension", "Music/tension.mp3"), ("music_hope", "Music/hope.mp3") };
+            var files = new[] { ("music_ambient", "Music/ambient.mp3"), ("wind", "Music/wind.mp3") };
             foreach (var (name, file) in files)
             {
                 var url = System.IO.Path.Combine(Application.streamingAssetsPath, file).Replace('\\', '/');
@@ -69,6 +69,7 @@ namespace MissionMars
                     if (!clip) continue;
                     clip.name = name;
                     clips.TryGetValue(name, out var old); clips[name] = clip;
+                    if (name.StartsWith("music_")) { realMusic.Add(name); if (wantMusic == name) Music(name, wantVol, 2f); continue; }
                     if (!old) continue;
                     foreach (var s in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                         if (s.clip == old) { bool was = s.isPlaying; s.clip = clip; if (was) { if (s.loop && s.name.StartsWith("loop_")) s.time = Random.Range(0, clip.length * 0.5f); s.Play(); } }
@@ -103,8 +104,13 @@ namespace MissionMars
             return s;
         }
 
+        readonly HashSet<string> realMusic = new HashSet<string>(); string wantMusic; float wantVol;
+        /// <summary>Play a music track. Only REAL recorded music plays (never the old code-made drone): if the file has not
+        /// arrived yet, it starts as soon as it does.</summary>
         public void Music(string n, float vol = 0.5f, float fade = 2.5f)
         {
+            wantMusic = n; wantVol = vol;
+            if (!realMusic.Contains(n)) { StopMusic(fade); wantMusic = n; return; }
             var from = aActive ? musicA : musicB; var to = aActive ? musicB : musicA; aActive = !aActive;
             if (from.clip && from.clip.name == n && from.isPlaying) { aActive = !aActive; return; }
             to.clip = Get(n); to.volume = 0; if (to.clip) to.Play();
@@ -113,6 +119,7 @@ namespace MissionMars
 
         public void StopMusic(float fade = 2f)
         {
+            wantMusic = null;
             var cur = aActive ? musicA : musicB;
             StartCoroutine(Xfade(cur, null, 0, fade));
         }

@@ -170,8 +170,8 @@ namespace MissionMars
             Orbiter.gameObject.SetActive(false); Astronaut.gameObject.SetActive(false);
             Ship.gameObject.SetActive(true); exhaust.Play(); engLight.enabled = true;
             var cam = Cam.transform;
-            AudioManager.I.Music("music_tension", 0.45f, 2f);
-            var roar = AudioManager.I.Loop("rocket", 0f); AudioManager.I.FadeSource(roar, 0.7f, 1.5f);
+            AudioManager.I.StopMusic(1f); // no music while the rocket flies: only the engines
+            var roar = AudioManager.I.Loop("rocket", 0f); roar.mute = true; // quiet flight: no music, no engine drone
 
             // SHOT 1 — leaving Earth: huge blue planet below, rocket climbs past the camera
             Vector3 c = transform.position;

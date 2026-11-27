@@ -343,7 +343,7 @@ namespace MissionMars
             Game.InMenu = true; UIState.Refresh();
             var space = SpaceSet.I;
             space.Enter(cineCam); space.MenuPose();
-            AudioManager.I.Music("music_ambient", 0.5f, 2f);
+            AudioManager.I.StopMusic(0.1f); // the title screen is quiet (no music)
             bool play = false; screens.OnPlay = () => { play = true; resume = null; SaveGame.Clear(); };
             screens.OnRestart = () => SceneManager.LoadScene(0);
             screens.OnQuit = () => StartCoroutine(QuitWithFlyAway(space));
@@ -1458,7 +1458,7 @@ namespace MissionMars
         {
             UIState.Cinematic = true; UIState.Refresh(); player.Frozen = true;
             hud.Show(false, 0.6f);
-            AudioManager.I.Music("music_hope", 0.6f, 2f);
+            AudioManager.I.StopMusic(1.5f); // no music while the rocket flies: only the engines
             yield return Cinema.I.ToBlack(0.5f);
             Cinema.I.Letterbox(true, 0.4f);
             // the film happens outside: make sure the Mars surface is shown (and no room is) whatever happened before
@@ -1551,28 +1551,32 @@ namespace MissionMars
             }
             // SHOT 2: across the crew access arm (seen through its windows)
             Cinema.I.Caption("…and walks across the crew access arm.", 3.5f);
-            var walkFrom = astro.transform.position; var door = hatch - toTower * 0.9f; var walkTo = new Vector3(door.x, walkFrom.y, door.z);
+            // he stops in front of the hatch (OUTSIDE the rocket); the hatch swings open as he arrives
+            var walkFrom = astro.transform.position; var door = hatch + toTower * 1.4f; var walkTo = new Vector3(door.x, walkFrom.y, door.z);
             var mid2 = (armEnd + hatch) / 2;
             if (rig) rig.Walk = 1;
+            bool opening = false;
             for (t = 0; t < 1; t += Time.deltaTime / 3.6f)
             {
                 astro.transform.position = Vector3.Lerp(walkFrom, walkTo, t);
+                if (t > 0.62f)
+                {
+                    if (!opening) { opening = true; Cinema.I.Caption("The hatch opens…", 2f); Sfx.Play("whoosh", 0.45f, 1.1f); Sfx.Play("click", 0.6f, 0.7f); }
+                    float k = Tween.EaseInOut(Mathf.InverseLerp(0.62f, 1f, t)); hinge.localRotation = Quaternion.Euler(0, -105 * k, 0); lamp.intensity = 1.1f * k;
+                }
                 Look(mid2 + side * 5.5f + Vector3.up * 1.7f - toTower * 0.5f, astro.transform.position + Vector3.up * 1.1f);
                 yield return null;
             }
-            if (rig) rig.Walk = 0;
-            // SHOT 3: in the white room: the hatch swings open, the commander steps in, the hatch closes
-            var shot3 = hatch + toTower * 3.4f + side * 0.45f + Vector3.up * 1.75f; // inside the walkway, over the shoulder
+            hinge.localRotation = Quaternion.Euler(0, -105, 0); lamp.intensity = 1.1f;
+            // SHOT 3: in the white room, over his shoulder: he steps through the open hatch into the rocket
+            var shot3 = hatch + toTower * 3.4f + side * 0.45f + Vector3.up * 1.75f;
             Look(shot3, hatch + Vector3.up * 1.1f);
-            Cinema.I.Caption("The hatch opens…", 2f);
-            Sfx.Play("whoosh", 0.45f, 1.1f); Sfx.Play("click", 0.6f, 0.7f);
-            for (t = 0; t < 1; t += Time.deltaTime / 1.1f) { float k = Tween.EaseInOut(t); hinge.localRotation = Quaternion.Euler(0, -105 * k, 0); lamp.intensity = 1.1f * k; yield return null; }
             var cabin = hatch - toTower * 1.0f; cabin.y = walkTo.y;
-            if (rig) rig.Walk = 0.8f;
-            for (t = 0; t < 1; t += Time.deltaTime / 1.6f)
+            if (rig) rig.Walk = 0.9f;
+            for (t = 0; t < 1; t += Time.deltaTime / 2.2f)
             {
                 astro.transform.position = Vector3.Lerp(walkTo, cabin, t);
-                if (t > 0.85f) astro.SetActive(false);
+                if (Vector3.Dot(astro.transform.position - hatch, toTower) < -0.45f) astro.SetActive(false); // inside: out of sight
                 yield return null;
             }
             astro.SetActive(false);
@@ -1605,7 +1609,7 @@ namespace MissionMars
                 yield return new WaitForSeconds(1f);
             }
             exh.Play(); Sfx.Play("explosion", 0.7f, 0.6f);
-            var roar = AudioManager.I.Loop("rocket", 0.8f);
+            var roar = AudioManager.I.Loop("rocket", 0f); roar.mute = true; // quiet flight home: no music, no engine drone
             FX.DustBlast(rocket.position, 2f); FX.Explosion(rocket.position + Vector3.up * 1.5f, 1.2f);
             // big billowing clouds roll out sideways from the pad
             for (int i = 0; i < 6; i++)

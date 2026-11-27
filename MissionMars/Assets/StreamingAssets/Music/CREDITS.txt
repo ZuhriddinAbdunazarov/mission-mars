@@ -2,8 +2,6 @@ MISSION MARS - SOUND AND MUSIC CREDITS (all free, CC0 = public domain, no permis
 
 Music (OpenGameArt.org, CC0)
   ambient.mp3  "Another space background track" (Observing The Star)  https://opengameart.org/content/another-space-background-track
-  tension.mp3  "Dark Intro"                                            https://opengameart.org/content/dark-intro
-  hope.mp3     "Galactic Temple"                                       https://opengameart.org/content/galactic-temple
   wind.mp3     "Mild Wind Background Noise"                            https://opengameart.org/content/mild-wind-background-noise
 
 Sound effects (Kenney.nl, CC0)

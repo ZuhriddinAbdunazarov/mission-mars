@@ -329,8 +329,8 @@ namespace MissionMars
         {
             if (on == PauseOpen) return;
             Show(pause, on);
-            if (on) { UIState.Push(); Time.timeScale = 0; Game.Paused = true; }
-            else { UIState.Pop(); Time.timeScale = 1; Game.Paused = false; }
+            if (on) { UIState.Push(); Time.timeScale = 0; Game.Paused = true; AudioListener.pause = true; Voice.Stop(); } // paused: total silence
+            else { UIState.Pop(); Time.timeScale = 1; Game.Paused = false; AudioListener.pause = false; }
         }
 
         public void OpenData(bool fromPause)
