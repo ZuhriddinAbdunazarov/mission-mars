@@ -158,6 +158,16 @@ namespace MissionMars
                 var dig = Interactable.Add(gg, "HOLD E to dig", "Mars ice", null, 1.5f);
                 dig.HoldTime = 1.5f; dig.Range = 5f; dig.OnUse = () => DigIce(gg);
             }
+            // every ice crystal in the cave can be dug too: walls, ceiling, floor (each one once)
+            foreach (var w in MarsWorld.WallIce)
+            {
+                var ww = w; if (!ww || ww.GetComponent<Interactable>()) continue;
+                var b = Util.Bounds(ww); var bc = ww.AddComponent<BoxCollider>(); bc.isTrigger = true;
+                bc.center = ww.transform.InverseTransformPoint(b.center); var ls = ww.transform.lossyScale;
+                bc.size = new Vector3(Mathf.Max(b.size.x, 1.2f) / ls.x, Mathf.Max(b.size.y, 1.2f) / ls.y, Mathf.Max(b.size.z, 1.2f) / ls.z);
+                var dg = Interactable.Add(ww, "HOLD E to dig", "Mars ice", null, 1.2f);
+                dg.HoldTime = 1.2f; dg.Range = 6f; dg.OnUse = () => { DigIce(ww); ww.SetActive(false); };
+            }
             MarsWorld.Tap.Verb = "Use"; MarsWorld.Tap.Label = "WATER MACHINE (put ice in / drink)";
             guide.Mission(4, "ice", "GET WATER FROM ICE", "Go into the ICE CAVE", "HOLD E to dig 2 pieces of ice", "Bring the ice to the SHELTER",
                 "Put the ice in the WATER MACHINE", "Wait: it melts the ice", "DRINK the clean water");

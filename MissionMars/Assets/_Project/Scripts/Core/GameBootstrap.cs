@@ -127,6 +127,10 @@ namespace MissionMars
                     for (int f = 0; f < 20; f++) { Game.Player.Teleport(p, 0); Game.Player.LookAt(at); yield return null; }
                     yield return Shot(dir, n, 0.6f);
                 }
+                int wired = 0; foreach (var w in MarsWorld.WallIce) if (w && w.GetComponent<Interactable>()) wired++;
+                var wi = MarsWorld.WallIce.Find(x => x && x.activeSelf && x.GetComponent<Interactable>());
+                int before = Game.Suit.Items.Count; if (wi) wi.GetComponent<Interactable>().OnUse();
+                L($"wall ice: {MarsWorld.WallIce.Count} crystals, {wired} diggable; dug one: bag {before} -> {Game.Suit.Items.Count}, crystal gone={(wi ? !wi.activeSelf : false)}");
             }
             L("DONE"); Application.Quit();
         }

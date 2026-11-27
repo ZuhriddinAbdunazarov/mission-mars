@@ -50,7 +50,7 @@ namespace MissionMars
         public static Rover TheRover; public static readonly List<GameObject> IceBlocks = new List<GameObject>();
         /// <summary>The ice spot nearest the shelter is inside the ICE CAVE (Mars ice hides from the Sun in dark caves).</summary>
         public static int CaveIndex { get { int best = 0; float bd = 1e9f; for (int i = 0; i < IceXZ.Length; i++) { float d = Vector2.Distance(IceXZ[i], BunkerXZ); if (d < bd) { bd = d; best = i; } } return best; } }
-        public static GameObject CaveIce; public static Transform Cave;
+        public static GameObject CaveIce; public static Transform Cave; public static readonly List<GameObject> WallIce = new List<GameObject>();
         static readonly List<(Light l, float on)> powerLights = new List<(Light, float)>();
         static readonly List<(Material m, Color c)> powerGlows = new List<(Material, Color)>();
         static Light emergency;
@@ -468,7 +468,7 @@ namespace MissionMars
             if (Game.ExploreBase) return;
             var parent = new GameObject("Ice").transform; parent.SetParent(Root.transform);
             var ice = new Color(0.7f, 0.9f, 1f);
-            CaveIce = null; Cave = null;
+            CaveIce = null; Cave = null; WallIce.Clear();
             for (int ii = 0; ii < IceXZ.Length; ii++)
             {
                 var xz = IceXZ[ii];
@@ -545,7 +545,7 @@ namespace MissionMars
                     {
                         if (rnd.NextDouble() < 0.25) continue; // not on every spot: looks natural
                         if (!Physics.Raycast(c, dir, out var h, 9f, ~0, QueryTriggerInteraction.Ignore) || h.distance < 0.8f) continue;
-                        var g = Object.Instantiate(crystal, root, true); g.name = "WallIce";
+                        var g = Object.Instantiate(crystal, root, true); g.name = "WallIce"; WallIce.Add(g);
                         float size = 0.6f + (float)rnd.NextDouble() * 0.9f;
                         var b0 = Util.Bounds(g); float k = size / Mathf.Max(0.001f, Mathf.Max(b0.size.x, Mathf.Max(b0.size.y, b0.size.z)));
                         g.transform.localScale = g.transform.localScale * k;
