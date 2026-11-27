@@ -1620,7 +1620,8 @@ namespace MissionMars
                 yield return new WaitForSeconds(1f);
             }
             exh.Play(); // quiet lift-off: no engine or explosion sound
-            var roar = AudioManager.I.Loop("rocket", 0f); roar.mute = true; // quiet flight home: no music, no engine drone
+            Sfx.Play("whoosh", 1f, 0.55f); // lift-off: a big whoosh, then the air rushes past (no music, no engine drone)
+            var roar = AudioManager.I.Loop("wind", 0f); roar.pitch = 1.6f; AudioManager.I.FadeSource(roar, 0.6f, 0.8f);
             FX.DustBlast(rocket.position, 2f); FX.Explosion(rocket.position + Vector3.up * 1.5f, 1.2f);
             // big billowing clouds roll out sideways from the pad
             for (int i = 0; i < 6; i++)

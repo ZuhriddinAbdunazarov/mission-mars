@@ -165,13 +165,22 @@ namespace MissionMars
         // ------------------------------------------------------------------ intro
         static bool Skip => Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Escape);
 
+        Coroutine siren;
+        /// <summary>The worried part: a two-tone warning siren (like a "trevoga" alarm) until the crash.</summary>
+        IEnumerator Siren()
+        {
+            for (int i = 0; i < 12; i++) { Sfx.Play("alarm", 0.65f, i % 2 == 0 ? 1.0f : 0.78f); yield return new WaitForSeconds(0.45f); }
+        }
+
         public IEnumerator Intro()
         {
             Orbiter.gameObject.SetActive(false); Astronaut.gameObject.SetActive(false);
             Ship.gameObject.SetActive(true); exhaust.Play(); engLight.enabled = true;
             var cam = Cam.transform;
             AudioManager.I.StopMusic(1f); // no music while the rocket flies: only the engines
-            var roar = AudioManager.I.Loop("rocket", 0f); roar.mute = true; // quiet flight: no music, no engine drone
+            // no music and no engine drone: just the AIR RUSHING past (the Mars wind recording, played faster = a whoosh)
+            var roar = AudioManager.I.Loop("wind", 0f); roar.pitch = 1.55f; AudioManager.I.FadeSource(roar, 0.5f, 1.2f);
+            Sfx.Play("whoosh", 0.8f, 0.7f);
 
             // SHOT 1 — leaving Earth: huge blue planet below, rocket climbs past the camera
             Vector3 c = transform.position;
@@ -199,7 +208,7 @@ namespace MissionMars
             yield return Cinema.I.ToBlack(0.6f);
             Cinema.I.Caption("7 MONTHS LATER  ·  225 MILLION KILOMETRES FROM HOME", 4.5f);
             ResetEarth();
-            AudioManager.I.FadeSource(roar, 0.25f, 1f);
+            AudioManager.I.FadeSource(roar, 0.12f, 1f); roar.pitch = 1.2f; // space is quiet: only a soft hiss
             Vector3 p0 = c + new Vector3(4000, 2600, -16000), p1 = c + new Vector3(500, 500, -3800);
             Ship.position = p0; Ship.rotation = Quaternion.LookRotation(c - p0);
             cam.position = p0 - Ship.forward * 70 + Ship.right * 32 + Ship.up * 12; cam.rotation = Quaternion.LookRotation(Vector3.Lerp(p0, c, 0.08f) - cam.position);
@@ -217,8 +226,8 @@ namespace MissionMars
             // SHOT 3 — entry, failure
             Cinema.I.Caption("ENTERING MARS ATMOSPHERE", 2.5f);
             Vector3 entryA = c + new Vector3(300, 300, -(MarsR + 260)), entryB = c + new Vector3(80, 60, -(MarsR + 30));
-            plasma.Play(); Sfx.Play("whoosh", 0.7f, 0.6f);
-            AudioManager.I.FadeSource(roar, 0.9f, 1.5f);
+            plasma.Play(); Sfx.Play("whoosh", 0.9f, 0.6f);
+            roar.pitch = 1.8f; AudioManager.I.FadeSource(roar, 0.8f, 1.5f); // the air screams past the hot heat shield
             t = 0; dur = 6f;
             bool a1 = false, a2 = false;
             while (t < dur && !Skip)
@@ -228,15 +237,16 @@ namespace MissionMars
                 Ship.rotation = Quaternion.LookRotation(entryB - entryA) * Quaternion.Euler(0, 0, Mathf.Sin(t * 2) * 6 + k * 50);
                 cam.position = Ship.position - Ship.forward * 70 + Vector3.up * 14 + Random.insideUnitSphere * (0.5f + k * 3f);
                 cam.rotation = Quaternion.LookRotation(Ship.position - cam.position);
-                if (t > 2.2f && !a1) { a1 = true; Cinema.I.Caption("<color=#FF6A4A>HEAT SHIELD DAMAGED</color>", 2); Sfx.Play("alarm", 0.6f); }
-                if (t > 4f && !a2) { a2 = true; Cinema.I.Caption("<color=#FF4A3A>MAIN ENGINE FAILURE — BRACE FOR IMPACT</color>", 2.5f); Sfx.Play("alarm", 0.7f); Sfx.Play("thud", 0.8f); }
+                if (t > 2.2f && !a1) { a1 = true; Cinema.I.Caption("<color=#FF6A4A>HEAT SHIELD DAMAGED</color>", 2); siren = StartCoroutine(Siren()); Voice.Say("Warning! Heat shield damaged!"); }
+                if (t > 4f && !a2) { a2 = true; Cinema.I.Caption("<color=#FF4A3A>MAIN ENGINE FAILURE — BRACE FOR IMPACT</color>", 2.5f); Voice.Say("Main engine failure! Brace for impact!"); Sfx.Play("thud", 0.8f); Sfx.Play("heartbeat", 1f); }
                 yield return null;
             }
             // CRASH: the ship breaks apart in a fireball
+            if (siren != null) { StopCoroutine(siren); siren = null; }
             Vector3 boom = Ship.position;
             FX.Explosion(boom, 4f, transform);
             plasma.Stop(); exhaust.Stop(); Ship.gameObject.SetActive(false);
-            AudioManager.I.FadeSource(roar, 0, 0.4f); Destroy(roar.gameObject, 1f);
+            AudioManager.I.FadeSource(roar, 0, 0.6f); Destroy(roar.gameObject, 1f);
             Sfx.Play("thud", 1f, 0.6f); // the crash: one thud, no engine or explosion sound
             Cinema.I.ClearCaption();
             { float tt = 0; var cp = cam.position; var away = (cp - boom).normalized;
@@ -270,6 +280,7 @@ namespace MissionMars
         // ------------------------------------------------------------------ flight home
         public IEnumerator Ending()
         {
+            Sfx.Play("whoosh", 0.7f, 0.8f); // flying home: a soft whoosh (no music, no engine drone)
             Ship.gameObject.SetActive(false); Ship = Lander; exhaust = landerFlame; plasma = landerPlasma; // fly home in the rocket we built
             Orbiter.gameObject.SetActive(false); Astronaut.gameObject.SetActive(false);
             Ship.gameObject.SetActive(true); exhaust.Play(); plasma.Stop();
