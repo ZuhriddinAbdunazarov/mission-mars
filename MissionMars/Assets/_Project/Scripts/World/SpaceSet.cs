@@ -237,7 +237,7 @@ namespace MissionMars
             FX.Explosion(boom, 4f, transform);
             plasma.Stop(); exhaust.Stop(); Ship.gameObject.SetActive(false);
             AudioManager.I.FadeSource(roar, 0, 0.4f); Destroy(roar.gameObject, 1f);
-            Sfx.Play("explosion", 1f); Sfx.Play("thud", 1f, 0.6f);
+            Sfx.Play("thud", 1f, 0.6f); // the crash: one thud, no engine or explosion sound
             Cinema.I.ClearCaption();
             { float tt = 0; var cp = cam.position; var away = (cp - boom).normalized;
               while (tt < 2.0f) { tt += Time.deltaTime; cam.position = cp + away * tt * 10 + Random.insideUnitSphere * Mathf.Max(0, 1.8f - tt) * 2.5f; cam.rotation = Quaternion.LookRotation(boom - cam.position); yield return null; } }

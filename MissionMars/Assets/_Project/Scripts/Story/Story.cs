@@ -1609,7 +1609,7 @@ namespace MissionMars
                 if (i == 2) { var vent = FX.Smoke(rocket.position + Vector3.up * 2f, 0.6f, null, 0.5f); props.Add(vent.gameObject); } // engines chill: white vapour
                 yield return new WaitForSeconds(1f);
             }
-            exh.Play(); Sfx.Play("explosion", 0.7f, 0.6f);
+            exh.Play(); // quiet lift-off: no engine or explosion sound
             var roar = AudioManager.I.Loop("rocket", 0f); roar.mute = true; // quiet flight home: no music, no engine drone
             FX.DustBlast(rocket.position, 2f); FX.Explosion(rocket.position + Vector3.up * 1.5f, 1.2f);
             // big billowing clouds roll out sideways from the pad

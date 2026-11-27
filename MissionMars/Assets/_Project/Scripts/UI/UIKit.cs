@@ -355,7 +355,7 @@ namespace MissionMars
             bar.rectTransform.Set(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(4, -18));
         }
         public void SetBase(Color c) { baseBg = c; }
-        public void OnPointerEnter(PointerEventData e) { if (Locked) return; hover = true; Sfx.Play("hover", 0.5f); }
+        public void OnPointerEnter(PointerEventData e) { if (Locked) return; hover = true; } // no sound on hover
         public void OnPointerExit(PointerEventData e) { hover = false; }
         void OnDisable() { hover = false; t = 0; transform.localScale = Vector3.one; }
         void Update()
